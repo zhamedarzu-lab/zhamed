@@ -8,8 +8,11 @@ import PaycheckEditor from "./pages/finance/PaycheckEditor";
 import Bills from "./pages/finance/Bills";
 import Debt from "./pages/finance/Debt";
 import MonthlySummary from "./pages/finance/MonthlySummary";
+import { useTheme } from "./lib/useTheme";
 
 export default function App() {
+  const { theme, toggle } = useTheme();
+
   return (
     <div className="shell">
       <header className="masthead">
@@ -23,6 +26,15 @@ export default function App() {
             <NavLink to="/fitness">Fitness</NavLink>
             <NavLink to="/journal">Journal</NavLink>
           </nav>
+          <button
+            className="quiet"
+            onClick={toggle}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            style={{ marginLeft: "auto", fontSize: "1rem", padding: "0.3rem 0.5rem" }}
+          >
+            {theme === "dark" ? "☀︎" : "☾"}
+          </button>
         </div>
       </header>
 

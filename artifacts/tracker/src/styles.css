@@ -26,6 +26,35 @@
   --shadow: 0 1px 0 var(--rule-strong);
 }
 
+/* Dark mode — same ledger pad, under a desk lamp at night. */
+[data-theme="dark"] {
+  --ledger: #131c17;
+  --paper: #1b2820;
+  --paper-sunk: #101810;
+  --ink: #dde8da;
+  --ink-soft: #96a99a;
+  --ink-faint: #5c6e61;
+  --rule: #283828;
+  --rule-strong: #3d5245;
+  --stamp: #d44e44;
+  --carbon: #6890cc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ledger: #131c17;
+    --paper: #1b2820;
+    --paper-sunk: #101810;
+    --ink: #dde8da;
+    --ink-soft: #96a99a;
+    --ink-faint: #5c6e61;
+    --rule: #283828;
+    --rule-strong: #3d5245;
+    --stamp: #d44e44;
+    --carbon: #6890cc;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
