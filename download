@@ -1,0 +1,8 @@
+node_modules
+dist
+uploads
+.env
+.DS_Store
+*.log
+.replit_cache
+drizzle/meta
