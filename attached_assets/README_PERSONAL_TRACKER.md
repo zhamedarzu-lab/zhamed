@@ -22,7 +22,7 @@ When a paycheck arrives, manually record it and distribute funds through a prior
 1. **Income Entry** — Record paycheck amount + date + label (`Paycheck 1 of Month` / `Paycheck 2 of Month`).
 2. **Bills / Expenses** — Allocate toward monthly bills.
 3. **Debt Repayment** — Allocate toward configurable debt accounts (e.g. Cash App, Afterpay, credit cards).
-4. **Credit Dump** — Remaining surplus applied to credit card paydown.
+4. **Credit Dump** — Remaining surplus applied as extra paydown to either Credit Card A or B (user selects which card receives the dump at entry time).
 
 **Friction reducers:**
 - *Repeat Last Paycheck Structure* button — pre-fills the prior paycheck's allocation split.
@@ -42,7 +42,8 @@ When a paycheck arrives, manually record it and distribute funds through a prior
 | Bill | Default Amount |
 |------|---------------|
 | Rent | $850 |
-| Credit Cards (A/B) | $200 |
+| Credit Card A (minimum) | $100 |
+| Credit Card B (minimum) | $100 |
 | Power | $130 |
 | Subscriptions | $200 |
 | Web | $120 |
