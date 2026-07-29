@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { desc, eq, inArray, like, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import multer from "multer";
 import { z } from "zod";
 import { db, journalEntriesTable, journalImagesTable } from "@workspace/db";
@@ -47,10 +47,14 @@ router.get("/month/:month", async (req, res): Promise<void> => {
     return;
   }
 
+  const [year, mon] = month.split("-").map(Number);
+  const firstDay = `${month}-01`;
+  const lastDay = `${month}-${String(new Date(year, mon, 0).getDate()).padStart(2, "0")}`;
+
   const entries = await db
     .select()
     .from(journalEntriesTable)
-    .where(like(journalEntriesTable.date, `${month}-%`));
+    .where(and(gte(journalEntriesTable.date, firstDay), lte(journalEntriesTable.date, lastDay)));
 
   const entryIds = entries.map((e) => e.id);
   const images =
