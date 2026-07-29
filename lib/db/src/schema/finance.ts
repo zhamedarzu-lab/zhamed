@@ -1,0 +1,69 @@
+import { pgTable, serial, text, numeric, integer, boolean, date } from "drizzle-orm/pg-core";
+
+export const billsTable = pgTable("bills", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  expectedAmount: numeric("expected_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const billPaymentsTable = pgTable("bill_payments", {
+  id: serial("id").primaryKey(),
+  billId: integer("bill_id")
+    .notNull()
+    .references(() => billsTable.id, { onDelete: "cascade" }),
+  month: text("month").notNull(), // YYYY-MM
+  amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull().default("0"),
+});
+
+export const debtAccountsTable = pgTable("debt_accounts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  kind: text("kind").notNull().default("other"), // card | bnpl | loan | other
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const debtSnapshotsTable = pgTable("debt_snapshots", {
+  id: serial("id").primaryKey(),
+  debtAccountId: integer("debt_account_id")
+    .notNull()
+    .references(() => debtAccountsTable.id, { onDelete: "cascade" }),
+  snapshotDate: date("snapshot_date", { mode: "string" }).notNull(),
+  balance: numeric("balance", { precision: 10, scale: 2 }).notNull(),
+  amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull().default("0"),
+});
+
+export const paychecksTable = pgTable("paychecks", {
+  id: serial("id").primaryKey(),
+  payDate: date("pay_date", { mode: "string" }).notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  label: text("label").notNull().default("first"), // first | second
+});
+
+export const allocationsTable = pgTable("allocations", {
+  id: serial("id").primaryKey(),
+  paycheckId: integer("paycheck_id")
+    .notNull()
+    .references(() => paychecksTable.id, { onDelete: "cascade" }),
+  category: text("category").notNull(), // bills | debt | credit_dump | surplus
+  debtAccountId: integer("debt_account_id").references(() => debtAccountsTable.id, {
+    onDelete: "set null",
+  }),
+  billId: integer("bill_id").references(() => billsTable.id, { onDelete: "set null" }),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  notes: text("notes"),
+  tags: text("tags").array().notNull().default([]),
+});
+
+export type Bill = typeof billsTable.$inferSelect;
+export type BillPayment = typeof billPaymentsTable.$inferSelect;
+export type DebtAccount = typeof debtAccountsTable.$inferSelect;
+export type DebtSnapshot = typeof debtSnapshotsTable.$inferSelect;
+export type Paycheck = typeof paychecksTable.$inferSelect;
+export type Allocation = typeof allocationsTable.$inferSelect;
+
+export type InsertBill = typeof billsTable.$inferInsert;
+export type InsertDebtAccount = typeof debtAccountsTable.$inferInsert;
+export type InsertPaycheck = typeof paychecksTable.$inferInsert;

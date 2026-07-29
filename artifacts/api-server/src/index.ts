@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { seedIfEmpty } from "./lib/seed.js";
 
 const rawPort = process.env["PORT"];
 
@@ -14,6 +15,11 @@ const port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+
+// Seed default bills and debt accounts on first boot
+seedIfEmpty().catch((err: unknown) => {
+  logger.warn({ err }, "Seed skipped or failed (non-fatal)");
+});
 
 app.listen(port, (err) => {
   if (err) {

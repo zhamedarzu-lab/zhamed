@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Personal Tracker"
+version = "1.0.0"
+id = "artifacts/tracker"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20338
+
+[services.development]
+run = "pnpm --filter @workspace/tracker run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tracker", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/tracker/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20338"
+BASE_PATH = "/"

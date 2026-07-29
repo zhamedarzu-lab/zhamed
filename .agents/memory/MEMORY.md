@@ -1,0 +1,2 @@
+- [Tracker stack decisions](tracker-stack.md) — key constraints and non-obvious choices for the Personal Tracker app
+- [Object storage init](object-storage-init.md) — @replit/object-storage must be lazy-initialized; top-level await crashes the server
