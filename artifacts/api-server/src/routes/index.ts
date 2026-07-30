@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import financeRouter from "./finance.js";
+import financeRouter from "./finance/index.js";
 
 const router: IRouter = Router();
 

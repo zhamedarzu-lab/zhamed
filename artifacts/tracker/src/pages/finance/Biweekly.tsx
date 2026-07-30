@@ -8,9 +8,9 @@ import {
   Loading,
   Notice,
   Panel,
-  SPENDING_COLOR,
   EXTRA_INCOME_COLOR,
 } from "../../components/ui";
+import { AllocationList } from "../../components/finance-ui";
 import FinanceNav from "./FinanceNav";
 
 type Allocation = {
@@ -120,31 +120,12 @@ export default function Biweekly() {
                 {p.allocations.length === 0 && p.extraIncome.length === 0 ? (
                   <span className="muted">Nothing recorded yet.</span>
                 ) : (
-                  <ul className="alloc-list">
-                    {p.extraIncome.map((e) => (
-                      <li key={`extra-${e.id}`}>
-                        <span className="alloc-dot" style={{ background: EXTRA_INCOME_COLOR }} />
-                        {e.note || <span className="muted">Extra income</span>}
-                        <span className="fig alloc-amt" style={{ color: EXTRA_INCOME_COLOR }}>
-                          {signed(e.amount)}
-                        </span>
-                      </li>
-                    ))}
-                    {p.allocations.map((a) => (
-                      <li key={a.id}>
-                        <span className="alloc-dot" style={{ background: tagColor(a.note) }} />
-                        {a.note || <span className="muted">Untitled</span>}
-                        <span className="fig alloc-amt">{dollars(a.amount)}</span>
-                      </li>
-                    ))}
-                    {p.totals.unallocated > 0.005 && (
-                      <li>
-                        <span className="alloc-dot" style={{ background: SPENDING_COLOR, opacity: 0.5 }} />
-                        <span className="muted">Spending</span>
-                        <span className="fig alloc-amt">{dollars(p.totals.unallocated)}</span>
-                      </li>
-                    )}
-                  </ul>
+                  <AllocationList
+                    allocations={p.allocations}
+                    extraIncome={p.extraIncome}
+                    unallocated={p.totals.unallocated}
+                    signedAmount={signed}
+                  />
                 )}
               </div>
             </Panel>

@@ -13,6 +13,7 @@ import {
   EXTRA_INCOME_COLOR,
   tagColor,
 } from "../../components/ui";
+import { AllocationList } from "../../components/finance-ui";
 import FinanceNav from "./FinanceNav";
 
 type Summary = {
@@ -234,52 +235,14 @@ export default function MonthlySummary() {
                     {p.allocations.length === 0 && p.extraIncome.length === 0 ? (
                       <span className="muted">Nothing recorded yet.</span>
                     ) : (
-                      <ul className="alloc-list stacked">
-                        {p.extraIncome.map((e) => (
-                          <li key={`extra-${e.id}`}>
-                            <span className="alloc-dot" style={{ background: EXTRA_INCOME_COLOR }} />
-                            <span className="alloc-note">
-                              {e.note || <span className="muted">Extra income</span>}
-                            </span>
-                            <span className="fig alloc-amt" style={{ color: EXTRA_INCOME_COLOR }}>
-                              {signed(e.amount)}
-                            </span>
-                            {pool > 0 && (
-                              <span className="alloc-pct">
-                                {Math.round((e.amount / pool) * 100)}%
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                        {p.allocations.map((a) => (
-                          <li key={a.id}>
-                            <span className="alloc-dot" style={{ background: tagColor(a.note) }} />
-                            <span className="alloc-note">
-                              {a.note || <span className="muted">Untitled</span>}
-                            </span>
-                            <span className="fig alloc-amt">{dollars(a.amount)}</span>
-                            {pool > 0 && (
-                              <span className="alloc-pct">
-                                {Math.round((a.amount / pool) * 100)}%
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                        {p.totals.unallocated > 0.005 && (
-                          <li>
-                            <span className="alloc-dot" style={{ background: SPENDING_COLOR, opacity: 0.55 }} />
-                            <span className="alloc-note muted">Spending</span>
-                            <span className="fig alloc-amt" style={{ color: SPENDING_COLOR }}>
-                              {dollars(p.totals.unallocated)}
-                            </span>
-                            {pool > 0 && (
-                              <span className="alloc-pct">
-                                {Math.round((p.totals.unallocated / pool) * 100)}%
-                              </span>
-                            )}
-                          </li>
-                        )}
-                      </ul>
+                      <AllocationList
+                        allocations={p.allocations}
+                        extraIncome={p.extraIncome}
+                        unallocated={p.totals.unallocated}
+                        pool={pool}
+                        signedAmount={signed}
+                        stacked
+                      />
                     )}
                   </div>
                 </>

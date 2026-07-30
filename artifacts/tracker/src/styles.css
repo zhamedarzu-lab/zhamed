@@ -195,54 +195,6 @@ main {
 .grid-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.grid-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-/* ---------- Home module cards ---------- */
-.module-card {
-  display: block;
-  background: var(--paper);
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--r);
-  padding: 1.5rem 1.25rem;
-  color: var(--ink);
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-.module-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--accent, var(--rule-strong));
-}
-.module-card:hover {
-  text-decoration: none;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 0 var(--rule-strong);
-}
-.module-card h2 {
-  margin: 0.5rem 0 0.35rem;
-}
-.module-card p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 0.875rem;
-}
-
-.module-card .stat {
-  margin-top: 1.25rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--rule);
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-family: var(--fig);
-  font-size: 0.8125rem;
-  color: var(--ink-soft);
-}
 
 /* ---------- Tables: the ledger itself ---------- */
 table {
@@ -455,22 +407,6 @@ button.btn-icon {
   font-size: 1.0625rem;
   color: #e0b04e;
 }
-
-.tape-bar {
-  display: flex;
-  height: 34px;
-  background: var(--paper-sunk);
-  border-bottom: 1px solid var(--rule);
-  overflow: hidden;
-}
-
-.tape-seg {
-  transition: width 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
-  position: relative;
-  height: 100%;
-  background: var(--ink);
-}
-
 .tape-legend {
   display: grid;
   gap: 0;
@@ -1160,37 +1096,11 @@ button.btn-icon {
 .pos {
   color: var(--carbon);
 }
-.neg {
-  color: var(--stamp);
-}
 .muted {
   color: var(--ink-soft);
 }
 .faint {
   color: var(--ink-faint);
-}
-
-/* ---------- Stat blocks ---------- */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--r);
-  background: var(--paper);
-  overflow: hidden;
-}
-.stat-cell {
-  padding: 0.8rem 1rem;
-  border-right: 1px solid var(--rule);
-}
-.stat-cell:last-child {
-  border-right: none;
-}
-.stat-cell .amount {
-  display: block;
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-top: 0.15rem;
 }
 
 /* ---------- Charts ---------- */
@@ -1220,117 +1130,6 @@ button.btn-icon {
   font-family: var(--fig);
   font-size: 9px;
   fill: var(--ink-faint);
-}
-
-/* ---------- Calendar ---------- */
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  border-left: 1px solid var(--rule);
-  border-top: 1px solid var(--rule);
-  background: var(--paper);
-}
-
-.cal-head {
-  padding: 0.4rem;
-  text-align: center;
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule-strong);
-  font-family: var(--fig);
-  font-size: 0.625rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.cal-day {
-  min-height: 84px;
-  padding: 0.35rem 0.4rem;
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  background: none;
-  text-align: left;
-  border-radius: 0;
-  font-family: var(--ui);
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  align-items: stretch;
-}
-.cal-day:hover:not(:disabled) {
-  background: var(--paper-sunk);
-}
-.cal-day[data-empty="true"] {
-  background: var(--ledger);
-  cursor: default;
-}
-.cal-day[data-today="true"] .cal-daynum {
-  color: var(--stamp);
-  font-weight: 600;
-}
-.cal-daynum {
-  font-family: var(--fig);
-  font-size: 0.75rem;
-  color: var(--ink-soft);
-}
-.cal-preview {
-  font-size: 0.6875rem;
-  line-height: 1.35;
-  color: var(--ink-soft);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-.cal-marks {
-  margin-top: auto;
-  display: flex;
-  gap: 3px;
-  align-items: center;
-}
-.cal-mark {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--ink);
-}
-.cal-mark[data-kind="image"] {
-  background: var(--carbon);
-}
-
-/* ---------- Image grid ---------- */
-.image-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 0.5rem;
-}
-.image-tile {
-  position: relative;
-  aspect-ratio: 1;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--r);
-  overflow: hidden;
-  background: var(--paper-sunk);
-}
-.image-tile img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.image-tile button {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  padding: 0.1rem 0.35rem;
-  font-size: 0.6875rem;
-  background: var(--paper);
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.image-tile:hover button,
-.image-tile button:focus-visible {
-  opacity: 1;
 }
 
 /* ---------- Empty states & messages ---------- */
@@ -1404,12 +1203,6 @@ button.btn-icon {
   .masthead-inner {
     flex-wrap: wrap;
     gap: 0;
-  }
-  .cal-day {
-    min-height: 56px;
-  }
-  .cal-preview {
-    display: none;
   }
 }
 
@@ -1496,15 +1289,6 @@ button.btn-icon {
     border-right: none;
     border-bottom: 1px solid var(--rule);
     padding: 0.6rem 0.75rem;
-  }
-  .stats {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  }
-  .stat-cell {
-    padding: 0.6rem 0.75rem;
-  }
-  .stat-cell .amount {
-    font-size: 1.05rem;
   }
 }
 

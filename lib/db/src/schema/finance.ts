@@ -9,23 +9,6 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-export const billsTable = pgTable("bills", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  expectedAmount: numeric("expected_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  active: boolean("active").notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
-});
-
-export const billPaymentsTable = pgTable("bill_payments", {
-  id: serial("id").primaryKey(),
-  billId: integer("bill_id")
-    .notNull()
-    .references(() => billsTable.id, { onDelete: "cascade" }),
-  month: text("month").notNull(), // YYYY-MM
-  amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull().default("0"),
-});
-
 export const debtAccountsTable = pgTable("debt_accounts", {
   id:          serial("id").primaryKey(),
   name:        text("name").notNull(),
@@ -120,14 +103,11 @@ export const monthlyBillItemsTable = pgTable("monthly_bill_items", {
 });
 
 export type MonthlyBillItem = typeof monthlyBillItemsTable.$inferSelect;
-export type Bill = typeof billsTable.$inferSelect;
-export type BillPayment = typeof billPaymentsTable.$inferSelect;
 export type DebtAccount = typeof debtAccountsTable.$inferSelect;
 export type DebtSnapshot = typeof debtSnapshotsTable.$inferSelect;
 export type Paycheck = typeof paychecksTable.$inferSelect;
 export type Allocation = typeof allocationsTable.$inferSelect;
 export type ExtraIncome = typeof extraIncomeTable.$inferSelect;
 
-export type InsertBill = typeof billsTable.$inferInsert;
 export type InsertDebtAccount = typeof debtAccountsTable.$inferInsert;
 export type InsertPaycheck = typeof paychecksTable.$inferInsert;

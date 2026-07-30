@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { dollars, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
@@ -33,6 +33,20 @@ type Payment = {
   seq: number;
 };
 
+/** Shared empty array so cards without history keep a stable prop identity. */
+const EMPTY: never[] = [];
+
+function groupBy<T>(rows: T[], key: (row: T) => number): Map<number, T[]> {
+  const out = new Map<number, T[]>();
+  for (const row of rows) {
+    const k = key(row);
+    const list = out.get(k);
+    if (list) list.push(row);
+    else out.set(k, [row]);
+  }
+  return out;
+}
+
 function utilColor(ratio: number) {
   if (ratio <= 0.3)  return "#5fc97a";
   if (ratio <= 0.6)  return "#ccb85a";
@@ -61,6 +75,16 @@ export default function Debt() {
     setNewName("");
     await accounts.reload();
   });
+
+  // Bucket the history once instead of re-scanning it inside every card.
+  const snapshotsByAccount = useMemo(
+    () => groupBy(snapshots.data ?? [], (s) => s.debtAccountId),
+    [snapshots.data],
+  );
+  const paymentsByAccount = useMemo(
+    () => groupBy(payments.data ?? [], (p) => p.debtAccountId),
+    [payments.data],
+  );
 
   const active = (accounts.data ?? []).filter((a) => a.active);
   const totalOwed  = active.reduce((s, a) => s + (a.currentBalance ?? 0), 0);
@@ -117,8 +141,8 @@ export default function Debt() {
             <CardPanel
               key={account.id}
               account={account}
-              snapshots={(snapshots.data ?? []).filter((s) => s.debtAccountId === account.id)}
-              payments={(payments.data ?? []).filter((p) => p.debtAccountId === account.id)}
+              snapshots={snapshotsByAccount.get(account.id) ?? EMPTY}
+              payments={paymentsByAccount.get(account.id) ?? EMPTY}
               onChanged={refreshAll}
               onError={setError}
             />
