@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { currentMonth, dollars } from "../../lib/format";
-import { AllocBar, allocColor, Field, MonthPicker, MoneyInput, Notice, Panel, SPENDING_COLOR } from "../../components/ui";
+import { AllocBar, tagColor, Field, MonthPicker, MoneyInput, Notice, Panel, SPENDING_COLOR } from "../../components/ui";
 
 type Row = {
   key: string;
@@ -189,7 +189,7 @@ export default function PaycheckEditor() {
             <AllocBar
               segments={rows
                 .filter((r) => r.amount > 0)
-                .map((r, i) => ({ amount: r.amount, color: allocColor(i) }))}
+                .map((r) => ({ amount: r.amount, color: tagColor(r.note) }))}
               total={amount}
               remainder={totals.remaining > 0.005 ? totals.remaining : undefined}
               height={34}
@@ -198,9 +198,9 @@ export default function PaycheckEditor() {
             <div className="tape-legend">
               {rows
                 .filter((r) => r.amount > 0)
-                .map((r, i) => (
+                .map((r) => (
                   <div className="tape-legend-row" key={r.key}>
-                    <span className="swatch" style={{ background: allocColor(i) }} />
+                    <span className="swatch" style={{ background: tagColor(r.note) }} />
                     <span className="label">{r.note || <em>Untitled</em>}</span>
                     <span className="value">{dollars(r.amount)}</span>
                   </div>

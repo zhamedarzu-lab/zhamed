@@ -6,12 +6,33 @@ export type Point = { date: string; value: number };
 // ---------------------------------------------------------------------------
 // AllocBar — multi-colour segmented allocation bar
 // ---------------------------------------------------------------------------
-const ALLOC_PALETTE = [
-  "#6890cc", "#d4a644", "#7acc9a", "#cc8f7a",
-  "#9a7acc", "#5ab8cc", "#ccb85a", "#cc7a9a",
-];
 export const SPENDING_COLOR = "#5fc97a";
-export const allocColor = (i: number) => ALLOC_PALETTE[i % ALLOC_PALETTE.length];
+
+// Known tag categories → fixed colour. Matched by keyword so "bills 1/2"
+// still lands on the same blue as "bills".
+const TAG_KEYWORDS: Array<[RegExp, string]> = [
+  [/bill/i,    "#6890cc"],  // bills      → carbon blue
+  [/cashapp/i, "#d4a644"],  // cashapp    → amber
+  [/cred/i,    "#cc8f7a"],  // credit     → terracotta
+  [/debt/i,    "#9a7acc"],  // debt       → violet
+  [/steam/i,   "#5ab8cc"],  // steamdeck  → sky
+  [/rent/i,    "#7acc9a"],  // rent       → mint
+  [/spend/i,   SPENDING_COLOR],
+];
+
+// Deterministic hash so unknown tags always get the same colour.
+const FALLBACK: string[] = ["#ccb85a", "#cc7a9a", "#a0cc7a", "#7accc0", "#cc9a5a", "#b07acc"];
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+export function tagColor(note: string): string {
+  const n = (note || "").trim();
+  for (const [re, color] of TAG_KEYWORDS) if (re.test(n)) return color;
+  return FALLBACK[hashStr(n.toLowerCase()) % FALLBACK.length];
+}
 
 export function AllocBar({
   segments,

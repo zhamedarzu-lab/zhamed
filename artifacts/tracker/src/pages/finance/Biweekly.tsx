@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { dollars, shortMonth } from "../../lib/format";
-import { AllocBar, allocColor, Empty, Loading, Notice, Panel, SPENDING_COLOR } from "../../components/ui";
+import { AllocBar, tagColor, Empty, Loading, Notice, Panel, SPENDING_COLOR } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
 type Allocation = {
@@ -94,7 +94,7 @@ export default function Biweekly() {
             bodyless
           >
             <AllocBar
-              segments={p.allocations.map((a, i) => ({ amount: a.amount, color: allocColor(i) }))}
+              segments={p.allocations.map((a) => ({ amount: a.amount, color: tagColor(a.note) }))}
               total={p.amount}
               remainder={p.totals.unallocated}
               height={8}
@@ -106,7 +106,7 @@ export default function Biweekly() {
                 <ul className="alloc-list">
                   {p.allocations.map((a, i) => (
                     <li key={a.id}>
-                      <span className="alloc-dot" style={{ background: allocColor(i) }} />
+                      <span className="alloc-dot" style={{ background: tagColor(a.note) }} />
                       {a.note || <span className="muted">Untitled</span>}
                       <span className="fig alloc-amt">{dollars(a.amount)}</span>
                     </li>
