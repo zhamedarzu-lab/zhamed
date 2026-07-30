@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import {
@@ -12,6 +12,8 @@ import {
 } from "@workspace/db";
 
 const router: IRouter = Router();
+
+const MONTH_RE = /^\d{4}-\d{2}$/;
 
 function parseId(raw: string): number {
   const n = parseInt(raw, 10);
@@ -42,14 +44,17 @@ function computeTotals(allocs: AllocRow[], paycheckAmount: number) {
 // ── Paychecks ────────────────────────────────────────────────────────────────
 
 router.get("/paychecks", async (req, res): Promise<void> => {
-  const from = typeof req.query.from === "string" ? req.query.from : undefined;
-  const to = typeof req.query.to === "string" ? req.query.to : undefined;
+  const month = typeof req.query.month === "string" ? req.query.month : undefined;
+  if (month !== undefined && !MONTH_RE.test(month)) {
+    res.status(400).json({ error: "Invalid month format — expected YYYY-MM" });
+    return;
+  }
 
   const paychecks = await db
     .select()
     .from(paychecksTable)
-    .where(and(from ? gte(paychecksTable.payDate, from) : undefined, to ? lte(paychecksTable.payDate, to) : undefined))
-    .orderBy(desc(paychecksTable.payDate));
+    .where(month ? eq(paychecksTable.month, month) : undefined)
+    .orderBy(desc(paychecksTable.month), desc(paychecksTable.seq));
 
   if (paychecks.length === 0) {
     res.json([]);
@@ -67,9 +72,9 @@ router.get("/paychecks", async (req, res): Promise<void> => {
       const amount = Number(p.amount);
       return {
         id: p.id,
-        payDate: p.payDate,
+        month: p.month,
+        seq: p.seq,
         amount,
-        label: p.label,
         allocations: pAllocs.map((a) => ({
           id: a.id,
           category: a.category,
@@ -89,7 +94,7 @@ router.get("/paychecks/last", async (_req, res): Promise<void> => {
   const [p] = await db
     .select()
     .from(paychecksTable)
-    .orderBy(desc(paychecksTable.payDate))
+    .orderBy(desc(paychecksTable.month), desc(paychecksTable.seq))
     .limit(1);
 
   if (!p) {
@@ -105,9 +110,9 @@ router.get("/paychecks/last", async (_req, res): Promise<void> => {
   const amount = Number(p.amount);
   res.json({
     id: p.id,
-    payDate: p.payDate,
+    month: p.month,
+    seq: p.seq,
     amount,
-    label: p.label,
     allocations: allocs.map((a) => ({
       category: a.category,
       amount: Number(a.amount),
@@ -134,9 +139,9 @@ router.get("/paychecks/:id", async (req, res): Promise<void> => {
   const amount = Number(p.amount);
   res.json({
     id: p.id,
-    payDate: p.payDate,
+    month: p.month,
+    seq: p.seq,
     amount,
-    label: p.label,
     allocations: allocs.map((a) => ({
       id: a.id,
       category: a.category,
@@ -159,10 +164,35 @@ const AllocationInput = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+/**
+ * Postgres unique-violation, raised when a month already has that paycheck.
+ * Drizzle wraps driver errors, so the pg code sits further down `cause`.
+ */
+function isDuplicate(err: unknown): boolean {
+  for (let cur = err, depth = 0; cur && depth < 5; depth++) {
+    if (typeof cur === "object" && (cur as { code?: string }).code === "23505") return true;
+    cur = (cur as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+/** "2026-08" -> "August 2026", so the message reads like the rest of the app. */
+function monthName(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  if (!y || !m) return month;
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+const ordinal = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
+
+const takenMessage = (month: string, seq: number) =>
+  `The ${ordinal(seq)} paycheck of ${monthName(month)} is already recorded. ` +
+  `Edit that one, or pick a different number.`;
+
 const PaycheckInput = z.object({
-  payDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  month: z.string().regex(MONTH_RE),
+  seq: z.number().int().min(1).max(3),
   amount: z.number().positive(),
-  label: z.enum(["first", "second"]),
   allocations: z.array(AllocationInput).optional(),
 });
 
@@ -172,12 +202,21 @@ router.post("/paychecks", async (req, res): Promise<void> => {
     res.status(400).json({ error: String(parsed.error) });
     return;
   }
-  const { payDate, amount, label, allocations = [] } = parsed.data;
+  const { month, seq, amount, allocations = [] } = parsed.data;
 
-  const [paycheck] = await db
-    .insert(paychecksTable)
-    .values({ payDate, amount: amount.toFixed(2), label })
-    .returning();
+  let paycheck;
+  try {
+    [paycheck] = await db
+      .insert(paychecksTable)
+      .values({ month, seq, amount: amount.toFixed(2) })
+      .returning();
+  } catch (err) {
+    if (isDuplicate(err)) {
+      res.status(409).json({ error: takenMessage(month, seq) });
+      return;
+    }
+    throw err;
+  }
 
   if (allocations.length > 0) {
     await db.insert(allocationsTable).values(
@@ -198,12 +237,7 @@ router.post("/paychecks", async (req, res): Promise<void> => {
 
 router.patch("/paychecks/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
-  const PaycheckUpdate = z.object({
-    payDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-    amount: z.number().positive().optional(),
-    label: z.enum(["first", "second"]).optional(),
-    allocations: z.array(AllocationInput).optional(),
-  });
+  const PaycheckUpdate = PaycheckInput.partial();
   const parsed = PaycheckUpdate.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: String(parsed.error) });
@@ -214,10 +248,24 @@ router.patch("/paychecks/:id", async (req, res): Promise<void> => {
 
   if (Object.keys(fields).length > 0) {
     const update: Record<string, unknown> = {};
-    if (fields.payDate) update.payDate = fields.payDate;
+    if (fields.month) update.month = fields.month;
+    if (fields.seq) update.seq = fields.seq;
     if (fields.amount) update.amount = fields.amount.toFixed(2);
-    if (fields.label) update.label = fields.label;
-    await db.update(paychecksTable).set(update).where(eq(paychecksTable.id, id));
+    try {
+      await db.update(paychecksTable).set(update).where(eq(paychecksTable.id, id));
+    } catch (err) {
+      if (isDuplicate(err)) {
+        const [current] = await db
+          .select()
+          .from(paychecksTable)
+          .where(eq(paychecksTable.id, id));
+        res.status(409).json({
+          error: takenMessage(fields.month ?? current?.month ?? "", fields.seq ?? current?.seq ?? 0),
+        });
+        return;
+      }
+      throw err;
+    }
   }
 
   if (allocations !== undefined) {
@@ -508,20 +556,15 @@ router.get("/debt/trend", async (_req, res): Promise<void> => {
 
 router.get("/summary/:month", async (req, res): Promise<void> => {
   const month = req.params.month;
-  if (!/^\d{4}-\d{2}$/.test(month)) {
+  if (!MONTH_RE.test(month)) {
     res.status(400).json({ error: "Invalid month format — expected YYYY-MM" });
     return;
   }
 
-  const [year, mon] = month.split("-").map(Number);
-  const from = `${month}-01`;
-  const lastDay = new Date(year, mon, 0).getDate();
-  const to = `${month}-${String(lastDay).padStart(2, "0")}`;
-
   const paychecks = await db
     .select()
     .from(paychecksTable)
-    .where(and(gte(paychecksTable.payDate, from), lte(paychecksTable.payDate, to)));
+    .where(eq(paychecksTable.month, month));
 
   const income = paychecks.reduce((s, p) => s + Number(p.amount), 0);
 
@@ -570,9 +613,9 @@ router.get("/summary/:month", async (req, res): Promise<void> => {
 
 router.get("/months", async (_req, res): Promise<void> => {
   const rows = await db
-    .selectDistinct({ month: sql<string>`to_char(${paychecksTable.payDate}, 'YYYY-MM')` })
+    .selectDistinct({ month: paychecksTable.month })
     .from(paychecksTable)
-    .orderBy(desc(sql`to_char(${paychecksTable.payDate}, 'YYYY-MM')`));
+    .orderBy(desc(paychecksTable.month));
 
   res.json(rows.map((r) => r.month));
 });

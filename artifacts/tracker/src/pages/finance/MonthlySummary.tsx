@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApi } from "../../lib/api";
-import { currentMonth, dollars, monthName, shiftMonth } from "../../lib/format";
+import { currentMonth, dollars, monthName, ordinal, shiftMonth } from "../../lib/format";
 import { Empty, Loading, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
@@ -16,9 +16,9 @@ type Summary = {
 
 type Paycheck = {
   id: number;
-  payDate: string;
+  month: string;
+  seq: number;
   amount: number;
-  label: string;
   totals: {
     bills: number;
     debt: number;
@@ -32,15 +32,8 @@ type Paycheck = {
 export default function MonthlySummary() {
   const [month, setMonth] = useState(currentMonth());
 
-  const [year, mon] = month.split("-").map(Number);
-  const from = `${month}-01`;
-  const to = `${month}-${String(new Date(year, mon, 0).getDate()).padStart(2, "0")}`;
-
   const summary = useApi<Summary>(`/api/finance/summary/${month}`, [month]);
-  const paychecks = useApi<Paycheck[]>(
-    `/api/finance/paychecks?from=${from}&to=${to}`,
-    [month],
-  );
+  const paychecks = useApi<Paycheck[]>(`/api/finance/paychecks?month=${month}`, [month]);
 
   return (
     <>
@@ -48,7 +41,7 @@ export default function MonthlySummary() {
         <div>
           <span className="eyebrow">Finance</span>
           <h1>Monthly summary</h1>
-          <p>Both paychecks rolled up for {monthName(month)}.</p>
+          <p>Every paycheck rolled up for {monthName(month)}.</p>
         </div>
         <div className="button-row">
           <FinanceNav />
@@ -131,7 +124,7 @@ export default function MonthlySummary() {
       {!paychecks.loading && (paychecks.data?.length ?? 0) === 0 && (
         <Panel>
           <Empty title={`No paychecks for ${monthName(month)}`}>
-            <p>Record a paycheck on the Biweekly tab and it will show up here.</p>
+            <p>Record a paycheck on the Paychecks tab and it will show up here.</p>
           </Empty>
         </Panel>
       )}
@@ -142,9 +135,7 @@ export default function MonthlySummary() {
             key={p.id}
             title={
               <div>
-                <span className="eyebrow">
-                  {p.label === "first" ? "Paycheck 1 of month" : "Paycheck 2 of month"}
-                </span>
+                <span className="eyebrow">{ordinal(p.seq)} paycheck</span>
                 <h2 style={{ marginTop: "0.1rem" }}>{dollars(p.amount)}</h2>
               </div>
             }

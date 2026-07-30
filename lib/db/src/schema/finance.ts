@@ -1,4 +1,13 @@
-import { pgTable, serial, text, numeric, integer, boolean, date } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  text,
+  numeric,
+  integer,
+  boolean,
+  date,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
 export const billsTable = pgTable("bills", {
   id: serial("id").primaryKey(),
@@ -35,12 +44,21 @@ export const debtSnapshotsTable = pgTable("debt_snapshots", {
   amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull().default("0"),
 });
 
-export const paychecksTable = pgTable("paychecks", {
-  id: serial("id").primaryKey(),
-  payDate: date("pay_date", { mode: "string" }).notNull(),
-  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  label: text("label").notNull().default("first"), // first | second
-});
+/**
+ * A paycheck is identified by its month and its position within that month —
+ * the 1st, 2nd, or 3rd deposit. No calendar date is kept: which day it landed
+ * on never affected any figure the app reports.
+ */
+export const paychecksTable = pgTable(
+  "paychecks",
+  {
+    id: serial("id").primaryKey(),
+    month: text("month").notNull(), // YYYY-MM
+    seq: integer("seq").notNull().default(1), // 1 | 2 | 3
+    amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  },
+  (t) => [uniqueIndex("paychecks_month_seq_idx").on(t.month, t.seq)],
+);
 
 export const allocationsTable = pgTable("allocations", {
   id: serial("id").primaryKey(),

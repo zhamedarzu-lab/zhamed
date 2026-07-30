@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { CATEGORY_LABELS, dollars, todayIso } from "../../lib/format";
-import { Field, MoneyInput, Notice, Panel } from "../../components/ui";
+import { CATEGORY_LABELS, currentMonth, dollars, shiftMonth } from "../../lib/format";
+import { Field, MonthPicker, MoneyInput, Notice, Panel } from "../../components/ui";
 
 type Row = {
   key: string;
@@ -19,9 +19,9 @@ type Bill = { id: number; name: string; expectedAmount: number; active: boolean 
 
 type LoadedPaycheck = {
   id: number;
-  payDate: string;
+  month: string;
+  seq: 1 | 2 | 3;
   amount: number;
-  label: "first" | "second";
   allocations: Array<{
     category: Row["category"];
     debtAccountId: number | null;
@@ -53,18 +53,18 @@ export default function PaycheckEditor() {
   const bills = useApi<Bill[]>("/api/finance/bills");
   const existing = useApi<LoadedPaycheck>(editing ? `/api/finance/paychecks/${id}` : null);
 
-  const [payDate, setPayDate] = useState(todayIso());
+  const [month, setMonth] = useState(currentMonth());
   const [amount, setAmount] = useState(0);
-  const [label, setLabel] = useState<"first" | "second">("first");
+  const [seq, setSeq] = useState<1 | 2 | 3>(1);
   const [rows, setRows] = useState<Row[]>([blankRow("bills")]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!existing.data) return;
-    setPayDate(existing.data.payDate);
+    setMonth(existing.data.month);
     setAmount(existing.data.amount);
-    setLabel(existing.data.label);
+    setSeq(existing.data.seq);
     setRows(
       existing.data.allocations.map((a) => ({
         key: newKey(),
@@ -103,7 +103,15 @@ export default function PaycheckEditor() {
         return;
       }
       setAmount(last.amount);
-      setLabel(last.label === "first" ? "second" : "first");
+      // Land on the slot after the one copied: the next paycheck of that
+      // month, or the first of the next month once the third is taken.
+      if (last.seq < 3) {
+        setMonth(last.month);
+        setSeq((last.seq + 1) as 1 | 2 | 3);
+      } else {
+        setMonth(shiftMonth(last.month, 1));
+        setSeq(1);
+      }
       setRows(
         last.allocations.map((a) => ({
           key: newKey(),
@@ -168,9 +176,9 @@ export default function PaycheckEditor() {
     }
     setSaving(true);
     const payload = {
-      payDate,
+      month,
+      seq,
       amount,
-      label,
       allocations: rows
         .filter((r) => r.amount > 0)
         .map((r) => ({
@@ -223,17 +231,26 @@ export default function PaycheckEditor() {
         <div className="grid" style={{ gap: "1rem", alignContent: "start" }}>
           <Panel title="The deposit">
             <div className="grid grid-3" style={{ gap: "0.75rem" }}>
-              <Field label="Pay date">
-                <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+              <Field label="Month">
+                <MonthPicker month={month} onChange={setMonth} />
               </Field>
               <Field label="Amount">
                 <MoneyInput value={amount} onChange={setAmount} autoFocus={!editing} />
               </Field>
               <Field label="Which paycheck">
-                <select value={label} onChange={(e) => setLabel(e.target.value as "first" | "second")}>
-                  <option value="first">1 of month</option>
-                  <option value="second">2 of month</option>
-                </select>
+                <div className="segmented" role="group" aria-label="Which paycheck of the month">
+                  {([1, 2, 3] as const).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      aria-pressed={seq === n}
+                      onClick={() => setSeq(n)}
+                    >
+                      {n}
+                      {n === 1 ? "st" : n === 2 ? "nd" : "rd"}
+                    </button>
+                  ))}
+                </div>
               </Field>
             </div>
             <div className="button-row" style={{ marginTop: "0.85rem" }}>

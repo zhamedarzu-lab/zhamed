@@ -38,7 +38,13 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- A paycheck is keyed by `month` (YYYY-MM) + `seq` (1, 2, or 3). There is no pay
+  date — which day it landed on never affected any figure the app reports.
+  `(month, seq)` is unique, so re-recording a slot returns 409 and the editor
+  shows the message inline.
+- `db push` only syncs structure, never data. A change that moves or drops a
+  column needs a SQL script in `lib/db/migrations/` run against the database
+  first; push then has nothing left to do.
 
 ## Pointers
 

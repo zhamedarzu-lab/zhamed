@@ -44,6 +44,11 @@ export function monthName(month: string) {
   });
 }
 
+/** Which paycheck of the month: 1 -> "1st". Only ever 1, 2, or 3. */
+export function ordinal(n: number) {
+  return `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
+}
+
 export const todayIso = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(

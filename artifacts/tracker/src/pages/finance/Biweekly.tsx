@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { CATEGORY_LABELS, dollars, shortDate } from "../../lib/format";
+import { CATEGORY_LABELS, dollars, monthName, ordinal } from "../../lib/format";
 import { Empty, Loading, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
@@ -16,9 +16,9 @@ type Allocation = {
 
 type Paycheck = {
   id: number;
-  payDate: string;
+  month: string;
+  seq: number;
   amount: number;
-  label: string;
   allocations: Allocation[];
   totals: {
     bills: number;
@@ -50,7 +50,7 @@ export default function Biweekly() {
       <div className="page-head">
         <div>
           <span className="eyebrow">Finance</span>
-          <h1>Biweekly log</h1>
+          <h1>Paycheck log</h1>
           <p>Every paycheck, and where each dollar of it went.</p>
         </div>
         <div className="button-row">
@@ -81,11 +81,9 @@ export default function Biweekly() {
             key={p.id}
             title={
               <div>
-                <span className="eyebrow">
-                  {p.label === "first" ? "Paycheck 1 of month" : "Paycheck 2 of month"}
-                </span>
+                <span className="eyebrow">{ordinal(p.seq)} paycheck</span>
                 <h2 style={{ marginTop: "0.1rem" }}>
-                  {shortDate(p.payDate)} · <span className="fig">{dollars(p.amount)}</span>
+                  {monthName(p.month)} · <span className="fig">{dollars(p.amount)}</span>
                 </h2>
               </div>
             }
