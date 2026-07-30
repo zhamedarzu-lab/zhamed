@@ -1,5 +1,5 @@
 - [Tracker stack decisions](tracker-stack.md) — key constraints and non-obvious choices for the Personal Tracker app
 - [Object storage init](object-storage-init.md) — @replit/object-storage must be lazy-initialized; top-level await crashes the server
-- [DB migrations are hand-run](db-migrations.md) — lib/db/migrations/*.sql never auto-apply; errors naming fields absent from source mean stale DB or stale dist bundle
+- [DB migrations are hand-run](db-migrations.md) — lib/db/migrations/*.sql never auto-apply; "field absent from source" errors mean stale DB, stale dist bundle, or stale lib/db typecheck output
 - [Bills schema: per-month items](bills-schema.md) — bills replaced with monthly_bill_items table; old bills+bill_payments tables remain in DB but are unused
 - [Paycheck-to-debt-card linking](paycheck-debt-linking.md) — allocations can link to a card; it's attribution + balance-prefill only, never auto-applies

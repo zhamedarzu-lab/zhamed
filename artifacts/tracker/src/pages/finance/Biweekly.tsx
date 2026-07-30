@@ -1,7 +1,16 @@
 import { Link, useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { dollars, shortMonth } from "../../lib/format";
-import { AllocBar, tagColor, Empty, Loading, Notice, Panel, SPENDING_COLOR } from "../../components/ui";
+import { dollars, shortMonth, signed } from "../../lib/format";
+import {
+  AllocBar,
+  tagColor,
+  Empty,
+  Loading,
+  Notice,
+  Panel,
+  SPENDING_COLOR,
+  EXTRA_INCOME_COLOR,
+} from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
 type Allocation = {
@@ -16,6 +25,7 @@ type Paycheck = {
   seq: number;
   amount: number;
   allocations: Allocation[];
+  extraIncome: Allocation[];
   totals: {
     allocated: number;
     unallocated: number;
@@ -62,67 +72,84 @@ export default function Biweekly() {
       )}
 
       <div className="grid" style={{ gap: "1rem" }}>
-        {data?.map((p) => (
-          <Panel
-            key={p.id}
-            title={
-              <div>
-                <h2 style={{ marginTop: "0.1rem" }}>
-                  <span className="fig">{shortMonth(p.month)}</span>
-                  <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em", marginLeft: "0.4rem" }}>{p.seq}/2</span>
-                  <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
-                  <span className="fig">{dollars(p.amount)}</span>
-                </h2>
-              </div>
-            }
-            action={
-              <div className="button-row" style={{ alignItems: "center" }}>
-                {p.totals.unallocated > 0.005 && (
-                  <span className="paycheck-spending">
-                    <span className="paycheck-spending-label">spending</span>
-                    <span className="fig">{dollars(p.totals.unallocated)}</span>
-                  </span>
-                )}
-                <button className="quiet" onClick={() => navigate(`/finance/paycheck/${p.id}`)}>
-                  Edit
-                </button>
-                <button className="quiet danger" onClick={() => remove(p.id)}>
-                  Delete
-                </button>
-              </div>
-            }
-            bodyless
-          >
-            <AllocBar
-              segments={p.allocations.map((a) => ({ amount: a.amount, color: tagColor(a.note) }))}
-              total={p.amount}
-              remainder={p.totals.unallocated}
-              height={8}
-            />
-            <div className="panel-body">
-              {p.allocations.length === 0 ? (
-                <span className="muted">Nothing recorded yet.</span>
-              ) : (
-                <ul className="alloc-list">
-                  {p.allocations.map((a, i) => (
-                    <li key={a.id}>
-                      <span className="alloc-dot" style={{ background: tagColor(a.note) }} />
-                      {a.note || <span className="muted">Untitled</span>}
-                      <span className="fig alloc-amt">{dollars(a.amount)}</span>
-                    </li>
-                  ))}
+        {data?.map((p) => {
+          const extraTotal = p.extraIncome.reduce((s, e) => s + e.amount, 0);
+          return (
+            <Panel
+              key={p.id}
+              title={
+                <div>
+                  <h2 style={{ marginTop: "0.1rem" }}>
+                    <span className="fig">{shortMonth(p.month)}</span>
+                    <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em", marginLeft: "0.4rem" }}>{p.seq}/2</span>
+                    <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
+                    <span className="fig">{dollars(p.amount)}</span>
+                    {extraTotal > 0.005 && (
+                      <span className="fig" style={{ color: EXTRA_INCOME_COLOR, fontSize: "0.85em", marginLeft: "0.4rem" }}>
+                        {signed(extraTotal)}
+                      </span>
+                    )}
+                  </h2>
+                </div>
+              }
+              action={
+                <div className="button-row" style={{ alignItems: "center" }}>
                   {p.totals.unallocated > 0.005 && (
-                    <li>
-                      <span className="alloc-dot" style={{ background: SPENDING_COLOR, opacity: 0.5 }} />
-                      <span className="muted">Spending</span>
-                      <span className="fig alloc-amt">{dollars(p.totals.unallocated)}</span>
-                    </li>
+                    <span className="paycheck-spending">
+                      <span className="paycheck-spending-label">spending</span>
+                      <span className="fig">{dollars(p.totals.unallocated)}</span>
+                    </span>
                   )}
-                </ul>
-              )}
-            </div>
-          </Panel>
-        ))}
+                  <button className="quiet" onClick={() => navigate(`/finance/paycheck/${p.id}`)}>
+                    Edit
+                  </button>
+                  <button className="quiet danger" onClick={() => remove(p.id)}>
+                    Delete
+                  </button>
+                </div>
+              }
+              bodyless
+            >
+              <AllocBar
+                segments={p.allocations.map((a) => ({ amount: a.amount, color: tagColor(a.note) }))}
+                total={p.amount + extraTotal}
+                remainder={p.totals.unallocated}
+                height={8}
+              />
+              <div className="panel-body">
+                {p.allocations.length === 0 && p.extraIncome.length === 0 ? (
+                  <span className="muted">Nothing recorded yet.</span>
+                ) : (
+                  <ul className="alloc-list">
+                    {p.extraIncome.map((e) => (
+                      <li key={`extra-${e.id}`}>
+                        <span className="alloc-dot" style={{ background: EXTRA_INCOME_COLOR }} />
+                        {e.note || <span className="muted">Extra income</span>}
+                        <span className="fig alloc-amt" style={{ color: EXTRA_INCOME_COLOR }}>
+                          {signed(e.amount)}
+                        </span>
+                      </li>
+                    ))}
+                    {p.allocations.map((a) => (
+                      <li key={a.id}>
+                        <span className="alloc-dot" style={{ background: tagColor(a.note) }} />
+                        {a.note || <span className="muted">Untitled</span>}
+                        <span className="fig alloc-amt">{dollars(a.amount)}</span>
+                      </li>
+                    ))}
+                    {p.totals.unallocated > 0.005 && (
+                      <li>
+                        <span className="alloc-dot" style={{ background: SPENDING_COLOR, opacity: 0.5 }} />
+                        <span className="muted">Spending</span>
+                        <span className="fig alloc-amt">{dollars(p.totals.unallocated)}</span>
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </Panel>
+          );
+        })}
       </div>
     </>
   );

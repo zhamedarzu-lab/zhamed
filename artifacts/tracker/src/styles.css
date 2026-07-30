@@ -424,6 +424,10 @@ button.btn-icon {
 }
 
 .tape-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 0.75rem;
   padding: 0.9rem 1rem 0.75rem;
   border-bottom: 1px solid var(--rule);
 }
@@ -434,6 +438,17 @@ button.btn-icon {
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
+}
+
+/* Secondary stat beside Deposit — only rendered when a paycheck has extra
+   income attached, so it stays out of the way otherwise. */
+.tape-extra {
+  text-align: right;
+}
+
+.tape-extra .amount {
+  font-size: 1.0625rem;
+  color: #e0b04e;
 }
 
 .tape-bar {
@@ -612,6 +627,20 @@ button.btn-icon {
 
 .alloc-row-meta .btn-icon {
   margin-left: auto;
+}
+
+/* Extra-income rows — no card link, so a single line is never cramped. */
+.income-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.income-row input {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* Spending remainder badge on paycheck cards. */

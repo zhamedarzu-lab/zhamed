@@ -86,6 +86,22 @@ export const allocationsTable = pgTable("allocations", {
   }),
 });
 
+/**
+ * Extra income is money added on top of a paycheck's own amount — a bill
+ * surplus from underspending, a refund, a gift someone handed you. It grows
+ * the pool allocations are made from without touching the paycheck's own
+ * recorded amount, so the deposit still reflects what actually landed from
+ * work.
+ */
+export const extraIncomeTable = pgTable("extra_income", {
+  id: serial("id").primaryKey(),
+  paycheckId: integer("paycheck_id")
+    .notNull()
+    .references(() => paychecksTable.id, { onDelete: "cascade" }),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  note: text("note").notNull().default(""),
+});
+
 export const monthlySubscriptionItemsTable = pgTable("monthly_subscription_items", {
   id:        serial("id").primaryKey(),
   month:     text("month").notNull(),
@@ -110,6 +126,7 @@ export type DebtAccount = typeof debtAccountsTable.$inferSelect;
 export type DebtSnapshot = typeof debtSnapshotsTable.$inferSelect;
 export type Paycheck = typeof paychecksTable.$inferSelect;
 export type Allocation = typeof allocationsTable.$inferSelect;
+export type ExtraIncome = typeof extraIncomeTable.$inferSelect;
 
 export type InsertBill = typeof billsTable.$inferInsert;
 export type InsertDebtAccount = typeof debtAccountsTable.$inferInsert;

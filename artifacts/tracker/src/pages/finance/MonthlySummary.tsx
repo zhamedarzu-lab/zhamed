@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../../lib/api";
-import { currentMonth, dollars, monthName } from "../../lib/format";
+import { currentMonth, dollars, monthName, signed } from "../../lib/format";
 import {
   AllocBar,
   Empty,
@@ -10,12 +10,14 @@ import {
   Notice,
   Panel,
   SPENDING_COLOR,
+  EXTRA_INCOME_COLOR,
   tagColor,
 } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
 type Summary = {
   income: number;
+  extraIncome: number;
   allocated: number;
   unallocated: number;
   actuallyPaid: number;
@@ -28,6 +30,7 @@ type Paycheck = {
   seq: number;
   amount: number;
   allocations: Array<{ id: number; amount: number; note: string }>;
+  extraIncome: Array<{ id: number; amount: number; note: string }>;
   totals: { allocated: number; unallocated: number };
 };
 
@@ -65,6 +68,7 @@ export default function MonthlySummary() {
 
   const spending = summary.data?.unallocated ?? 0;
   const income = summary.data?.income ?? 0;
+  const extraIncome = summary.data?.extraIncome ?? 0;
 
   return (
     <>
@@ -93,6 +97,14 @@ export default function MonthlySummary() {
                   <span className="summary-inline-stats">
                     <span className="eyebrow">Income</span>
                     <span className="fig" style={{ fontSize: "0.9375rem" }}>{dollars(income)}</span>
+                    {extraIncome > 0.005 && (
+                      <>
+                        <span className="eyebrow" style={{ marginLeft: "1rem" }}>Extra</span>
+                        <span className="fig" style={{ fontSize: "0.9375rem", color: EXTRA_INCOME_COLOR }}>
+                          {signed(extraIncome)}
+                        </span>
+                      </>
+                    )}
                     <span className="eyebrow" style={{ marginLeft: "1rem" }}>
                       {spending < -0.005 ? "Over-allocated" : "Spending"}
                     </span>
@@ -169,6 +181,8 @@ export default function MonthlySummary() {
       <div className="grid" style={{ gap: "0.75rem", marginTop: "1rem" }}>
         {paychecks.data?.map((p) => {
           const open = openIds.has(p.id);
+          const extraTotal = p.extraIncome.reduce((s, e) => s + e.amount, 0);
+          const pool = p.amount + extraTotal;
           return (
             <Panel
               key={p.id}
@@ -185,6 +199,11 @@ export default function MonthlySummary() {
                     </span>
                     <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
                     <span className="fig">{dollars(p.amount)}</span>
+                    {extraTotal > 0.005 && (
+                      <span className="fig" style={{ color: EXTRA_INCOME_COLOR, fontSize: "0.85em", marginLeft: "0.4rem" }}>
+                        {signed(extraTotal)}
+                      </span>
+                    )}
                   </h2>
                 </button>
               }
@@ -207,15 +226,31 @@ export default function MonthlySummary() {
                 <>
                   <AllocBar
                     segments={p.allocations.map((a) => ({ amount: a.amount, color: tagColor(a.note) }))}
-                    total={p.amount}
+                    total={pool}
                     remainder={p.totals.unallocated}
                     height={8}
                   />
                   <div className="panel-body">
-                    {p.allocations.length === 0 ? (
+                    {p.allocations.length === 0 && p.extraIncome.length === 0 ? (
                       <span className="muted">Nothing recorded yet.</span>
                     ) : (
                       <ul className="alloc-list stacked">
+                        {p.extraIncome.map((e) => (
+                          <li key={`extra-${e.id}`}>
+                            <span className="alloc-dot" style={{ background: EXTRA_INCOME_COLOR }} />
+                            <span className="alloc-note">
+                              {e.note || <span className="muted">Extra income</span>}
+                            </span>
+                            <span className="fig alloc-amt" style={{ color: EXTRA_INCOME_COLOR }}>
+                              {signed(e.amount)}
+                            </span>
+                            {pool > 0 && (
+                              <span className="alloc-pct">
+                                {Math.round((e.amount / pool) * 100)}%
+                              </span>
+                            )}
+                          </li>
+                        ))}
                         {p.allocations.map((a) => (
                           <li key={a.id}>
                             <span className="alloc-dot" style={{ background: tagColor(a.note) }} />
@@ -223,9 +258,9 @@ export default function MonthlySummary() {
                               {a.note || <span className="muted">Untitled</span>}
                             </span>
                             <span className="fig alloc-amt">{dollars(a.amount)}</span>
-                            {p.amount > 0 && (
+                            {pool > 0 && (
                               <span className="alloc-pct">
-                                {Math.round((a.amount / p.amount) * 100)}%
+                                {Math.round((a.amount / pool) * 100)}%
                               </span>
                             )}
                           </li>
@@ -237,9 +272,9 @@ export default function MonthlySummary() {
                             <span className="fig alloc-amt" style={{ color: SPENDING_COLOR }}>
                               {dollars(p.totals.unallocated)}
                             </span>
-                            {p.amount > 0 && (
+                            {pool > 0 && (
                               <span className="alloc-pct">
-                                {Math.round((p.totals.unallocated / p.amount) * 100)}%
+                                {Math.round((p.totals.unallocated / pool) * 100)}%
                               </span>
                             )}
                           </li>

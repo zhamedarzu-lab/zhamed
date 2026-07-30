@@ -46,3 +46,18 @@ source, the running validation is not the code on disk — the same "field that
 doesn't exist in source" symptom appears. The dev script rebuilds on boot, so
 restarting the API Server workflow is what picks source changes up. Confirm with
 `ls -la artifacts/api-server/dist/index.mjs` against the source mtime.
+
+## Third half: stale typecheck, not just stale runtime
+`lib/db` is a TS project-reference (composite) package. After adding/renaming an
+export in `lib/db/src/schema/*.ts`, running `pnpm --filter @workspace/api-server
+exec tsc --noEmit` can fail with "Module '@workspace/db' has no exported member
+..." even though the source is correct — `tsc` is resolving against `lib/db`'s
+last-built `.d.ts` output, not its `.ts` source. Fix by forcing a rebuild of the
+referenced project before re-running the typecheck:
+
+```
+npx tsc -b lib/db --force
+```
+
+This is a separate step from running the runtime dev server (which rebuilds the
+api-server bundle itself but does not rebuild `lib/db`'s declaration output).

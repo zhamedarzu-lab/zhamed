@@ -5,6 +5,7 @@ import { db } from "@workspace/db";
 import {
   paychecksTable,
   allocationsTable,
+  extraIncomeTable,
   monthlyBillItemsTable,
   monthlySubscriptionItemsTable,
   debtAccountsTable,
@@ -23,11 +24,18 @@ function parseId(raw: string): number {
 
 type AllocRow = { amount: string };
 
-function computeTotals(allocs: AllocRow[], paycheckAmount: number) {
+/**
+ * `paycheckAmount` is what the pool starts at; `extras` (bill surplus,
+ * refunds, gifts) grow it before allocations are subtracted, so "unallocated"
+ * — the figure the UI shows as spending money — accounts for both.
+ */
+function computeTotals(allocs: AllocRow[], extras: AllocRow[], paycheckAmount: number) {
   const allocated = allocs.reduce((s, a) => s + Number(a.amount), 0);
+  const extra = extras.reduce((s, e) => s + Number(e.amount), 0);
   return {
     allocated: Math.round(allocated * 100) / 100,
-    unallocated: Math.round((paycheckAmount - allocated) * 100) / 100,
+    extra: Math.round(extra * 100) / 100,
+    unallocated: Math.round((paycheckAmount + extra - allocated) * 100) / 100,
   };
 }
 
@@ -56,9 +64,15 @@ router.get("/paychecks", async (req, res): Promise<void> => {
     .from(allocationsTable)
     .where(inArray(allocationsTable.paycheckId, paychecks.map((p) => p.id)));
 
+  const extras = await db
+    .select()
+    .from(extraIncomeTable)
+    .where(inArray(extraIncomeTable.paycheckId, paychecks.map((p) => p.id)));
+
   res.json(
     paychecks.map((p) => {
       const pAllocs = allocs.filter((a) => a.paycheckId === p.id);
+      const pExtras = extras.filter((e) => e.paycheckId === p.id);
       const amount = Number(p.amount);
       return {
         id: p.id,
@@ -71,7 +85,12 @@ router.get("/paychecks", async (req, res): Promise<void> => {
           note: a.note,
           debtAccountId: a.debtAccountId,
         })),
-        totals: computeTotals(pAllocs, amount),
+        extraIncome: pExtras.map((e) => ({
+          id: e.id,
+          amount: Number(e.amount),
+          note: e.note,
+        })),
+        totals: computeTotals(pAllocs, pExtras, amount),
       };
     }),
   );
@@ -93,6 +112,10 @@ router.get("/paychecks/last", async (_req, res): Promise<void> => {
     .select()
     .from(allocationsTable)
     .where(eq(allocationsTable.paycheckId, p.id));
+  const extras = await db
+    .select()
+    .from(extraIncomeTable)
+    .where(eq(extraIncomeTable.paycheckId, p.id));
 
   const amount = Number(p.amount);
   res.json({
@@ -105,7 +128,8 @@ router.get("/paychecks/last", async (_req, res): Promise<void> => {
       note: a.note,
       debtAccountId: a.debtAccountId,
     })),
-    totals: computeTotals(allocs, amount),
+    extraIncome: extras.map((e) => ({ amount: Number(e.amount), note: e.note })),
+    totals: computeTotals(allocs, extras, amount),
   });
 });
 
@@ -120,6 +144,10 @@ router.get("/paychecks/:id", async (req, res): Promise<void> => {
     .select()
     .from(allocationsTable)
     .where(eq(allocationsTable.paycheckId, id));
+  const extras = await db
+    .select()
+    .from(extraIncomeTable)
+    .where(eq(extraIncomeTable.paycheckId, id));
   const amount = Number(p.amount);
   res.json({
     id: p.id,
@@ -132,7 +160,12 @@ router.get("/paychecks/:id", async (req, res): Promise<void> => {
       note: a.note,
       debtAccountId: a.debtAccountId,
     })),
-    totals: computeTotals(allocs, amount),
+    extraIncome: extras.map((e) => ({
+      id: e.id,
+      amount: Number(e.amount),
+      note: e.note,
+    })),
+    totals: computeTotals(allocs, extras, amount),
   });
 });
 
@@ -140,6 +173,11 @@ const AllocationInput = z.object({
   amount: z.number().min(0),
   note: z.string().max(500).optional(),
   debtAccountId: z.number().int().nullable().optional(),
+});
+
+const ExtraIncomeInput = z.object({
+  amount: z.number().min(0),
+  note: z.string().max(500).optional(),
 });
 
 /**
@@ -172,6 +210,7 @@ const PaycheckInput = z.object({
   seq: z.number().int().min(1).max(3),
   amount: z.number().positive(),
   allocations: z.array(AllocationInput).optional(),
+  extraIncome: z.array(ExtraIncomeInput).optional(),
 });
 
 router.post("/paychecks", async (req, res): Promise<void> => {
@@ -180,7 +219,7 @@ router.post("/paychecks", async (req, res): Promise<void> => {
     res.status(400).json({ error: String(parsed.error) });
     return;
   }
-  const { month, seq, amount, allocations = [] } = parsed.data;
+  const { month, seq, amount, allocations = [], extraIncome = [] } = parsed.data;
 
   let paycheck;
   try {
@@ -207,6 +246,16 @@ router.post("/paychecks", async (req, res): Promise<void> => {
     );
   }
 
+  if (extraIncome.length > 0) {
+    await db.insert(extraIncomeTable).values(
+      extraIncome.map((e) => ({
+        paycheckId: paycheck.id,
+        amount: e.amount.toFixed(2),
+        note: e.note?.trim() ?? "",
+      })),
+    );
+  }
+
   res.status(201).json({ id: paycheck.id });
 });
 
@@ -219,7 +268,7 @@ router.patch("/paychecks/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const { allocations, ...fields } = parsed.data;
+  const { allocations, extraIncome, ...fields } = parsed.data;
 
   if (Object.keys(fields).length > 0) {
     const update: Record<string, unknown> = {};
@@ -252,6 +301,19 @@ router.patch("/paychecks/:id", async (req, res): Promise<void> => {
           amount: a.amount.toFixed(2),
           note: a.note?.trim() ?? "",
           debtAccountId: a.debtAccountId ?? null,
+        })),
+      );
+    }
+  }
+
+  if (extraIncome !== undefined) {
+    await db.delete(extraIncomeTable).where(eq(extraIncomeTable.paycheckId, id));
+    if (extraIncome.length > 0) {
+      await db.insert(extraIncomeTable).values(
+        extraIncome.map((e) => ({
+          paycheckId: id,
+          amount: e.amount.toFixed(2),
+          note: e.note?.trim() ?? "",
         })),
       );
     }
@@ -715,7 +777,7 @@ router.get("/summary/:month", async (req, res): Promise<void> => {
     .from(paychecksTable)
     .where(eq(paychecksTable.month, month));
 
-  const income = paychecks.reduce((s, p) => s + Number(p.amount), 0);
+  const baseIncome = paychecks.reduce((s, p) => s + Number(p.amount), 0);
 
   const allocs =
     paychecks.length > 0
@@ -724,6 +786,17 @@ router.get("/summary/:month", async (req, res): Promise<void> => {
           .from(allocationsTable)
           .where(inArray(allocationsTable.paycheckId, paychecks.map((p) => p.id)))
       : [];
+
+  const extras =
+    paychecks.length > 0
+      ? await db
+          .select()
+          .from(extraIncomeTable)
+          .where(inArray(extraIncomeTable.paycheckId, paychecks.map((p) => p.id)))
+      : [];
+
+  const extraIncome = extras.reduce((s, e) => s + Number(e.amount), 0);
+  const income = baseIncome + extraIncome;
 
   const allocated = allocs.reduce((s, a) => s + Number(a.amount), 0);
 
@@ -745,6 +818,7 @@ router.get("/summary/:month", async (req, res): Promise<void> => {
 
   res.json({
     income: round(income),
+    extraIncome: round(extraIncome),
     allocated: round(allocated),
     unallocated: round(income - allocated),
     actuallyPaid: round(actuallyPaid),

@@ -8,6 +8,11 @@ export type Point = { date: string; value: number };
 // ---------------------------------------------------------------------------
 export const SPENDING_COLOR = "#5fc97a";
 
+// Fixed accent for money added on top of a paycheck (bill surplus, refund,
+// gift) — never derived from tagColor, so it never gets confused with a spend
+// category in the legend.
+export const EXTRA_INCOME_COLOR = "#e0b04e";
+
 // Known tag categories → fixed colour. Matched by keyword so "bills 1/2"
 // still lands on the same blue as "bills".
 const TAG_KEYWORDS: Array<[RegExp, string]> = [
