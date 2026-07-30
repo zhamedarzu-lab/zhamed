@@ -75,6 +75,15 @@ export const allocationsTable = pgTable("allocations", {
   note: text("note").notNull().default(""),
 });
 
+export const monthlyBillItemsTable = pgTable("monthly_bill_items", {
+  id:        serial("id").primaryKey(),
+  month:     text("month").notNull(),            // YYYY-MM
+  name:      text("name").notNull(),
+  amount:    numeric("amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export type MonthlyBillItem = typeof monthlyBillItemsTable.$inferSelect;
 export type Bill = typeof billsTable.$inferSelect;
 export type BillPayment = typeof billPaymentsTable.$inferSelect;
 export type DebtAccount = typeof debtAccountsTable.$inferSelect;

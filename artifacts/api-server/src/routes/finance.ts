@@ -1,12 +1,11 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import {
   paychecksTable,
   allocationsTable,
-  billsTable,
-  billPaymentsTable,
+  monthlyBillItemsTable,
   debtAccountsTable,
   debtSnapshotsTable,
 } from "@workspace/db";
@@ -260,121 +259,96 @@ router.delete("/paychecks/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-// ── Bills ─────────────────────────────────────────────────────────────────────
+// ── Monthly bill items ────────────────────────────────────────────────────────
+// Each row belongs to exactly one month. Deleting April's row never touches March.
+// Visiting a month with no rows auto-seeds names from the most recent prior month.
 
-router.get("/bills", async (_req, res): Promise<void> => {
-  const bills = await db.select().from(billsTable).orderBy(billsTable.sortOrder);
-  res.json(bills.map((b) => ({ ...b, expectedAmount: Number(b.expectedAmount) })));
-});
+router.get("/bills", async (req, res): Promise<void> => {
+  const month = typeof req.query.month === "string" ? req.query.month : undefined;
+  if (!month || !MONTH_RE.test(month)) {
+    res.status(400).json({ error: "month query param required (YYYY-MM)" });
+    return;
+  }
 
-const BillInput = z.object({
-  name: z.string().min(1),
-  expectedAmount: z.number().min(0),
-  sortOrder: z.number().int().optional(),
+  let items = await db
+    .select()
+    .from(monthlyBillItemsTable)
+    .where(eq(monthlyBillItemsTable.month, month))
+    .orderBy(monthlyBillItemsTable.sortOrder);
+
+  // Auto-seed from most recent previous month when this month has no rows yet
+  if (items.length === 0) {
+    const [prev] = await db
+      .select({ month: monthlyBillItemsTable.month })
+      .from(monthlyBillItemsTable)
+      .where(lt(monthlyBillItemsTable.month, month))
+      .orderBy(desc(monthlyBillItemsTable.month))
+      .limit(1);
+
+    if (prev) {
+      const source = await db
+        .select()
+        .from(monthlyBillItemsTable)
+        .where(eq(monthlyBillItemsTable.month, prev.month))
+        .orderBy(monthlyBillItemsTable.sortOrder);
+
+      if (source.length > 0) {
+        items = await db
+          .insert(monthlyBillItemsTable)
+          .values(source.map((s) => ({ month, name: s.name, amount: "0", sortOrder: s.sortOrder })))
+          .returning();
+      }
+    }
+  }
+
+  res.json(items.map((b) => ({ ...b, amount: Number(b.amount) })));
 });
 
 router.post("/bills", async (req, res): Promise<void> => {
-  const parsed = BillInput.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: String(parsed.error) });
-    return;
-  }
-  const [bill] = await db
-    .insert(billsTable)
-    .values({
-      name: parsed.data.name,
-      expectedAmount: parsed.data.expectedAmount.toFixed(2),
-      sortOrder: parsed.data.sortOrder ?? 0,
-    })
-    .returning();
-  res.status(201).json({ ...bill, expectedAmount: Number(bill.expectedAmount) });
-});
-
-router.patch("/bills/:id", async (req, res): Promise<void> => {
-  const id = parseId(req.params.id);
-  const BillUpdate = z.object({
-    name: z.string().min(1).optional(),
-    expectedAmount: z.number().min(0).optional(),
-    active: z.boolean().optional(),
-    sortOrder: z.number().int().optional(),
-  });
-  const parsed = BillUpdate.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: String(parsed.error) });
-    return;
-  }
-
-  const update: Record<string, unknown> = {};
-  if (parsed.data.name !== undefined) update.name = parsed.data.name;
-  if (parsed.data.expectedAmount !== undefined)
-    update.expectedAmount = parsed.data.expectedAmount.toFixed(2);
-  if (parsed.data.active !== undefined) update.active = parsed.data.active;
-  if (parsed.data.sortOrder !== undefined) update.sortOrder = parsed.data.sortOrder;
-
-  const [bill] = await db
-    .update(billsTable)
-    .set(update)
-    .where(eq(billsTable.id, id))
-    .returning();
-  if (!bill) {
-    res.status(404).json({ error: "Not found" });
-    return;
-  }
-  res.json({ ...bill, expectedAmount: Number(bill.expectedAmount) });
-});
-
-router.delete("/bills/:id", async (req, res): Promise<void> => {
-  const id = parseId(req.params.id);
-  await db.delete(billsTable).where(eq(billsTable.id, id));
-  res.sendStatus(204);
-});
-
-// ── Bill payments ─────────────────────────────────────────────────────────────
-
-router.get("/bill-payments", async (req, res): Promise<void> => {
-  const month = typeof req.query.month === "string" ? req.query.month : undefined;
-  if (!month) {
-    res.status(400).json({ error: "month query param required" });
-    return;
-  }
-  const payments = await db
-    .select()
-    .from(billPaymentsTable)
-    .where(eq(billPaymentsTable.month, month));
-  res.json(payments.map((p) => ({ ...p, amountPaid: Number(p.amountPaid) })));
-});
-
-router.put("/bill-payments", async (req, res): Promise<void> => {
   const parsed = z
     .object({
-      billId: z.number().int(),
-      month: z.string().regex(/^\d{4}-\d{2}$/),
-      amountPaid: z.number().min(0),
+      month: z.string().regex(MONTH_RE),
+      name: z.string().min(1),
+      sortOrder: z.number().int().optional(),
     })
     .safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: String(parsed.error) });
     return;
   }
+  const [item] = await db
+    .insert(monthlyBillItemsTable)
+    .values({ month: parsed.data.month, name: parsed.data.name, amount: "0", sortOrder: parsed.data.sortOrder ?? 0 })
+    .returning();
+  res.status(201).json({ ...item, amount: Number(item.amount) });
+});
 
-  const { billId, month, amountPaid } = parsed.data;
-  const [existing] = await db
-    .select()
-    .from(billPaymentsTable)
-    .where(and(eq(billPaymentsTable.billId, billId), eq(billPaymentsTable.month, month)));
-
-  if (existing) {
-    await db
-      .update(billPaymentsTable)
-      .set({ amountPaid: amountPaid.toFixed(2) })
-      .where(eq(billPaymentsTable.id, existing.id));
-  } else {
-    await db
-      .insert(billPaymentsTable)
-      .values({ billId, month, amountPaid: amountPaid.toFixed(2) });
+router.patch("/bills/:id", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  const parsed = z
+    .object({ name: z.string().min(1).optional(), amount: z.number().min(0).optional() })
+    .safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: String(parsed.error) });
+    return;
   }
+  const update: Record<string, unknown> = {};
+  if (parsed.data.name !== undefined) update.name = parsed.data.name;
+  if (parsed.data.amount !== undefined) update.amount = parsed.data.amount.toFixed(2);
 
-  res.json({ ok: true });
+  const [item] = await db
+    .update(monthlyBillItemsTable)
+    .set(update)
+    .where(eq(monthlyBillItemsTable.id, id))
+    .returning();
+  if (!item) { res.status(404).json({ error: "Not found" }); return; }
+  res.json({ ...item, amount: Number(item.amount) });
+});
+
+router.delete("/bills/:id", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  await db.delete(monthlyBillItemsTable).where(eq(monthlyBillItemsTable.id, id));
+  res.sendStatus(204);
 });
 
 // ── Debt accounts ─────────────────────────────────────────────────────────────
@@ -544,11 +518,11 @@ router.get("/summary/:month", async (req, res): Promise<void> => {
 
   const allocated = allocs.reduce((s, a) => s + Number(a.amount), 0);
 
-  const billPayments = await db
+  const billItems = await db
     .select()
-    .from(billPaymentsTable)
-    .where(eq(billPaymentsTable.month, month));
-  const actuallyPaid = billPayments.reduce((s, p) => s + Number(p.amountPaid), 0);
+    .from(monthlyBillItemsTable)
+    .where(eq(monthlyBillItemsTable.month, month));
+  const actuallyPaid = billItems.reduce((s, b) => s + Number(b.amount), 0);
 
   const round = (n: number) => Math.round(n * 100) / 100;
 

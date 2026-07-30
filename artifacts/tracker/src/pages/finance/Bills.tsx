@@ -4,15 +4,7 @@ import { currentMonth, dollars, monthName, toAmount } from "../../lib/format";
 import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
-type Bill = {
-  id: number;
-  name: string;
-  expectedAmount: number;
-  active: boolean;
-  sortOrder: number;
-};
-
-type Payment = { id: number; billId: number; month: string; amountPaid: number };
+type BillItem = { id: number; month: string; name: string; amount: number; sortOrder: number };
 
 export default function Bills() {
   const [month, setMonth] = useState(currentMonth());
@@ -20,13 +12,13 @@ export default function Bills() {
   const [newName, setNewName] = useState("");
   const addInputRef = useRef<HTMLInputElement>(null);
 
-  const bills = useApi<Bill[]>("/api/finance/bills");
-  const payments = useApi<Payment[]>(`/api/finance/bill-payments?month=${month}`, [month]);
+  const { data, loading, reload } = useApi<BillItem[]>(
+    `/api/finance/bills?month=${month}`,
+    [month],
+  );
 
-  const active = (bills.data ?? []).filter((b) => b.active);
-  const paidFor = (billId: number) =>
-    payments.data?.find((p) => p.billId === billId)?.amountPaid ?? 0;
-  const paidTotal = active.reduce((s, b) => s + paidFor(b.id), 0);
+  const items = data ?? [];
+  const total = items.reduce((s, b) => s + b.amount, 0);
 
   const guard = (fn: () => Promise<unknown>) => async () => {
     setError(null);
@@ -34,35 +26,35 @@ export default function Bills() {
     catch (err) { setError(err instanceof Error ? err.message : "That change didn't stick."); }
   };
 
-  const addBill = guard(async () => {
+  const addItem = guard(async () => {
     if (!newName.trim()) return;
     await api.post("/api/finance/bills", {
+      month,
       name: newName.trim(),
-      expectedAmount: 0,
-      sortOrder: (bills.data?.length ?? 0) + 1,
+      sortOrder: items.length,
     });
     setNewName("");
     addInputRef.current?.focus();
-    await bills.reload();
+    await reload();
   });
 
-  const renameBill = (id: number, name: string) =>
+  const renameItem = (id: number, name: string) =>
     guard(async () => {
       await api.patch(`/api/finance/bills/${id}`, { name });
-      await bills.reload();
+      await reload();
     })();
 
-  const removeBill = (b: Bill) =>
+  const updateAmount = (id: number, amount: number) =>
     guard(async () => {
-      if (!confirm(`Remove "${b.name}" from every month?`)) return;
-      await api.del(`/api/finance/bills/${b.id}`);
-      await Promise.all([bills.reload(), payments.reload()]);
+      await api.patch(`/api/finance/bills/${id}`, { amount });
+      await reload();
     })();
 
-  const recordPayment = (billId: number, amountPaid: number) =>
+  const removeItem = (item: BillItem) =>
     guard(async () => {
-      await api.put("/api/finance/bill-payments", { billId, month, amountPaid });
-      await payments.reload();
+      if (!confirm(`Remove "${item.name}" from ${monthName(month)}?`)) return;
+      await api.del(`/api/finance/bills/${item.id}`);
+      await reload();
     })();
 
   return (
@@ -79,13 +71,13 @@ export default function Bills() {
       </div>
 
       <Notice>{error}</Notice>
-      {bills.loading && <Loading />}
+      {loading && <Loading />}
 
       <Panel title={monthName(month)} bodyless>
-        {active.length === 0 ? (
+        {!loading && items.length === 0 ? (
           <div className="panel-body">
-            <Empty title="No bills yet">
-              <p>Add your first bill below — it'll show up every month.</p>
+            <Empty title="No bills for this month">
+              <p>Add a bill below — next month it'll carry over automatically.</p>
             </Empty>
           </div>
         ) : (
@@ -98,74 +90,70 @@ export default function Bills() {
               </tr>
             </thead>
             <tbody>
-              {active.map((b) => {
-                const paid = paidFor(b.id);
-                return (
-                  <tr key={b.id}>
-                    <td>
-                      <input
-                        aria-label="Bill name"
-                        defaultValue={b.name}
-                        onBlur={(e) => {
-                          const name = e.target.value.trim();
-                          if (name && name !== b.name) void renameBill(b.id, name);
-                        }}
-                      />
-                    </td>
-                    <td className="num">
-                      <input
-                        aria-label={`Amount for ${b.name}`}
-                        inputMode="decimal"
-                        defaultValue={paid === 0 ? "" : String(paid)}
-                        placeholder="0.00"
-                        onBlur={(e) => {
-                          const v = toAmount(e.target.value);
-                          if (v !== paid) void recordPayment(b.id, v);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <button
-                        className="quiet danger btn-icon"
-                        onClick={() => removeBill(b)}
-                        aria-label={`Remove ${b.name}`}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                          strokeLinejoin="round" aria-hidden="true">
-                          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {items.map((b) => (
+                <tr key={b.id}>
+                  <td>
+                    <input
+                      aria-label="Bill name"
+                      defaultValue={b.name}
+                      key={b.id + b.name}
+                      onBlur={(e) => {
+                        const name = e.target.value.trim();
+                        if (name && name !== b.name) void renameItem(b.id, name);
+                      }}
+                    />
+                  </td>
+                  <td className="num">
+                    <input
+                      aria-label={`Amount for ${b.name}`}
+                      inputMode="decimal"
+                      key={b.id + b.amount}
+                      defaultValue={b.amount === 0 ? "" : String(b.amount)}
+                      placeholder="0.00"
+                      onBlur={(e) => {
+                        const v = toAmount(e.target.value);
+                        if (v !== b.amount) void updateAmount(b.id, v);
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      className="quiet danger btn-icon"
+                      onClick={() => removeItem(b)}
+                      aria-label={`Remove ${b.name}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                        strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
-            <tfoot>
-              <tr>
-                <td>Total</td>
-                <td className="num">{dollars(paidTotal)}</td>
-                <td />
-              </tr>
-            </tfoot>
+            {items.length > 0 && (
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td className="num">{dollars(total)}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            )}
           </table>
         )}
 
-        {/* Inline add row */}
         <div className="panel-body bills-add-row" style={{ borderTop: "1px solid var(--rule)" }}>
           <input
             ref={addInputRef}
             value={newName}
             placeholder="Add a bill — Rent, Power, Netflix…"
             onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addBill()}
+            onKeyDown={(e) => e.key === "Enter" && addItem()}
             style={{ flex: 1 }}
           />
-          <button
-            className="primary"
-            onClick={addBill}
-            disabled={!newName.trim()}
-          >
+          <button className="primary" onClick={addItem} disabled={!newName.trim()}>
             Add
           </button>
         </div>
