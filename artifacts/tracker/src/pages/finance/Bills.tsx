@@ -66,7 +66,7 @@ export default function Bills() {
       await payments.reload();
     })();
 
-  const [templateOpen, setTemplateOpen] = useState(true);
+  const [templateOpen, setTemplateOpen] = useState(false);
 
   const active = (bills.data ?? []).filter((b) => b.active);
   const templateTotal = active.reduce((s, b) => s + b.expectedAmount, 0);
@@ -120,21 +120,15 @@ export default function Bills() {
             <thead>
               <tr>
                 <th>Bill</th>
-                <th className="num">Expected</th>
-                <th className="num" style={{ width: 140 }}>
-                  Paid this month
-                </th>
-                <th className="num">Difference</th>
+                <th className="num" style={{ width: 160 }}>Paid this month</th>
               </tr>
             </thead>
             <tbody>
               {active.map((b) => {
                 const paid = paidFor(b.id);
-                const diff = paid - b.expectedAmount;
                 return (
                   <tr key={b.id}>
                     <td>{b.name}</td>
-                    <td className="num muted">{dollars(b.expectedAmount)}</td>
                     <td className="num">
                       <input
                         aria-label={`Amount paid for ${b.name}`}
@@ -147,19 +141,14 @@ export default function Bills() {
                         }}
                       />
                     </td>
-                    <td className={`num ${diff > 0 ? "neg" : diff < 0 ? "pos" : "faint"}`}>
-                      {paid === 0 ? "—" : dollars(diff)}
-                    </td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
               <tr>
-                <td>Total</td>
-                <td className="num">{dollars(templateTotal)}</td>
+                <td>Total paid</td>
                 <td className="num">{dollars(paidTotal)}</td>
-                <td className="num">{dollars(paidTotal - templateTotal)}</td>
               </tr>
             </tfoot>
           </table>

@@ -817,6 +817,28 @@ button.btn-icon {
   white-space: nowrap;
 }
 
+/* Inline stats inside a panel title (monthly summary) */
+.summary-inline-stats {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* Collapsible panel trigger button */
+.collapsible-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
 /* ---------- Status colouring ---------- */
 .pos {
   color: var(--carbon);
