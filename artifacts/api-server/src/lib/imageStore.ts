@@ -53,10 +53,10 @@ async function resolveStore(): Promise<ImageStore> {
 
     const store: ImageStore = {
       async put(buffer, contentType) {
+        // UploadOptions carries no content type, so the type is preserved in
+        // the key's extension instead — that is what the raw route reads back.
         const key = generateKey(contentType);
-        const result = await client.uploadFromBytes(key, buffer, {
-          contentType,
-        });
+        const result = await client.uploadFromBytes(key, buffer);
         if (!result.ok) {
           throw new Error(
             `Upload failed: ${(result as { error?: { message?: string } }).error?.message ?? "unknown"}`
@@ -71,7 +71,8 @@ async function resolveStore(): Promise<ImageStore> {
             `Download failed: ${(result as { error?: { message?: string } }).error?.message ?? "unknown"}`
           );
         }
-        return Buffer.from(result.value as Uint8Array);
+        const [contents] = result.value;
+        return contents;
       },
       async remove(key) {
         await client.delete(key);

@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import multer from "multer";
 import { z } from "zod";
@@ -135,7 +135,9 @@ router.put("/entries/:date", async (req, res): Promise<void> => {
 router.post(
   "/entries/:date/images",
   upload.array("images", 10),
-  async (req, res): Promise<void> => {
+  // The params generic is explicit because the middleware in front of this
+  // handler stops Express inferring them from the path.
+  async (req: Request<{ date: string }>, res): Promise<void> => {
     const date = req.params.date;
     const files = req.files as Express.Multer.File[] | undefined;
 
