@@ -279,6 +279,104 @@ main {
   color: var(--ink-soft);
   font-size: 0.875rem;
 }
+/* ---------- Home: the three books as floating bubbles ----------
+   The bob runs on `translate` and the hover lift on `transform`, which are
+   separate properties, so the two compose instead of overwriting each other. */
+.bubbles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(1.25rem, 5vw, 3.5rem);
+  padding: clamp(1.5rem, 6vh, 3.5rem) 0 clamp(1rem, 4vh, 2.5rem);
+  /* Fill the space the masthead and page head leave, so the books sit in the
+     middle of the screen rather than stranded under the heading. */
+  min-height: min(52vh, 420px);
+}
+
+.bubble {
+  --size: clamp(148px, 21vw, 200px);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 1rem;
+  text-align: center;
+  color: var(--ink);
+  background: radial-gradient(
+    circle at 34% 28%,
+    color-mix(in srgb, var(--paper) 88%, #fff),
+    var(--paper) 64%
+  );
+  border: 1px solid var(--rule-strong);
+  box-shadow:
+    inset 0 0 0 5px color-mix(in srgb, var(--tint) 14%, transparent),
+    0 14px 28px -18px var(--ink);
+  animation: bubble-bob 7s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -2.3s);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bubble:hover,
+.bubble:focus-visible {
+  text-decoration: none;
+  transform: scale(1.045);
+  box-shadow:
+    inset 0 0 0 5px color-mix(in srgb, var(--tint) 30%, transparent),
+    0 18px 32px -16px var(--ink);
+}
+
+.bubble-label {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.bubble-caption {
+  font-family: var(--fig);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.bubble strong {
+  font-family: var(--fig);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bubbles-note {
+  margin: 0;
+  text-align: center;
+  font-family: var(--fig);
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+@keyframes bubble-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -9px;
+  }
+}
+
+/* The books carry the navigation on this page, so the head sheds its rule. */
+.page-head.bare {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  justify-content: center;
+  text-align: center;
+}
+
 .module-card .stat {
   margin-top: 1.25rem;
   padding-top: 0.75rem;

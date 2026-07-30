@@ -1,4 +1,4 @@
-import { NavLink, Link, Route, Routes } from "react-router-dom";
+import { NavLink, Link, Route, Routes, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Fitness from "./pages/Fitness";
 import Journal from "./pages/Journal";
@@ -12,6 +12,8 @@ import { useTheme } from "./lib/useTheme";
 
 export default function App() {
   const { theme, toggle } = useTheme();
+  // On the dashboard the bubbles are the menu, so the tabs would only repeat them.
+  const onDashboard = useLocation().pathname === "/";
 
   return (
     <div className="shell">
@@ -21,11 +23,13 @@ export default function App() {
             <span className="wordmark-rule" aria-hidden="true" />
             Tracker
           </Link>
-          <nav className="tabs">
-            <NavLink to="/finance">Finance</NavLink>
-            <NavLink to="/fitness">Fitness</NavLink>
-            <NavLink to="/journal">Journal</NavLink>
-          </nav>
+          {!onDashboard && (
+            <nav className="tabs">
+              <NavLink to="/finance">Finance</NavLink>
+              <NavLink to="/fitness">Fitness</NavLink>
+              <NavLink to="/journal">Journal</NavLink>
+            </nav>
+          )}
           <button
             className="quiet"
             onClick={toggle}
