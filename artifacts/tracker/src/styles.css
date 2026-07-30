@@ -579,21 +579,8 @@ button.danger {
 .tape-seg {
   transition: width 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
   position: relative;
-}
-.tape-seg + .tape-seg {
-  border-left: 1px solid var(--paper);
-}
-.tape-seg[data-cat="bills"] {
+  height: 100%;
   background: var(--ink);
-}
-.tape-seg[data-cat="debt"] {
-  background: var(--stamp);
-}
-.tape-seg[data-cat="credit_dump"] {
-  background: var(--carbon);
-}
-.tape-seg[data-cat="surplus"] {
-  background: var(--rule-strong);
 }
 
 .tape-legend {
@@ -657,18 +644,28 @@ button.danger {
 /* ---------- Allocation rows ---------- */
 .alloc-row {
   display: grid;
-  grid-template-columns: 140px 1fr 130px 32px;
+  grid-template-columns: 130px 1fr 32px;
   gap: 0.5rem;
-  align-items: start;
+  align-items: center;
   padding: 0.6rem 0;
   border-bottom: 1px solid var(--rule);
 }
 
-.alloc-row .notes-line {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: 0.5rem;
+/* The arrows must stay on the line with the dropdown even in a narrow
+   form column, so the select shrinks rather than the row wrapping. */
+.month-picker {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.month-select {
+  font-family: var(--fig);
+  font-size: 0.8125rem;
+  text-align: center;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 /* ---------- Tags ---------- */
@@ -927,9 +924,6 @@ button.danger {
   }
   .alloc-row {
     grid-template-columns: 1fr 1fr;
-  }
-  .alloc-row .notes-line {
-    grid-template-columns: 1fr;
   }
   .masthead-inner {
     flex-wrap: wrap;

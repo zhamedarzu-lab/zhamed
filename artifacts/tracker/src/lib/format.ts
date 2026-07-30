@@ -70,10 +70,3 @@ export function toAmount(raw: string): number {
   const n = Number.parseFloat(cleaned);
   return Number.isFinite(n) ? n : 0;
 }
-
-export const CATEGORY_LABELS: Record<string, string> = {
-  bills: "Bills & expenses",
-  debt: "Debt repayment",
-  credit_dump: "Credit dump",
-  surplus: "Surplus / spending",
-};

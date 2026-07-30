@@ -1,17 +1,15 @@
 import { useState } from "react";
 import { useApi } from "../../lib/api";
-import { currentMonth, dollars, monthName, ordinal, shiftMonth } from "../../lib/format";
-import { Empty, Loading, Notice, Panel } from "../../components/ui";
+import { currentMonth, dollars, monthName, ordinal } from "../../lib/format";
+import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
 type Summary = {
   income: number;
-  setAsideForBills: number;
+  allocated: number;
+  unallocated: number;
   actuallyPaid: number;
-  billsDelta: number;
-  totalToDebt: number;
-  creditDump: number;
-  surplus: number;
+  byNote: Array<{ note: string; amount: number }>;
 };
 
 type Paycheck = {
@@ -19,14 +17,8 @@ type Paycheck = {
   month: string;
   seq: number;
   amount: number;
-  totals: {
-    bills: number;
-    debt: number;
-    creditDump: number;
-    surplus: number;
-    allocated: number;
-    unallocated: number;
-  };
+  allocations: Array<{ id: number; amount: number; note: string }>;
+  totals: { allocated: number; unallocated: number };
 };
 
 export default function MonthlySummary() {
@@ -45,33 +37,7 @@ export default function MonthlySummary() {
         </div>
         <div className="button-row">
           <FinanceNav />
-          <div className="segmented" role="group" aria-label="Select month">
-            <button
-              className="quiet"
-              type="button"
-              onClick={() => setMonth(shiftMonth(month, -1))}
-            >
-              ‹
-            </button>
-            <span
-              className="fig"
-              style={{
-                padding: "0.45rem 0.85rem",
-                fontSize: "0.875rem",
-                display: "inline-block",
-                userSelect: "none",
-              }}
-            >
-              {monthName(month)}
-            </span>
-            <button
-              className="quiet"
-              type="button"
-              onClick={() => setMonth(shiftMonth(month, 1))}
-            >
-              ›
-            </button>
-          </div>
+          <MonthPicker month={month} onChange={setMonth} />
         </div>
       </div>
 
@@ -79,44 +45,57 @@ export default function MonthlySummary() {
       {summary.loading && <Loading />}
 
       {summary.data && (
-        <>
-          <div className="stats" style={{ marginBottom: "1rem" }}>
-            <div className="stat-cell">
-              <span className="eyebrow">Income</span>
-              <span className="amount fig">{dollars(summary.data.income)}</span>
-            </div>
-            <div className="stat-cell">
-              <span className="eyebrow">To bills</span>
-              <span className="amount fig">{dollars(summary.data.setAsideForBills)}</span>
-            </div>
-            <div className="stat-cell">
-              <span className="eyebrow">Bills paid</span>
-              <span className="amount fig">{dollars(summary.data.actuallyPaid)}</span>
-            </div>
-            <div className="stat-cell">
-              <span className="eyebrow">
-                {summary.data.billsDelta >= 0 ? "Bills surplus" : "Bills shortfall"}
-              </span>
-              <span
-                className={`amount fig ${summary.data.billsDelta >= 0 ? "pos" : "neg"}`}
-              >
-                {dollars(Math.abs(summary.data.billsDelta))}
-              </span>
-            </div>
-            <div className="stat-cell">
-              <span className="eyebrow">To debt</span>
-              <span className="amount fig neg">{dollars(summary.data.totalToDebt)}</span>
-            </div>
-            <div className="stat-cell">
-              <span className="eyebrow">Credit dump</span>
-              <span className="amount fig neg">{dollars(summary.data.creditDump)}</span>
-            </div>
-            <div className="stat-cell">
-              <span className="eyebrow">Surplus / spend</span>
-              <span className="amount fig pos">{dollars(summary.data.surplus)}</span>
-            </div>
+        <div className="stats" style={{ marginBottom: "1rem" }}>
+          <div className="stat-cell">
+            <span className="eyebrow">Income</span>
+            <span className="amount fig">{dollars(summary.data.income)}</span>
           </div>
-        </>
+          <div className="stat-cell">
+            <span className="eyebrow">Allocated</span>
+            <span className="amount fig">{dollars(summary.data.allocated)}</span>
+          </div>
+          <div className="stat-cell">
+            <span className="eyebrow">
+              {summary.data.unallocated < 0 ? "Over-allocated" : "Unallocated"}
+            </span>
+            <span
+              className={`amount fig ${summary.data.unallocated < 0 ? "neg" : ""}`}
+            >
+              {dollars(Math.abs(summary.data.unallocated))}
+            </span>
+          </div>
+          <div className="stat-cell">
+            <span className="eyebrow">Bills paid</span>
+            <span className="amount fig">{dollars(summary.data.actuallyPaid)}</span>
+          </div>
+        </div>
+      )}
+
+      {(summary.data?.byNote.length ?? 0) > 0 && (
+        <Panel title="By note" bodyless>
+          <table>
+            <thead>
+              <tr>
+                <th>Note</th>
+                <th className="num">Amount</th>
+                <th className="num">% of income</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.data?.byNote.map((r) => (
+                <tr key={r.note}>
+                  <td>{r.note}</td>
+                  <td className="num">{dollars(r.amount)}</td>
+                  <td className="num muted">
+                    {summary.data && summary.data.income > 0
+                      ? `${Math.round((r.amount / summary.data.income) * 100)}%`
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Panel>
       )}
 
       {paychecks.loading && <Loading />}
@@ -129,7 +108,7 @@ export default function MonthlySummary() {
         </Panel>
       )}
 
-      <div className="grid" style={{ gap: "1rem" }}>
+      <div className="grid" style={{ gap: "1rem", marginTop: "1rem" }}>
         {paychecks.data?.map((p) => (
           <Panel
             key={p.id}
@@ -144,30 +123,21 @@ export default function MonthlySummary() {
             <table>
               <thead>
                 <tr>
-                  <th>Category</th>
+                  <th>Note</th>
                   <th className="num">Amount</th>
                   <th className="num">% of deposit</th>
                 </tr>
               </thead>
               <tbody>
-                {(
-                  [
-                    ["Bills & expenses", p.totals.bills],
-                    ["Debt repayment", p.totals.debt],
-                    ["Credit dump", p.totals.creditDump],
-                    ["Surplus / spending", p.totals.surplus],
-                  ] as [string, number][]
-                )
-                  .filter(([, amt]) => amt > 0)
-                  .map(([label, amt]) => (
-                    <tr key={label}>
-                      <td>{label}</td>
-                      <td className="num">{dollars(amt)}</td>
-                      <td className="num muted">
-                        {p.amount > 0 ? `${Math.round((amt / p.amount) * 100)}%` : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                {p.allocations.map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.note || <span className="muted">Untitled</span>}</td>
+                    <td className="num">{dollars(a.amount)}</td>
+                    <td className="num muted">
+                      {p.amount > 0 ? `${Math.round((a.amount / p.amount) * 100)}%` : "—"}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
               <tfoot>
                 <tr>

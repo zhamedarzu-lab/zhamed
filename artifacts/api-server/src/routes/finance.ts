@@ -21,22 +21,12 @@ function parseId(raw: string): number {
   return n;
 }
 
-type AllocRow = { category: string; amount: string };
+type AllocRow = { amount: string };
 
 function computeTotals(allocs: AllocRow[], paycheckAmount: number) {
-  const sum = (cat: string) =>
-    allocs.filter((a) => a.category === cat).reduce((s, a) => s + Number(a.amount), 0);
-  const bills = sum("bills");
-  const debt = sum("debt");
-  const creditDump = sum("credit_dump");
-  const surplus = sum("surplus");
-  const allocated = bills + debt + creditDump + surplus;
+  const allocated = allocs.reduce((s, a) => s + Number(a.amount), 0);
   return {
-    bills,
-    debt,
-    creditDump,
-    surplus,
-    allocated,
+    allocated: Math.round(allocated * 100) / 100,
     unallocated: Math.round((paycheckAmount - allocated) * 100) / 100,
   };
 }
@@ -77,12 +67,8 @@ router.get("/paychecks", async (req, res): Promise<void> => {
         amount,
         allocations: pAllocs.map((a) => ({
           id: a.id,
-          category: a.category,
           amount: Number(a.amount),
-          notes: a.notes,
-          tags: a.tags,
-          debtAccountId: a.debtAccountId,
-          billId: a.billId,
+          note: a.note,
         })),
         totals: computeTotals(pAllocs, amount),
       };
@@ -114,12 +100,8 @@ router.get("/paychecks/last", async (_req, res): Promise<void> => {
     seq: p.seq,
     amount,
     allocations: allocs.map((a) => ({
-      category: a.category,
       amount: Number(a.amount),
-      notes: a.notes,
-      tags: a.tags,
-      debtAccountId: a.debtAccountId,
-      billId: a.billId,
+      note: a.note,
     })),
     totals: computeTotals(allocs, amount),
   });
@@ -144,24 +126,16 @@ router.get("/paychecks/:id", async (req, res): Promise<void> => {
     amount,
     allocations: allocs.map((a) => ({
       id: a.id,
-      category: a.category,
       amount: Number(a.amount),
-      notes: a.notes,
-      tags: a.tags,
-      debtAccountId: a.debtAccountId,
-      billId: a.billId,
+      note: a.note,
     })),
     totals: computeTotals(allocs, amount),
   });
 });
 
 const AllocationInput = z.object({
-  category: z.enum(["bills", "debt", "credit_dump", "surplus"]),
-  debtAccountId: z.number().int().nullable().optional(),
-  billId: z.number().int().nullable().optional(),
   amount: z.number().min(0),
-  notes: z.string().nullable().optional(),
-  tags: z.array(z.string()).optional(),
+  note: z.string().max(500).optional(),
 });
 
 /**
@@ -222,12 +196,8 @@ router.post("/paychecks", async (req, res): Promise<void> => {
     await db.insert(allocationsTable).values(
       allocations.map((a) => ({
         paycheckId: paycheck.id,
-        category: a.category,
         amount: a.amount.toFixed(2),
-        debtAccountId: a.debtAccountId ?? null,
-        billId: a.billId ?? null,
-        notes: a.notes ?? null,
-        tags: a.tags ?? [],
+        note: a.note?.trim() ?? "",
       })),
     );
   }
@@ -274,12 +244,8 @@ router.patch("/paychecks/:id", async (req, res): Promise<void> => {
       await db.insert(allocationsTable).values(
         allocations.map((a) => ({
           paycheckId: id,
-          category: a.category,
           amount: a.amount.toFixed(2),
-          debtAccountId: a.debtAccountId ?? null,
-          billId: a.billId ?? null,
-          notes: a.notes ?? null,
-          tags: a.tags ?? [],
+          note: a.note?.trim() ?? "",
         })),
       );
     }
@@ -576,36 +542,32 @@ router.get("/summary/:month", async (req, res): Promise<void> => {
           .where(inArray(allocationsTable.paycheckId, paychecks.map((p) => p.id)))
       : [];
 
-  const setAsideForBills = allocs
-    .filter((a) => a.category === "bills")
-    .reduce((s, a) => s + Number(a.amount), 0);
-  const totalToDebt = allocs
-    .filter((a) => a.category === "debt")
-    .reduce((s, a) => s + Number(a.amount), 0);
-  const creditDump = allocs
-    .filter((a) => a.category === "credit_dump")
-    .reduce((s, a) => s + Number(a.amount), 0);
-  const surplus = allocs
-    .filter((a) => a.category === "surplus")
-    .reduce((s, a) => s + Number(a.amount), 0);
+  const allocated = allocs.reduce((s, a) => s + Number(a.amount), 0);
 
   const billPayments = await db
     .select()
     .from(billPaymentsTable)
     .where(eq(billPaymentsTable.month, month));
   const actuallyPaid = billPayments.reduce((s, p) => s + Number(p.amountPaid), 0);
-  const billsDelta = setAsideForBills - actuallyPaid;
 
   const round = (n: number) => Math.round(n * 100) / 100;
+
+  // Notes are the tags now, so the month's breakdown is its notes totalled up.
+  // Untitled rows collect under one heading rather than vanishing.
+  const byNote = new Map<string, number>();
+  for (const a of allocs) {
+    const key = a.note.trim() || "Untitled";
+    byNote.set(key, (byNote.get(key) ?? 0) + Number(a.amount));
+  }
+
   res.json({
     income: round(income),
-    setAsideForBills: round(setAsideForBills),
+    allocated: round(allocated),
+    unallocated: round(income - allocated),
     actuallyPaid: round(actuallyPaid),
-    billsDelta: round(billsDelta),
-    totalToDebt: round(totalToDebt),
-    creditDump: round(creditDump),
-    surplus: round(surplus),
-    allocated: round(setAsideForBills + totalToDebt + creditDump + surplus),
+    byNote: [...byNote.entries()]
+      .map(([note, amount]) => ({ note, amount: round(amount) }))
+      .sort((a, b) => b.amount - a.amount),
   });
 });
 

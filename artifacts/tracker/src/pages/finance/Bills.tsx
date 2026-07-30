@@ -14,8 +14,6 @@ type Bill = {
 
 type Payment = { id: number; billId: number; month: string; amountPaid: number };
 
-type Summary = { setAsideForBills: number; actuallyPaid: number; billsDelta: number };
-
 export default function Bills() {
   const [month, setMonth] = useState(currentMonth());
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +22,6 @@ export default function Bills() {
 
   const bills = useApi<Bill[]>("/api/finance/bills");
   const payments = useApi<Payment[]>(`/api/finance/bill-payments?month=${month}`, [month]);
-  const summary = useApi<Summary>(`/api/finance/summary/${month}`, [month]);
 
   const paidFor = (billId: number) =>
     payments.data?.find((p) => p.billId === billId)?.amountPaid ?? 0;
@@ -66,7 +63,7 @@ export default function Bills() {
   const recordPayment = (billId: number, amountPaid: number) =>
     guard(async () => {
       await api.put("/api/finance/bill-payments", { billId, month, amountPaid });
-      await Promise.all([payments.reload(), summary.reload()]);
+      await payments.reload();
     })();
 
   const [templateOpen, setTemplateOpen] = useState(true);
@@ -74,8 +71,9 @@ export default function Bills() {
   const active = (bills.data ?? []).filter((b) => b.active);
   const templateTotal = active.reduce((s, b) => s + b.expectedAmount, 0);
   const paidTotal = active.reduce((s, b) => s + paidFor(b.id), 0);
-  const setAside = summary.data?.setAsideForBills ?? 0;
-  const delta = setAside - paidTotal;
+  // Allocations no longer say which bill they were for, so the comparison
+  // that matters here is what the template expects against what was paid.
+  const remaining = templateTotal - paidTotal;
 
   return (
     <>
@@ -97,17 +95,13 @@ export default function Bills() {
           <span className="amount fig">{dollars(templateTotal)}</span>
         </div>
         <div className="stat-cell">
-          <span className="eyebrow">Set aside from paychecks</span>
-          <span className="amount fig">{dollars(setAside)}</span>
-        </div>
-        <div className="stat-cell">
           <span className="eyebrow">Actually paid</span>
           <span className="amount fig">{dollars(paidTotal)}</span>
         </div>
         <div className="stat-cell">
-          <span className="eyebrow">{delta < 0 ? "Shortfall" : "Surplus"}</span>
-          <span className={`amount fig ${delta < 0 ? "neg" : "pos"}`}>
-            {dollars(Math.abs(delta))}
+          <span className="eyebrow">{remaining < 0 ? "Over template" : "Left to pay"}</span>
+          <span className={`amount fig ${remaining < 0 ? "neg" : ""}`}>
+            {dollars(Math.abs(remaining))}
           </span>
         </div>
       </div>

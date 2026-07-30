@@ -42,6 +42,9 @@ _Populate as you build — explicit user instructions worth remembering across s
   date — which day it landed on never affected any figure the app reports.
   `(month, seq)` is unique, so re-recording a slot returns 409 and the editor
   shows the message inline.
+- An allocation is an amount plus a note, nothing else. The note is the tag the
+  money is filed under, so a month's breakdown is its notes totalled up
+  (`summary.byNote`). There are deliberately no categories or account links.
 - `db push` only syncs structure, never data. A change that moves or drops a
   column needs a SQL script in `lib/db/migrations/` run against the database
   first; push then has nothing left to do.

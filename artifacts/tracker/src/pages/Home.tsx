@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useApi } from "../lib/api";
 import { currentMonth, dollars, monthName, shortDate } from "../lib/format";
 
-type Summary = { income: number; totalToDebt: number; billsDelta: number };
+type Summary = { income: number };
 type DebtAccount = { id: number; name: string; active: boolean; currentBalance: number | null };
 type FitnessLog = { id: number; date: string; workoutType: string | null };
 type JournalEntry = { id: number; date: string };

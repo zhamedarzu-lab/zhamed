@@ -1,5 +1,5 @@
-import { type ReactNode } from "react";
-import { shiftMonth, monthName } from "../lib/format";
+import { useMemo, type ReactNode } from "react";
+import { currentMonth, shiftMonth, monthName } from "../lib/format";
 
 export type Point = { date: string; value: number };
 
@@ -103,8 +103,13 @@ export function MoneyInput({
 }
 
 // ---------------------------------------------------------------------------
-// MonthPicker — prev / label / next navigator
+// MonthPicker — prev / dropdown / next navigator
 // ---------------------------------------------------------------------------
+
+/** Months offered in the dropdown: two years back, six months forward. */
+const BACK = 24;
+const FORWARD = 6;
+
 export function MonthPicker({
   month,
   onChange,
@@ -112,8 +117,17 @@ export function MonthPicker({
   month: string;
   onChange: (m: string) => void;
 }) {
+  const options = useMemo(() => {
+    const anchor = currentMonth();
+    const list: string[] = [];
+    for (let i = -BACK; i <= FORWARD; i++) list.push(shiftMonth(anchor, i));
+    // A month stepped past the ends of the range still has to be selectable.
+    if (!list.includes(month)) list.push(month);
+    return list.sort().reverse();
+  }, [month]);
+
   return (
-    <div className="button-row" style={{ alignItems: "center", gap: "0.25rem" }}>
+    <div className="month-picker">
       <button
         className="quiet"
         type="button"
@@ -123,12 +137,18 @@ export function MonthPicker({
       >
         ‹
       </button>
-      <span
-        className="fig"
-        style={{ fontSize: "0.8125rem", minWidth: "8rem", textAlign: "center", userSelect: "none" }}
+      <select
+        className="month-select"
+        aria-label="Month"
+        value={month}
+        onChange={(e) => onChange(e.target.value)}
       >
-        {monthName(month)}
-      </span>
+        {options.map((m) => (
+          <option key={m} value={m}>
+            {monthName(m)}
+          </option>
+        ))}
+      </select>
       <button
         className="quiet"
         type="button"

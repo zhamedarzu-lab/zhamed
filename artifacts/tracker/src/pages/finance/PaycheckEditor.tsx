@@ -1,62 +1,38 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { CATEGORY_LABELS, currentMonth, dollars, shiftMonth } from "../../lib/format";
+import { currentMonth, dollars } from "../../lib/format";
 import { Field, MonthPicker, MoneyInput, Notice, Panel } from "../../components/ui";
 
 type Row = {
   key: string;
-  category: "bills" | "debt" | "credit_dump" | "surplus";
-  debtAccountId: number | null;
-  billId: number | null;
   amount: number;
-  notes: string;
-  tags: string;
+  note: string;
 };
-
-type DebtAccount = { id: number; name: string; kind: string; active: boolean };
-type Bill = { id: number; name: string; expectedAmount: number; active: boolean };
 
 type LoadedPaycheck = {
   id: number;
   month: string;
   seq: 1 | 2 | 3;
   amount: number;
-  allocations: Array<{
-    category: Row["category"];
-    debtAccountId: number | null;
-    billId: number | null;
-    amount: number;
-    notes: string | null;
-    tags: string[];
-  }>;
+  allocations: Array<{ amount: number; note: string }>;
 };
 
 const newKey = () => Math.random().toString(36).slice(2);
 
-const blankRow = (category: Row["category"] = "bills"): Row => ({
-  key: newKey(),
-  category,
-  debtAccountId: null,
-  billId: null,
-  amount: 0,
-  notes: "",
-  tags: "",
-});
+const blankRow = (): Row => ({ key: newKey(), amount: 0, note: "" });
 
 export default function PaycheckEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const editing = Boolean(id);
 
-  const accounts = useApi<DebtAccount[]>("/api/finance/debt-accounts");
-  const bills = useApi<Bill[]>("/api/finance/bills");
   const existing = useApi<LoadedPaycheck>(editing ? `/api/finance/paychecks/${id}` : null);
 
   const [month, setMonth] = useState(currentMonth());
   const [amount, setAmount] = useState(0);
   const [seq, setSeq] = useState<1 | 2 | 3>(1);
-  const [rows, setRows] = useState<Row[]>([blankRow("bills")]);
+  const [rows, setRows] = useState<Row[]>([blankRow()]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -68,100 +44,16 @@ export default function PaycheckEditor() {
     setRows(
       existing.data.allocations.map((a) => ({
         key: newKey(),
-        category: a.category,
-        debtAccountId: a.debtAccountId,
-        billId: a.billId,
         amount: a.amount,
-        notes: a.notes ?? "",
-        tags: a.tags.join(", "),
+        note: a.note,
       })),
     );
   }, [existing.data]);
 
   const totals = useMemo(() => {
-    const by = (c: Row["category"]) =>
-      rows.filter((r) => r.category === c).reduce((s, r) => s + r.amount, 0);
     const allocated = rows.reduce((s, r) => s + r.amount, 0);
-    return {
-      bills: by("bills"),
-      debt: by("debt"),
-      credit_dump: by("credit_dump"),
-      surplus: by("surplus"),
-      allocated,
-      remaining: amount - allocated,
-    };
+    return { allocated, remaining: amount - allocated };
   }, [rows, amount]);
-
-  const cards = (accounts.data ?? []).filter((a) => a.active && a.kind === "card");
-
-  async function repeatLast() {
-    setError(null);
-    try {
-      const last = await api.get<LoadedPaycheck | null>("/api/finance/paychecks/last");
-      if (!last) {
-        setError("There's no earlier paycheck to copy from yet.");
-        return;
-      }
-      setAmount(last.amount);
-      // Land on the slot after the one copied: the next paycheck of that
-      // month, or the first of the next month once the third is taken.
-      if (last.seq < 3) {
-        setMonth(last.month);
-        setSeq((last.seq + 1) as 1 | 2 | 3);
-      } else {
-        setMonth(shiftMonth(last.month, 1));
-        setSeq(1);
-      }
-      setRows(
-        last.allocations.map((a) => ({
-          key: newKey(),
-          category: a.category,
-          debtAccountId: a.debtAccountId,
-          billId: a.billId,
-          amount: a.amount,
-          notes: a.notes ?? "",
-          tags: a.tags.join(", "),
-        })),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not copy the last paycheck.");
-    }
-  }
-
-  function dumpRemainder(accountId: number) {
-    const remainder = Math.round(totals.remaining * 100) / 100;
-    if (remainder <= 0) return;
-    setRows((prev) => {
-      const existingDump = prev.find(
-        (r) => r.category === "credit_dump" && r.debtAccountId === accountId,
-      );
-      if (existingDump) {
-        return prev.map((r) =>
-          r.key === existingDump.key
-            ? { ...r, amount: Math.round((r.amount + remainder) * 100) / 100 }
-            : r,
-        );
-      }
-      return [
-        ...prev,
-        { ...blankRow("credit_dump"), debtAccountId: accountId, amount: remainder },
-      ];
-    });
-  }
-
-  function fillFromBillTemplate() {
-    const active = (bills.data ?? []).filter((b) => b.active && b.expectedAmount > 0);
-    if (active.length === 0) return;
-    setRows((prev) => [
-      ...prev.filter((r) => !(r.category === "bills" && r.amount === 0 && !r.notes)),
-      ...active.map((b) => ({
-        ...blankRow("bills"),
-        billId: b.id,
-        amount: b.expectedAmount,
-        notes: b.name,
-      })),
-    ]);
-  }
 
   const update = (key: string, patch: Partial<Row>) =>
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -181,18 +73,7 @@ export default function PaycheckEditor() {
       amount,
       allocations: rows
         .filter((r) => r.amount > 0)
-        .map((r) => ({
-          category: r.category,
-          debtAccountId:
-            r.category === "debt" || r.category === "credit_dump" ? r.debtAccountId : null,
-          billId: r.category === "bills" ? r.billId : null,
-          amount: r.amount,
-          notes: r.notes.trim() || null,
-          tags: r.tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-        })),
+        .map((r) => ({ amount: r.amount, note: r.note.trim() })),
     };
 
     try {
@@ -209,13 +90,15 @@ export default function PaycheckEditor() {
   const remainderState =
     totals.remaining < -0.005 ? "over" : Math.abs(totals.remaining) < 0.005 ? "clear" : "open";
 
+  const allocatedPct = amount > 0 ? Math.min(100, (totals.allocated / amount) * 100) : 0;
+
   return (
     <>
       <div className="page-head">
         <div>
           <span className="eyebrow">Finance</span>
           <h1>{editing ? "Edit paycheck" : "Record a paycheck"}</h1>
-          <p>Enter the deposit, then cut it into piles top to bottom.</p>
+          <p>Enter the deposit, then give each piece of it an amount and a note.</p>
         </div>
         <div className="button-row">
           <button onClick={() => navigate("/finance")}>Cancel</button>
@@ -253,103 +136,35 @@ export default function PaycheckEditor() {
                 </div>
               </Field>
             </div>
-            <div className="button-row" style={{ marginTop: "0.85rem" }}>
-              <button onClick={repeatLast}>Repeat last paycheck structure</button>
-              <button onClick={fillFromBillTemplate}>Fill from bill template</button>
-            </div>
           </Panel>
 
           <Panel
             title="Allocations"
             action={
-              <div className="button-row">
-                <button className="quiet" onClick={() => setRows((r) => [...r, blankRow("bills")])}>
-                  + Bill
-                </button>
-                <button className="quiet" onClick={() => setRows((r) => [...r, blankRow("debt")])}>
-                  + Debt
-                </button>
-                <button className="quiet" onClick={() => setRows((r) => [...r, blankRow("surplus")])}>
-                  + Spending
-                </button>
-              </div>
+              <button className="quiet" onClick={() => setRows((r) => [...r, blankRow()])}>
+                + Add
+              </button>
             }
           >
             {rows.length === 0 && (
               <p className="muted" style={{ margin: 0 }}>
-                Nothing allocated yet. Add a row, or fill from your bill template.
+                Nothing allocated yet. Add a row.
               </p>
             )}
 
             {rows.map((row) => (
               <div className="alloc-row" key={row.key}>
-                <select
-                  aria-label="Category"
-                  value={row.category}
-                  onChange={(e) =>
-                    update(row.key, {
-                      category: e.target.value as Row["category"],
-                      debtAccountId: null,
-                      billId: null,
-                    })
-                  }
-                >
-                  {Object.entries(CATEGORY_LABELS).map(([v, l]) => (
-                    <option key={v} value={v}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-
-                {row.category === "bills" ? (
-                  <select
-                    aria-label="Which bill"
-                    value={row.billId ?? ""}
-                    onChange={(e) =>
-                      update(row.key, { billId: e.target.value ? Number(e.target.value) : null })
-                    }
-                  >
-                    <option value="">Not tied to a bill</option>
-                    {(bills.data ?? [])
-                      .filter((b) => b.active)
-                      .map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                  </select>
-                ) : row.category === "surplus" ? (
-                  <input
-                    aria-label="What for"
-                    placeholder="What's it for?"
-                    value={row.notes}
-                    onChange={(e) => update(row.key, { notes: e.target.value })}
-                  />
-                ) : (
-                  <select
-                    aria-label="Which account"
-                    value={row.debtAccountId ?? ""}
-                    onChange={(e) =>
-                      update(row.key, {
-                        debtAccountId: e.target.value ? Number(e.target.value) : null,
-                      })
-                    }
-                  >
-                    <option value="">Pick an account</option>
-                    {(accounts.data ?? [])
-                      .filter((a) => a.active)
-                      .map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                        </option>
-                      ))}
-                  </select>
-                )}
-
                 <MoneyInput
                   ariaLabel="Amount"
                   value={row.amount}
                   onChange={(n) => update(row.key, { amount: n })}
+                />
+
+                <input
+                  aria-label="Note"
+                  placeholder="What's it for?"
+                  value={row.note}
+                  onChange={(e) => update(row.key, { note: e.target.value })}
                 />
 
                 <button
@@ -359,23 +174,6 @@ export default function PaycheckEditor() {
                 >
                   ×
                 </button>
-
-                <div className="notes-line">
-                  <input
-                    aria-label="Notes"
-                    placeholder="Notes"
-                    value={row.category === "surplus" ? "" : row.notes}
-                    disabled={row.category === "surplus"}
-                    onChange={(e) => update(row.key, { notes: e.target.value })}
-                    style={row.category === "surplus" ? { visibility: "hidden" } : undefined}
-                  />
-                  <input
-                    aria-label="Tags"
-                    placeholder="Tags, comma separated"
-                    value={row.tags}
-                    onChange={(e) => update(row.key, { tags: e.target.value })}
-                  />
-                </div>
               </div>
             ))}
           </Panel>
@@ -388,32 +186,19 @@ export default function PaycheckEditor() {
               <span className="amount fig">{dollars(amount)}</span>
             </div>
 
-            <div className="tape-bar" role="img" aria-label="How this paycheck is split">
-              {(["bills", "debt", "credit_dump", "surplus"] as const).map((cat) => (
-                <div
-                  key={cat}
-                  className="tape-seg"
-                  data-cat={cat}
-                  style={{ width: `${amount > 0 ? Math.max(0, (totals[cat] / amount) * 100) : 0}%` }}
-                />
-              ))}
+            <div
+              className="tape-bar"
+              role="img"
+              aria-label={`${dollars(totals.allocated)} of ${dollars(amount)} allocated`}
+            >
+              <div className="tape-seg" style={{ width: `${allocatedPct}%` }} />
             </div>
 
             <div className="tape-legend">
-              {(
-                [
-                  ["bills", "var(--ink)"],
-                  ["debt", "var(--stamp)"],
-                  ["credit_dump", "var(--carbon)"],
-                  ["surplus", "var(--rule-strong)"],
-                ] as const
-              ).map(([cat, color]) => (
-                <div className="tape-legend-row" key={cat}>
-                  <span className="swatch" style={{ background: color }} />
-                  <span className="label">{CATEGORY_LABELS[cat]}</span>
-                  <span className="value">{dollars(totals[cat])}</span>
-                </div>
-              ))}
+              <div className="tape-legend-row">
+                <span className="label">Allocated</span>
+                <span className="value">{dollars(totals.allocated)}</span>
+              </div>
             </div>
 
             <div className="tape-remainder" data-state={remainderState}>
@@ -429,21 +214,6 @@ export default function PaycheckEditor() {
                     : "Send it somewhere below."}
               </span>
             </div>
-
-            {remainderState === "open" && cards.length > 0 && (
-              <div style={{ padding: "0 1rem 1rem" }}>
-                <span className="eyebrow" style={{ display: "block", marginBottom: "0.4rem" }}>
-                  Credit dump
-                </span>
-                <div className="button-row">
-                  {cards.map((c) => (
-                    <button key={c.id} onClick={() => dumpRemainder(c.id)}>
-                      All to {c.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </aside>
       </div>

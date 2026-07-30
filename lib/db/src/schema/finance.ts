@@ -60,19 +60,19 @@ export const paychecksTable = pgTable(
   (t) => [uniqueIndex("paychecks_month_seq_idx").on(t.month, t.seq)],
 );
 
+/**
+ * An allocation is an amount and a note. The note doubles as the tag the money
+ * is filed under — grouping a month's spending means grouping by note. There
+ * are deliberately no categories or account links: what a dollar was for is
+ * whatever you typed.
+ */
 export const allocationsTable = pgTable("allocations", {
   id: serial("id").primaryKey(),
   paycheckId: integer("paycheck_id")
     .notNull()
     .references(() => paychecksTable.id, { onDelete: "cascade" }),
-  category: text("category").notNull(), // bills | debt | credit_dump | surplus
-  debtAccountId: integer("debt_account_id").references(() => debtAccountsTable.id, {
-    onDelete: "set null",
-  }),
-  billId: integer("bill_id").references(() => billsTable.id, { onDelete: "set null" }),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  notes: text("notes"),
-  tags: text("tags").array().notNull().default([]),
+  note: text("note").notNull().default(""),
 });
 
 export type Bill = typeof billsTable.$inferSelect;
