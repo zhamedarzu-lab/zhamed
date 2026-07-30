@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useApi } from "../lib/api";
 import { currentMonth, dollars, monthName, shortDate } from "../lib/format";
@@ -7,7 +8,17 @@ type DebtAccount = { id: number; name: string; active: boolean; currentBalance: 
 type FitnessLog = { id: number; date: string; workoutType: string | null };
 type JournalEntry = { id: number; date: string };
 
+function useClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
 export default function Home() {
+  const now = useClock();
   const month = currentMonth();
   const summary = useApi<Summary>(`/api/finance/summary/${month}`);
   const debts = useApi<DebtAccount[]>("/api/finance/debt-accounts");
@@ -54,9 +65,12 @@ export default function Home() {
     <>
       <div className="page-head bare">
         <div>
-          <span className="eyebrow">{monthName(month)}</span>
-          <h1>Where things stand</h1>
-          <p>Three books, kept by hand. Pick one.</p>
+          <span className="eyebrow">
+            {now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          </span>
+          <h1 className="fig">
+            {now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </h1>
         </div>
       </div>
 
