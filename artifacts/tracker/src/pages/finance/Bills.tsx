@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, useApi } from "../../lib/api";
 import { currentMonth, dollars, monthName, toAmount } from "../../lib/format";
-import { Empty, Field, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
+import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
 type Bill = {
@@ -18,44 +18,43 @@ export default function Bills() {
   const [month, setMonth] = useState(currentMonth());
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
-  const [newAmount, setNewAmount] = useState("");
+  const addInputRef = useRef<HTMLInputElement>(null);
 
   const bills = useApi<Bill[]>("/api/finance/bills");
   const payments = useApi<Payment[]>(`/api/finance/bill-payments?month=${month}`, [month]);
 
+  const active = (bills.data ?? []).filter((b) => b.active);
   const paidFor = (billId: number) =>
     payments.data?.find((p) => p.billId === billId)?.amountPaid ?? 0;
+  const paidTotal = active.reduce((s, b) => s + paidFor(b.id), 0);
 
   const guard = (fn: () => Promise<unknown>) => async () => {
     setError(null);
-    try {
-      await fn();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "That change didn't stick.");
-    }
+    try { await fn(); }
+    catch (err) { setError(err instanceof Error ? err.message : "That change didn't stick."); }
   };
 
   const addBill = guard(async () => {
     if (!newName.trim()) return;
     await api.post("/api/finance/bills", {
       name: newName.trim(),
-      expectedAmount: toAmount(newAmount),
+      expectedAmount: 0,
       sortOrder: (bills.data?.length ?? 0) + 1,
     });
     setNewName("");
-    setNewAmount("");
+    addInputRef.current?.focus();
     await bills.reload();
   });
 
-  const patchBill = (id: number, patch: Partial<Bill>) =>
+  const renameBill = (id: number, name: string) =>
     guard(async () => {
-      await api.patch(`/api/finance/bills/${id}`, patch);
+      await api.patch(`/api/finance/bills/${id}`, { name });
       await bills.reload();
     })();
 
   const removeBill = (b: Bill) =>
     guard(async () => {
-      if (!confirm(`Remove "${b.name}" and its payment history?`)) return;
+      if (!confirm(`Remove "${b.name}" from every month?`)) return;
       await api.del(`/api/finance/bills/${b.id}`);
       await Promise.all([bills.reload(), payments.reload()]);
     })();
@@ -66,61 +65,36 @@ export default function Bills() {
       await payments.reload();
     })();
 
-  const [templateOpen, setTemplateOpen] = useState(false);
-
-  const active = (bills.data ?? []).filter((b) => b.active);
-  const templateTotal = active.reduce((s, b) => s + b.expectedAmount, 0);
-  const paidTotal = active.reduce((s, b) => s + paidFor(b.id), 0);
-  // Allocations no longer say which bill they were for, so the comparison
-  // that matters here is what the template expects against what was paid.
-  const remaining = templateTotal - paidTotal;
-
   return (
     <>
       <div className="page-head">
         <div>
           <span className="eyebrow">Finance</span>
           <h1>Bills</h1>
-          <p>The template is what you expect. The log is what actually left the account.</p>
         </div>
-        <FinanceNav />
+        <div className="button-row">
+          <FinanceNav />
+          <MonthPicker month={month} onChange={setMonth} />
+        </div>
       </div>
 
       <Notice>{error}</Notice>
       {bills.loading && <Loading />}
 
-      <div className="stats" style={{ marginBottom: "1.25rem" }}>
-        <div className="stat-cell">
-          <span className="eyebrow">Template total</span>
-          <span className="amount fig">{dollars(templateTotal)}</span>
-        </div>
-        <div className="stat-cell">
-          <span className="eyebrow">Actually paid</span>
-          <span className="amount fig">{dollars(paidTotal)}</span>
-        </div>
-        <div className="stat-cell">
-          <span className="eyebrow">{remaining < 0 ? "Over template" : "Left to pay"}</span>
-          <span className={`amount fig ${remaining < 0 ? "neg" : ""}`}>
-            {dollars(Math.abs(remaining))}
-          </span>
-        </div>
-      </div>
-
-      <Panel
-        title={`Bill log — ${monthName(month)}`}
-        action={<MonthPicker month={month} onChange={setMonth} />}
-        bodyless
-      >
+      <Panel title={monthName(month)} bodyless>
         {active.length === 0 ? (
-          <Empty title="Your bill template is empty">
-            <p>Add your recurring bills below and they'll show up here every month.</p>
-          </Empty>
+          <div className="panel-body">
+            <Empty title="No bills yet">
+              <p>Add your first bill below — it'll show up every month.</p>
+            </Empty>
+          </div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>Bill</th>
-                <th className="num" style={{ width: 160 }}>Paid this month</th>
+                <th className="num" style={{ width: 160 }}>Amount</th>
+                <th style={{ width: 40 }} />
               </tr>
             </thead>
             <tbody>
@@ -128,10 +102,19 @@ export default function Bills() {
                 const paid = paidFor(b.id);
                 return (
                   <tr key={b.id}>
-                    <td>{b.name}</td>
+                    <td>
+                      <input
+                        aria-label="Bill name"
+                        defaultValue={b.name}
+                        onBlur={(e) => {
+                          const name = e.target.value.trim();
+                          if (name && name !== b.name) void renameBill(b.id, name);
+                        }}
+                      />
+                    </td>
                     <td className="num">
                       <input
-                        aria-label={`Amount paid for ${b.name}`}
+                        aria-label={`Amount for ${b.name}`}
                         inputMode="decimal"
                         defaultValue={paid === 0 ? "" : String(paid)}
                         placeholder="0.00"
@@ -141,113 +124,51 @@ export default function Bills() {
                         }}
                       />
                     </td>
+                    <td>
+                      <button
+                        className="quiet danger btn-icon"
+                        onClick={() => removeBill(b)}
+                        aria-label={`Remove ${b.name}`}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                          strokeLinejoin="round" aria-hidden="true">
+                          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
               <tr>
-                <td>Total paid</td>
+                <td>Total</td>
                 <td className="num">{dollars(paidTotal)}</td>
+                <td />
               </tr>
             </tfoot>
           </table>
         )}
-      </Panel>
 
-      <div style={{ height: "1.25rem" }} />
-
-      <Panel
-        title="Bill template"
-        bodyless
-        action={
+        {/* Inline add row */}
+        <div className="panel-body bills-add-row" style={{ borderTop: "1px solid var(--rule)" }}>
+          <input
+            ref={addInputRef}
+            value={newName}
+            placeholder="Add a bill — Rent, Power, Netflix…"
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addBill()}
+            style={{ flex: 1 }}
+          />
           <button
-            className="quiet"
-            onClick={() => setTemplateOpen((o) => !o)}
-            aria-expanded={templateOpen}
-            aria-label={templateOpen ? "Collapse bill template" : "Expand bill template"}
+            className="primary"
+            onClick={addBill}
+            disabled={!newName.trim()}
           >
-            {templateOpen ? "▲ Collapse" : "▼ Expand"}
+            Add
           </button>
-        }
-      >
-        {templateOpen && (
-          <>
-            <table>
-              <thead>
-                <tr>
-                  <th>Bill</th>
-                  <th className="num" style={{ width: 160 }}>
-                    Expected monthly
-                  </th>
-                  <th style={{ width: 110 }} />
-                </tr>
-              </thead>
-              <tbody>
-                {(bills.data ?? []).map((b) => (
-                  <tr key={b.id} style={b.active ? undefined : { opacity: 0.5 }}>
-                    <td>
-                      <input
-                        aria-label="Bill name"
-                        defaultValue={b.name}
-                        onBlur={(e) => {
-                          const name = e.target.value.trim();
-                          if (name && name !== b.name) void patchBill(b.id, { name });
-                        }}
-                      />
-                    </td>
-                    <td className="num">
-                      <input
-                        aria-label={`Expected amount for ${b.name}`}
-                        inputMode="decimal"
-                        defaultValue={String(b.expectedAmount)}
-                        onBlur={(e) => {
-                          const v = toAmount(e.target.value);
-                          if (v !== b.expectedAmount) void patchBill(b.id, { expectedAmount: v });
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <div className="button-row">
-                        <button className="quiet" onClick={() => patchBill(b.id, { active: !b.active })}>
-                          {b.active ? "Pause" : "Resume"}
-                        </button>
-                        <button className="quiet danger" onClick={() => removeBill(b)}>
-                          ×
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="panel-body" style={{ borderTop: "1px solid var(--rule)" }}>
-              <div className="grid" style={{ gridTemplateColumns: "1fr 160px auto", gap: "0.5rem", alignItems: "end" }}>
-                <Field label="Add a bill">
-                  <input
-                    value={newName}
-                    placeholder="Internet, gym, tolls…"
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addBill()}
-                  />
-                </Field>
-                <Field label="Expected">
-                  <input
-                    inputMode="decimal"
-                    value={newAmount}
-                    placeholder="0.00"
-                    onChange={(e) => setNewAmount(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addBill()}
-                  />
-                </Field>
-                <button className="primary" onClick={addBill} disabled={!newName.trim()}>
-                  Add bill
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+        </div>
       </Panel>
     </>
   );

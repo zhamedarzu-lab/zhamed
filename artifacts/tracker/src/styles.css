@@ -817,6 +817,13 @@ button.btn-icon {
   white-space: nowrap;
 }
 
+/* Bills inline add row */
+.bills-add-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 /* Inline stats inside a panel title (monthly summary) */
 .summary-inline-stats {
   display: inline-flex;
