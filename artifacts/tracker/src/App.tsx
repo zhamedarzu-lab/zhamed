@@ -8,10 +8,7 @@ import PaycheckEditor from "./pages/finance/PaycheckEditor";
 import Bills from "./pages/finance/Bills";
 import Debt from "./pages/finance/Debt";
 import MonthlySummary from "./pages/finance/MonthlySummary";
-import { useTheme } from "./lib/useTheme";
-
 export default function App() {
-  const { theme, toggle } = useTheme();
   // On the dashboard the bubbles are the menu, so the tabs would only repeat them.
   const onDashboard = useLocation().pathname === "/";
 
@@ -30,15 +27,6 @@ export default function App() {
               <NavLink to="/journal">Journal</NavLink>
             </nav>
           )}
-          <button
-            className="quiet"
-            onClick={toggle}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            title={theme === "dark" ? "Light mode" : "Dark mode"}
-            style={{ marginLeft: "auto", fontSize: "1rem", padding: "0.3rem 0.5rem" }}
-          >
-            {theme === "dark" ? "☀︎" : "☾"}
-          </button>
         </div>
       </header>
 

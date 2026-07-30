@@ -6,28 +6,8 @@
    stamp reserved strictly for money going the wrong way.
    ===================================================================== */
 
+/* Ledger pad — night edition. */
 :root {
-  --ledger: #e4ebe1;
-  --paper: #f5f7f2;
-  --paper-sunk: #dde6d9;
-  --ink: #17231d;
-  --ink-soft: #5c6d62;
-  --ink-faint: #8b9a90;
-  --rule: #c6d4c0;
-  --rule-strong: #9fb298;
-  --stamp: #a8362b;
-  --carbon: #2b4a7a;
-
-  --ui: "Archivo", system-ui, -apple-system, sans-serif;
-  --fig: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
-
-  --r: 2px;
-  --gap: 1rem;
-  --shadow: 0 1px 0 var(--rule-strong);
-}
-
-/* Dark mode — same ledger pad, under a desk lamp at night. */
-[data-theme="dark"] {
   --ledger: #131c17;
   --paper: #1b2820;
   --paper-sunk: #101810;
@@ -38,21 +18,13 @@
   --rule-strong: #3d5245;
   --stamp: #d44e44;
   --carbon: #6890cc;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ledger: #131c17;
-    --paper: #1b2820;
-    --paper-sunk: #101810;
-    --ink: #dde8da;
-    --ink-soft: #96a99a;
-    --ink-faint: #5c6e61;
-    --rule: #283828;
-    --rule-strong: #3d5245;
-    --stamp: #d44e44;
-    --carbon: #6890cc;
-  }
+  --ui: "Archivo", system-ui, -apple-system, sans-serif;
+  --fig: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+  --r: 2px;
+  --gap: 1rem;
+  --shadow: 0 1px 0 var(--rule-strong);
 }
 
 * {
