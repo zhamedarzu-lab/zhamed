@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import {
@@ -69,6 +69,7 @@ router.get("/paychecks", async (req, res): Promise<void> => {
           id: a.id,
           amount: Number(a.amount),
           note: a.note,
+          debtAccountId: a.debtAccountId,
         })),
         totals: computeTotals(pAllocs, amount),
       };
@@ -102,6 +103,7 @@ router.get("/paychecks/last", async (_req, res): Promise<void> => {
     allocations: allocs.map((a) => ({
       amount: Number(a.amount),
       note: a.note,
+      debtAccountId: a.debtAccountId,
     })),
     totals: computeTotals(allocs, amount),
   });
@@ -128,6 +130,7 @@ router.get("/paychecks/:id", async (req, res): Promise<void> => {
       id: a.id,
       amount: Number(a.amount),
       note: a.note,
+      debtAccountId: a.debtAccountId,
     })),
     totals: computeTotals(allocs, amount),
   });
@@ -136,6 +139,7 @@ router.get("/paychecks/:id", async (req, res): Promise<void> => {
 const AllocationInput = z.object({
   amount: z.number().min(0),
   note: z.string().max(500).optional(),
+  debtAccountId: z.number().int().nullable().optional(),
 });
 
 /**
@@ -198,6 +202,7 @@ router.post("/paychecks", async (req, res): Promise<void> => {
         paycheckId: paycheck.id,
         amount: a.amount.toFixed(2),
         note: a.note?.trim() ?? "",
+        debtAccountId: a.debtAccountId ?? null,
       })),
     );
   }
@@ -246,6 +251,7 @@ router.patch("/paychecks/:id", async (req, res): Promise<void> => {
           paycheckId: id,
           amount: a.amount.toFixed(2),
           note: a.note?.trim() ?? "",
+          debtAccountId: a.debtAccountId ?? null,
         })),
       );
     }
@@ -491,14 +497,30 @@ router.get("/debt-accounts", async (_req, res): Promise<void> => {
     .from(debtSnapshotsTable)
     .orderBy(desc(debtSnapshotsTable.snapshotDate));
 
+  // Paycheck money tagged for a card that hasn't been folded into a balance
+  // update yet — powers the "sent since last update" prompt on the Debt page.
+  const pendingAllocs = await db
+    .select({ debtAccountId: allocationsTable.debtAccountId, amount: allocationsTable.amount })
+    .from(allocationsTable)
+    .where(
+      and(
+        isNotNull(allocationsTable.debtAccountId),
+        isNull(allocationsTable.appliedSnapshotId),
+      ),
+    );
+
   res.json(
     accounts.map((a) => {
       const latest = snapshots.find((s) => s.debtAccountId === a.id);
+      const pendingPayment = pendingAllocs
+        .filter((p) => p.debtAccountId === a.id)
+        .reduce((s, p) => s + Number(p.amount), 0);
       return {
         ...a,
         creditLimit:    a.creditLimit != null ? Number(a.creditLimit) : null,
         currentBalance: latest ? Number(latest.balance) : null,
         lastUpdated:    latest ? latest.snapshotDate : null,
+        pendingPayment: Math.round(pendingPayment * 100) / 100,
       };
     }),
   );
@@ -603,6 +625,18 @@ router.post("/debt-snapshots", async (req, res): Promise<void> => {
       amountPaid: (parsed.data.amountPaid ?? 0).toFixed(2),
     })
     .returning();
+
+  // Fold any paycheck money still pending for this card into this update, so
+  // the "sent since last update" total on the Debt page resets to zero.
+  await db
+    .update(allocationsTable)
+    .set({ appliedSnapshotId: snap.id })
+    .where(
+      and(
+        eq(allocationsTable.debtAccountId, parsed.data.debtAccountId),
+        isNull(allocationsTable.appliedSnapshotId),
+      ),
+    );
 
   res.status(201).json({ ...snap, balance: Number(snap.balance), amountPaid: Number(snap.amountPaid) });
 });

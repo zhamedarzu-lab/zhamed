@@ -12,18 +12,20 @@ import {
   SPENDING_COLOR,
 } from "../../components/ui";
 
-type Row = { key: string; amount: number; note: string };
+type Row = { key: string; amount: number; note: string; debtAccountId: number | null };
 
 type LoadedPaycheck = {
   id: number;
   month: string;
   seq: 1 | 2 | 3;
   amount: number;
-  allocations: Array<{ amount: number; note: string }>;
+  allocations: Array<{ amount: number; note: string; debtAccountId: number | null }>;
 };
 
+type Card = { id: number; name: string; active: boolean };
+
 const newKey = () => Math.random().toString(36).slice(2);
-const blankRow = (): Row => ({ key: newKey(), amount: 0, note: "" });
+const blankRow = (): Row => ({ key: newKey(), amount: 0, note: "", debtAccountId: null });
 
 const SEQ_LABELS: Record<number, string> = { 1: "1/2", 2: "2/2", 3: "3/2" };
 
@@ -72,6 +74,9 @@ export default function PaycheckEditor() {
     return [...seen].sort();
   }, [allPaychecks.data]);
 
+  const cardsApi = useApi<Card[]>("/api/finance/debt-accounts");
+  const cards = (cardsApi.data ?? []).filter((c) => c.active);
+
   const [month, setMonth] = useState(currentMonth());
   const [amount, setAmount] = useState(0);
   const [seq, setSeq] = useState<1 | 2 | 3>(1);
@@ -107,6 +112,7 @@ export default function PaycheckEditor() {
       allocations: rows.filter((r) => r.amount > 0).map((r) => ({
         amount: r.amount,
         note: r.note.trim(),
+        debtAccountId: r.debtAccountId,
       })),
     };
     try {
@@ -211,6 +217,25 @@ export default function PaycheckEditor() {
                   value={row.note}
                   onChange={(e) => update(row.key, { note: e.target.value })}
                 />
+
+                <select
+                  aria-label="Goes toward a card"
+                  className="alloc-card-select"
+                  value={row.debtAccountId ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : null;
+                    const card = cards.find((c) => c.id === val);
+                    update(row.key, {
+                      debtAccountId: val,
+                      note: !row.note.trim() && card ? card.name : row.note,
+                    });
+                  }}
+                >
+                  <option value="">No card</option>
+                  {cards.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
 
                 <MoneyInput
                   ariaLabel="Amount"

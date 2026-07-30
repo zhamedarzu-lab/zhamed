@@ -1,6 +1,6 @@
 ---
 name: Tracker stack decisions
-description: Key constraints for the Personal Tracker (Finance/Fitness/Journal) app
+description: Key constraints for the Personal Tracker app (finance-only — Fitness/Journal segments and dashboard menu were removed)
 ---
 
 ## Routing

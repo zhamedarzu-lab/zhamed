@@ -11,6 +11,7 @@ type Account = {
   active: boolean;
   currentBalance: number | null;
   lastUpdated: string | null;
+  pendingPayment: number;
 };
 
 type Snapshot = {
@@ -145,6 +146,7 @@ function CardPanel({
   const [editLimit,  setEditLimit]  = useState(false);
   const [limitInput, setLimitInput] = useState("");
   const [busy,       setBusy]       = useState(false);
+  const [applied,    setApplied]    = useState(0);
 
   const sorted = [...snapshots].sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
   const points: Point[] = sorted.map((s) => ({ date: s.snapshotDate, value: s.balance }));
@@ -152,6 +154,13 @@ function CardPanel({
   const balance = account.currentBalance ?? 0;
   const limit   = account.creditLimit ?? 0;
   const ratio   = limit > 0 ? balance / limit : 0;
+  const pending = account.pendingPayment;
+
+  function applyPending() {
+    const suggested = Math.max(0, balance - pending);
+    setBalInput(suggested.toFixed(2));
+    setApplied(pending);
+  }
 
   async function updateBalance() {
     const v = toAmount(balInput);
@@ -163,8 +172,10 @@ function CardPanel({
         debtAccountId: account.id,
         snapshotDate:  todayIso(),
         balance:       v,
+        amountPaid:    applied,
       });
       setBalInput("");
+      setApplied(0);
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not update balance.");
@@ -225,6 +236,14 @@ function CardPanel({
             <span className="debt-balance-date">as of {shortDate(account.lastUpdated)}</span>
           )}
         </div>
+
+        {/* Paycheck money sent here but not yet folded into a balance update */}
+        {pending > 0 && (
+          <div className="debt-pending-row">
+            <span>Sent via paychecks: <strong>{dollars(pending)}</strong></span>
+            <button className="quiet" onClick={applyPending}>Apply to balance</button>
+          </div>
+        )}
 
         {/* Limit + utilization */}
         <div className="debt-limit-row">
@@ -290,7 +309,7 @@ function CardPanel({
           inputMode="decimal"
           value={balInput}
           placeholder="New balance…"
-          onChange={(e) => setBalInput(e.target.value)}
+          onChange={(e) => { setBalInput(e.target.value); setApplied(0); }}
           onKeyDown={(e) => e.key === "Enter" && updateBalance()}
         />
         <button onClick={updateBalance} disabled={busy || !balInput.trim()}>

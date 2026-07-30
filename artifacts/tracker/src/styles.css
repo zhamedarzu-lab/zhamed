@@ -540,11 +540,21 @@ button.btn-icon {
 /* ---------- Allocation rows ---------- */
 .alloc-row {
   display: grid;
-  grid-template-columns: 12px 1fr 120px 32px;
+  grid-template-columns: 12px 1fr 108px 120px 32px;
   gap: 0.5rem;
   align-items: center;
   padding: 0.55rem 0;
   border-bottom: 1px solid var(--rule);
+}
+
+.alloc-card-select {
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.4rem;
+  color: var(--ink-soft);
+}
+
+.alloc-card-select:has(option:checked:not([value=""])) {
+  color: var(--ink);
 }
 
 .alloc-row-dot {
@@ -818,6 +828,30 @@ button.btn-icon {
   font-size: 0.75rem;
   color: var(--ink-faint);
   font-family: var(--fig);
+}
+
+.debt-pending-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 3px;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+.debt-pending-row strong {
+  color: var(--ink);
+  font-family: var(--fig);
+}
+
+.debt-pending-row button {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
 }
 
 .debt-limit-row {

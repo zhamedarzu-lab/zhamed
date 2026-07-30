@@ -74,6 +74,16 @@ export const allocationsTable = pgTable("allocations", {
     .references(() => paychecksTable.id, { onDelete: "cascade" }),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   note: text("note").notNull().default(""),
+  // Optional link to a credit card this allocation was sent toward. Nulled
+  // out if the card is later deleted — the paycheck history still stands.
+  debtAccountId: integer("debt_account_id").references(() => debtAccountsTable.id, {
+    onDelete: "set null",
+  }),
+  // Set once the linked payment has been folded into a balance update on the
+  // Debt page, so "money sent since last update" only counts unapplied rows.
+  appliedSnapshotId: integer("applied_snapshot_id").references(() => debtSnapshotsTable.id, {
+    onDelete: "set null",
+  }),
 });
 
 export const monthlySubscriptionItemsTable = pgTable("monthly_subscription_items", {
