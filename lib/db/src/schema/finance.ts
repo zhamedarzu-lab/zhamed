@@ -81,6 +81,7 @@ export const monthlySubscriptionItemsTable = pgTable("monthly_subscription_items
   name:      text("name").notNull(),
   amount:    numeric("amount", { precision: 10, scale: 2 }).notNull().default("0"),
   sortOrder: integer("sort_order").notNull().default(0),
+  active:    boolean("active").notNull().default(true),
 });
 
 export const monthlyBillItemsTable = pgTable("monthly_bill_items", {

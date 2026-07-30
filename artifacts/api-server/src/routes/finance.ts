@@ -434,7 +434,7 @@ router.get("/subscriptions", async (req, res): Promise<void> => {
       if (source.length > 0) {
         items = await db
           .insert(monthlySubscriptionItemsTable)
-          .values(source.map((s) => ({ month, name: s.name, amount: "0", sortOrder: s.sortOrder })))
+          .values(source.map((s) => ({ month, name: s.name, amount: s.amount, sortOrder: s.sortOrder, active: s.active })))
           .returning();
       }
     }
@@ -457,12 +457,13 @@ router.post("/subscriptions", async (req, res): Promise<void> => {
 router.patch("/subscriptions/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const parsed = z
-    .object({ name: z.string().min(1).optional(), amount: z.number().min(0).optional() })
+    .object({ name: z.string().min(1).optional(), amount: z.number().min(0).optional(), active: z.boolean().optional() })
     .safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: String(parsed.error) }); return; }
   const update: Record<string, unknown> = {};
-  if (parsed.data.name !== undefined) update.name = parsed.data.name;
+  if (parsed.data.name   !== undefined) update.name   = parsed.data.name;
   if (parsed.data.amount !== undefined) update.amount = parsed.data.amount.toFixed(2);
+  if (parsed.data.active !== undefined) update.active = parsed.data.active;
   const [item] = await db
     .update(monthlySubscriptionItemsTable)
     .set(update)

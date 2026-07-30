@@ -847,6 +847,43 @@ button.btn-icon {
   pointer-events: none;
 }
 
+/* Subscription active/paused toggle */
+.sub-toggle {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule-strong);
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.sub-toggle-on {
+  background: #5fc97a;
+  border-color: #5fc97a;
+}
+
+.sub-toggle-off:hover {
+  border-color: var(--ink-faint);
+}
+
+.sub-row-paused {
+  opacity: 0.45;
+}
+
+.sub-name-paused {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-faint);
+}
+
+.sub-divider-row td {
+  padding: 0.25rem 1rem 0.15rem;
+  border-bottom: none;
+}
+
 /* Bills inline add row */
 .bills-add-row {
   display: flex;

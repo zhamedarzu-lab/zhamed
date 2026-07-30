@@ -1,11 +1,10 @@
 import { useRef, useState } from "react";
 import { api, useApi } from "../../lib/api";
-import { currentMonth, dollars, monthName, toAmount } from "../../lib/format";
-import { Empty, Loading, Notice, Panel, tagColor } from "../../components/ui";
+import { currentMonth, dollars, toAmount } from "../../lib/format";
+import { Empty, Loading, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
-const BUDGET_KEY  = "subs-budget";
-const COLORS_KEY  = "sub-colors";
+const BUDGET_KEY     = "subs-budget";
 const DEFAULT_BUDGET = 200;
 
 function useBudget() {
@@ -18,40 +17,27 @@ function useBudget() {
   return [budget, setBudget] as const;
 }
 
-function useSubColors() {
-  const [colors, setColorsState] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem(COLORS_KEY) ?? "{}"); }
-    catch { return {}; }
-  });
-  const setColor = (name: string, color: string) => {
-    setColorsState((prev) => {
-      const next = { ...prev, [name]: color };
-      localStorage.setItem(COLORS_KEY, JSON.stringify(next));
-      return next;
-    });
-  };
-  return [colors, setColor] as const;
-}
-
-type SubItem = { id: number; month: string; name: string; amount: number; sortOrder: number };
+type SubItem = { id: number; month: string; name: string; amount: number; sortOrder: number; active: boolean };
 
 export default function Subscriptions() {
-  const month                           = currentMonth();
-  const [error, setError]               = useState<string | null>(null);
-  const [newName, setNewName]           = useState("");
-  const [budget, setBudget]             = useBudget();
+  const month                             = currentMonth();
+  const [error, setError]                 = useState<string | null>(null);
+  const [newName, setNewName]             = useState("");
+  const [budget, setBudget]               = useBudget();
   const [editingBudget, setEditingBudget] = useState(false);
-  const [colors, setColor]              = useSubColors();
-  const addInputRef                     = useRef<HTMLInputElement>(null);
+  const addInputRef                       = useRef<HTMLInputElement>(null);
 
   const { data, loading, reload } = useApi<SubItem[]>(
     `/api/finance/subscriptions?month=${month}`,
     [month],
   );
 
-  const items    = data ?? [];
-  const total    = items.reduce((s, b) => s + b.amount, 0);
-  const leftover = budget - total;
+  const items      = data ?? [];
+  const active     = items.filter((b) => b.active);
+  const paused     = items.filter((b) => !b.active);
+  const activeTotal = active.reduce((s, b) => s + b.amount, 0);
+  const pausedTotal = paused.reduce((s, b) => s + b.amount, 0);
+  const leftover    = budget - activeTotal;
 
   const guard = (fn: () => Promise<unknown>) => async () => {
     setError(null);
@@ -73,12 +59,66 @@ export default function Subscriptions() {
   const updateAmount = (id: number, amount: number) =>
     guard(async () => { await api.patch(`/api/finance/subscriptions/${id}`, { amount }); await reload(); })();
 
+  const toggleActive = (id: number, next: boolean) =>
+    guard(async () => { await api.patch(`/api/finance/subscriptions/${id}`, { active: next }); await reload(); })();
+
   const removeItem = (item: SubItem) =>
     guard(async () => {
-      if (!confirm(`Remove "${item.name}" from ${monthName(month)}?`)) return;
+      if (!confirm(`Remove "${item.name}"?`)) return;
       await api.del(`/api/finance/subscriptions/${item.id}`);
       await reload();
     })();
+
+  const renderRow = (b: SubItem) => (
+    <tr key={b.id} className={b.active ? undefined : "sub-row-paused"}>
+      <td>
+        <button
+          className={`sub-toggle ${b.active ? "sub-toggle-on" : "sub-toggle-off"}`}
+          onClick={() => toggleActive(b.id, !b.active)}
+          title={b.active ? "Pause this subscription" : "Reactivate"}
+          aria-label={b.active ? "Active" : "Paused"}
+        />
+      </td>
+      <td>
+        <input
+          aria-label="Subscription name"
+          defaultValue={b.name}
+          key={b.id + b.name}
+          className={b.active ? undefined : "sub-name-paused"}
+          onBlur={(e) => {
+            const name = e.target.value.trim();
+            if (name && name !== b.name) void renameItem(b.id, name);
+          }}
+        />
+      </td>
+      <td className="num">
+        <input
+          aria-label={`Amount for ${b.name}`}
+          inputMode="decimal"
+          key={b.id + b.amount}
+          defaultValue={b.amount === 0 ? "" : String(b.amount)}
+          placeholder="0.00"
+          onBlur={(e) => {
+            const v = toAmount(e.target.value);
+            if (v !== b.amount) void updateAmount(b.id, v);
+          }}
+        />
+      </td>
+      <td>
+        <button
+          className="quiet danger btn-icon"
+          onClick={() => removeItem(b)}
+          aria-label={`Remove ${b.name}`}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+            strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+          </svg>
+        </button>
+      </td>
+    </tr>
+  );
 
   return (
     <>
@@ -95,10 +135,10 @@ export default function Subscriptions() {
       <Notice>{error}</Notice>
       {loading && <Loading />}
 
-      <Panel title={monthName(month)} bodyless>
+      <Panel bodyless>
         {!loading && items.length === 0 ? (
           <div className="panel-body">
-            <Empty title="No subscriptions for this month">
+            <Empty title="No subscriptions yet">
               <p>Add one below — it'll carry over to next month automatically.</p>
             </Empty>
           </div>
@@ -113,58 +153,15 @@ export default function Subscriptions() {
               </tr>
             </thead>
             <tbody>
-              {items.map((b) => (
-                <tr key={b.id}>
-                  <td>
-                    <label className="bill-color-label" title="Click to change color">
-                      <span className="bill-color-swatch" style={{ background: colors[b.name] ?? tagColor(b.name) }} />
-                      <input
-                        type="color"
-                        className="bill-color-input"
-                        value={colors[b.name] ?? tagColor(b.name)}
-                        onChange={(e) => setColor(b.name, e.target.value)}
-                      />
-                    </label>
-                  </td>
-                  <td>
-                    <input
-                      aria-label="Subscription name"
-                      defaultValue={b.name}
-                      key={b.id + b.name}
-                      onBlur={(e) => {
-                        const name = e.target.value.trim();
-                        if (name && name !== b.name) void renameItem(b.id, name);
-                      }}
-                    />
-                  </td>
-                  <td className="num">
-                    <input
-                      aria-label={`Amount for ${b.name}`}
-                      inputMode="decimal"
-                      key={b.id + b.amount}
-                      defaultValue={b.amount === 0 ? "" : String(b.amount)}
-                      placeholder="0.00"
-                      onBlur={(e) => {
-                        const v = toAmount(e.target.value);
-                        if (v !== b.amount) void updateAmount(b.id, v);
-                      }}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      className="quiet danger btn-icon"
-                      onClick={() => removeItem(b)}
-                      aria-label={`Remove ${b.name}`}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                        strokeLinejoin="round" aria-hidden="true">
-                        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
-                      </svg>
-                    </button>
+              {active.map(renderRow)}
+              {paused.length > 0 && active.length > 0 && (
+                <tr className="sub-divider-row">
+                  <td colSpan={5}>
+                    <span className="eyebrow">Paused</span>
                   </td>
                 </tr>
-              ))}
+              )}
+              {paused.map(renderRow)}
             </tbody>
           </table>
         )}
@@ -172,8 +169,12 @@ export default function Subscriptions() {
         {items.length > 0 && (
           <div className="bills-stat-strip">
             <div className="bills-stat">
-              <span className="eyebrow">Total</span>
-              <span className="fig">{dollars(total)}</span>
+              <span className="eyebrow">Active</span>
+              <span className="fig">{dollars(activeTotal)}</span>
+            </div>
+            <div className="bills-stat">
+              <span className="eyebrow">Paused</span>
+              <span className="fig" style={{ color: "var(--ink-soft)" }}>{dollars(pausedTotal)}</span>
             </div>
             <div className="bills-stat">
               <span className="eyebrow">Budget</span>
@@ -200,7 +201,7 @@ export default function Subscriptions() {
               )}
             </div>
             <div className="bills-stat">
-              <span className="eyebrow">{leftover < 0 ? "Over budget" : "Leftover"}</span>
+              <span className="eyebrow">{leftover < 0 ? "Over" : "Left"}</span>
               <span className="fig" style={{ color: leftover < 0 ? "var(--stamp)" : "#5fc97a" }}>
                 {dollars(Math.abs(leftover))}
               </span>
@@ -222,7 +223,6 @@ export default function Subscriptions() {
           </button>
         </div>
       </Panel>
-
     </>
   );
 }
