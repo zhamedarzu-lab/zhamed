@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { currentMonth, dollars } from "../../lib/format";
-import { Field, MonthPicker, MoneyInput, Notice, Panel } from "../../components/ui";
+import { AllocBar, allocColor, Field, MonthPicker, MoneyInput, Notice, Panel, SPENDING_COLOR } from "../../components/ui";
 
 type Row = {
   key: string;
@@ -186,19 +186,32 @@ export default function PaycheckEditor() {
               <span className="amount fig">{dollars(amount)}</span>
             </div>
 
-            <div
-              className="tape-bar"
-              role="img"
-              aria-label={`${dollars(totals.allocated)} of ${dollars(amount)} allocated`}
-            >
-              <div className="tape-seg" style={{ width: `${allocatedPct}%` }} />
-            </div>
+            <AllocBar
+              segments={rows
+                .filter((r) => r.amount > 0)
+                .map((r, i) => ({ amount: r.amount, color: allocColor(i) }))}
+              total={amount}
+              remainder={totals.remaining > 0.005 ? totals.remaining : undefined}
+              height={34}
+            />
 
             <div className="tape-legend">
-              <div className="tape-legend-row">
-                <span className="label">Allocated</span>
-                <span className="value">{dollars(totals.allocated)}</span>
-              </div>
+              {rows
+                .filter((r) => r.amount > 0)
+                .map((r, i) => (
+                  <div className="tape-legend-row" key={r.key}>
+                    <span className="swatch" style={{ background: allocColor(i) }} />
+                    <span className="label">{r.note || <em>Untitled</em>}</span>
+                    <span className="value">{dollars(r.amount)}</span>
+                  </div>
+                ))}
+              {totals.remaining > 0.005 && (
+                <div className="tape-legend-row">
+                  <span className="swatch" style={{ background: SPENDING_COLOR, opacity: 0.6 }} />
+                  <span className="label">Spending</span>
+                  <span className="value">{dollars(totals.remaining)}</span>
+                </div>
+              )}
             </div>
 
             <div className="tape-remainder" data-state={remainderState}>

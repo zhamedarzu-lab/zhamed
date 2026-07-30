@@ -4,6 +4,48 @@ import { currentMonth, shiftMonth, monthName } from "../lib/format";
 export type Point = { date: string; value: number };
 
 // ---------------------------------------------------------------------------
+// AllocBar — multi-colour segmented allocation bar
+// ---------------------------------------------------------------------------
+const ALLOC_PALETTE = [
+  "#6890cc", "#d4a644", "#7acc9a", "#cc8f7a",
+  "#9a7acc", "#5ab8cc", "#ccb85a", "#cc7a9a",
+];
+export const SPENDING_COLOR = "#5fc97a";
+export const allocColor = (i: number) => ALLOC_PALETTE[i % ALLOC_PALETTE.length];
+
+export function AllocBar({
+  segments,
+  total,
+  remainder,
+  height = 10,
+}: {
+  segments: { amount: number; color: string }[];
+  total: number;
+  remainder?: number;
+  height?: number;
+}) {
+  if (total <= 0) return null;
+  const rem = remainder ?? 0;
+  return (
+    <div className="alloc-bar" role="img" aria-label="Allocation breakdown" style={{ height }}>
+      {segments.map((s, i) => (
+        <div
+          key={i}
+          className="alloc-bar-seg"
+          style={{ width: `${Math.max(0, (s.amount / total) * 100)}%`, background: s.color }}
+        />
+      ))}
+      {rem > 0.005 && (
+        <div
+          className="alloc-bar-seg"
+          style={{ width: `${(rem / total) * 100}%`, background: SPENDING_COLOR, opacity: 0.4 }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Panel — a bordered card with optional header row
 // ---------------------------------------------------------------------------
 export function Panel({

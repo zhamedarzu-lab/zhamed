@@ -647,6 +647,29 @@ button.danger {
   opacity: 0.75;
 }
 
+/* Multi-colour segmented bar. */
+.alloc-bar {
+  display: flex;
+  background: var(--paper-sunk);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.alloc-bar-seg {
+  height: 100%;
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+  flex-shrink: 0;
+}
+
+/* Colour dot beside each allocation note. */
+.alloc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 /* Simple list of allocation notes on a paycheck card. */
 .alloc-list {
   margin: 0;
