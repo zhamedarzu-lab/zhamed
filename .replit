@@ -1,20 +1,18 @@
-modules = ["nodejs-24"]
+run = "npm run dev"
+entrypoint = "server/index.ts"
+modules = ["nodejs-20", "postgresql-16"]
+
+[nix]
+channel = "stable-24_05"
 
 [deployment]
-router = "application"
+run = ["sh", "-c", "npm run build && npm start"]
+build = ["sh", "-c", "npm run build"]
 deploymentTarget = "autoscale"
 
-[deployment.postBuild]
-args = ["pnpm", "store", "prune"]
-env = { "CI" = "true" }
+[[ports]]
+localPort = 5000
+externalPort = 80
 
-[workflows]
-runButton = "Project"
-
-[agent]
-stack = "PNPM_WORKSPACE"
-expertMode = true
-
-[postMerge]
-path = "scripts/post-merge.sh"
-timeoutMs = 20000
+[env]
+NODE_ENV = "development"

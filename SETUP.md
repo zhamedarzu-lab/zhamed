@@ -56,6 +56,8 @@ Everything is editable in the app afterwards. Delete what you don't need.
 ## API surface
 
 ```
+GET    /api/health
+
 GET    /api/finance/paychecks            ?from=&to=
 GET    /api/finance/paychecks/last       powers "repeat last structure"
 POST   /api/finance/paychecks            creates paycheck + allocations
@@ -87,7 +89,8 @@ PATCH  /api/fitness/logs/:id
 DELETE /api/fitness/logs/:id
 
 GET    /api/journal/month/:month         calendar marks
-GET    /api/journal/entries/:date
+GET    /api/journal/entries              recent entries, for the dashboard
+GET    /api/journal/entries/:date         blank entry if the day is empty
 PUT    /api/journal/entries/:date
 POST   /api/journal/entries/:date/images multipart, field name "images"
 GET    /api/journal/images/:id/raw
