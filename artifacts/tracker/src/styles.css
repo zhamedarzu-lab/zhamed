@@ -817,6 +817,36 @@ button.btn-icon {
   white-space: nowrap;
 }
 
+/* Bill row color swatch + picker */
+.bill-color-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.bill-color-swatch {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid var(--rule-strong);
+  flex-shrink: 0;
+  transition: border-color 0.12s;
+}
+
+.bill-color-label:hover .bill-color-swatch {
+  border-color: var(--ink-soft);
+}
+
+.bill-color-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
 /* Bills inline add row */
 .bills-add-row {
   display: flex;

@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
 import { api, useApi } from "../../lib/api";
 import { currentMonth, dollars, monthName, toAmount } from "../../lib/format";
-import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
+import { Empty, Loading, MonthPicker, Notice, Panel, tagColor } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 import BillsCharts from "./BillsCharts";
 
 const BUDGET_KEY = "bills-budget";
 const DEFAULT_BUDGET = 2000;
+const COLORS_KEY = "bill-colors";
 
 function useBudget() {
   const stored = parseFloat(localStorage.getItem(BUDGET_KEY) ?? "");
@@ -18,6 +19,21 @@ function useBudget() {
   return [budget, setBudget] as const;
 }
 
+function useBillColors() {
+  const [colors, setColorsState] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(COLORS_KEY) ?? "{}"); }
+    catch { return {}; }
+  });
+  const setColor = (name: string, color: string) => {
+    setColorsState((prev) => {
+      const next = { ...prev, [name]: color };
+      localStorage.setItem(COLORS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+  return [colors, setColor] as const;
+}
+
 type BillItem = { id: number; month: string; name: string; amount: number; sortOrder: number };
 
 export default function Bills() {
@@ -26,6 +42,7 @@ export default function Bills() {
   const [newName, setNewName] = useState("");
   const [budget, setBudget] = useBudget();
   const [editingBudget, setEditingBudget] = useState(false);
+  const [colors, setColor] = useBillColors();
   const addInputRef = useRef<HTMLInputElement>(null);
 
   const { data, loading, reload } = useApi<BillItem[]>(
@@ -101,6 +118,7 @@ export default function Bills() {
           <table>
             <thead>
               <tr>
+                <th style={{ width: 32 }} />
                 <th>Bill</th>
                 <th className="num" style={{ width: 160 }}>Amount</th>
                 <th style={{ width: 40 }} />
@@ -109,6 +127,17 @@ export default function Bills() {
             <tbody>
               {items.map((b) => (
                 <tr key={b.id}>
+                  <td>
+                    <label className="bill-color-label" title="Click to change color">
+                      <span className="bill-color-swatch" style={{ background: colors[b.name] ?? tagColor(b.name) }} />
+                      <input
+                        type="color"
+                        className="bill-color-input"
+                        value={colors[b.name] ?? tagColor(b.name)}
+                        onChange={(e) => setColor(b.name, e.target.value)}
+                      />
+                    </label>
+                  </td>
                   <td>
                     <input
                       aria-label="Bill name"
@@ -206,7 +235,7 @@ export default function Bills() {
         </div>
       </Panel>
 
-      <BillsCharts budget={budget} />
+      <BillsCharts budget={budget} colors={colors} />
     </>
   );
 }
