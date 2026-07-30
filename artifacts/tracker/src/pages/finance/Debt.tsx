@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { dollars, shortDate, toAmount, todayIso } from "../../lib/format";
+import { dollars, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
 import { BalanceChart, Empty, Loading, Notice, Panel, type Point } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
@@ -21,6 +22,17 @@ type Snapshot = {
   balance: number;
 };
 
+type Payment = {
+  id: number;
+  amount: number;
+  note: string;
+  debtAccountId: number;
+  applied: boolean;
+  paycheckId: number;
+  month: string;
+  seq: number;
+};
+
 function utilColor(ratio: number) {
   if (ratio <= 0.3)  return "#5fc97a";
   if (ratio <= 0.6)  return "#ccb85a";
@@ -33,8 +45,9 @@ export default function Debt() {
 
   const accounts  = useApi<Account[]>("/api/finance/debt-accounts");
   const snapshots = useApi<Snapshot[]>("/api/finance/debt-snapshots");
+  const payments  = useApi<Payment[]>("/api/finance/debt-payments");
 
-  const refreshAll = () => Promise.all([accounts.reload(), snapshots.reload()]);
+  const refreshAll = () => Promise.all([accounts.reload(), snapshots.reload(), payments.reload()]);
 
   const guard = (fn: () => Promise<unknown>) => async () => {
     setError(null);
@@ -105,6 +118,7 @@ export default function Debt() {
               key={account.id}
               account={account}
               snapshots={(snapshots.data ?? []).filter((s) => s.debtAccountId === account.id)}
+              payments={(payments.data ?? []).filter((p) => p.debtAccountId === account.id)}
               onChanged={refreshAll}
               onError={setError}
             />
@@ -134,11 +148,13 @@ export default function Debt() {
 function CardPanel({
   account,
   snapshots,
+  payments,
   onChanged,
   onError,
 }: {
   account: Account;
   snapshots: Snapshot[];
+  payments: Payment[];
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
@@ -299,6 +315,25 @@ function CardPanel({
             Log another balance to see the trend.
           </p>
         ) : null}
+
+        {/* Payment history — paycheck money ever sent toward this card */}
+        {payments.length > 0 && (
+          <div className="debt-history">
+            <span className="eyebrow">Paycheck payments</span>
+            <ul className="debt-history-list">
+              {payments.map((p) => (
+                <li key={p.id}>
+                  <Link to={`/finance/paycheck/${p.paycheckId}`} className="debt-history-when">
+                    {shortMonth(p.month)} {p.seq}/2
+                  </Link>
+                  <span className="debt-history-note">{p.note || <em>Untitled</em>}</span>
+                  <span className="debt-history-amt">{dollars(p.amount)}</span>
+                  {!p.applied && <span className="debt-history-pending-tag">pending</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
       </div>
 

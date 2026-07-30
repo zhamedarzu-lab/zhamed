@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import { currentMonth, shiftMonth, monthName } from "../lib/format";
 
 export type Point = { date: string; value: number };
@@ -75,15 +75,17 @@ export function Panel({
   action,
   bodyless,
   children,
+  style,
 }: {
   title?: ReactNode;
   action?: ReactNode;
   bodyless?: boolean;
   children?: ReactNode;
+  style?: CSSProperties;
 }) {
   const hasHead = title !== undefined || action !== undefined;
   return (
-    <div className="panel">
+    <div className="panel" style={style}>
       {hasHead && (
         <div className="panel-head">
           <div>{title}</div>

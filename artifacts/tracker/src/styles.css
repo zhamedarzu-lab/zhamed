@@ -913,6 +913,67 @@ button.btn-icon {
   transition: width 0.4s ease;
 }
 
+.debt-history {
+  margin-top: 0.85rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--rule);
+}
+
+.debt-history-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.debt-history-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.debt-history-when {
+  font-family: var(--fig);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+  text-decoration: underline dotted var(--rule-strong);
+  text-underline-offset: 3px;
+}
+
+.debt-history-when:hover {
+  color: var(--ink);
+}
+
+.debt-history-note {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.debt-history-amt {
+  font-family: var(--fig);
+  flex-shrink: 0;
+}
+
+.debt-history-pending-tag {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  padding: 0.05rem 0.3rem;
+  flex-shrink: 0;
+}
+
 .debt-card-footer {
   display: flex;
   gap: 0.5rem;

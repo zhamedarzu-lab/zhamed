@@ -581,6 +581,46 @@ router.delete("/debt-accounts/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
+// ── Debt payments (paycheck allocations linked to a card) ─────────────────────
+
+router.get("/debt-payments", async (req, res): Promise<void> => {
+  const accountId =
+    typeof req.query.accountId === "string" ? parseInt(req.query.accountId, 10) : undefined;
+
+  const rows = await db
+    .select({
+      id: allocationsTable.id,
+      amount: allocationsTable.amount,
+      note: allocationsTable.note,
+      debtAccountId: allocationsTable.debtAccountId,
+      appliedSnapshotId: allocationsTable.appliedSnapshotId,
+      paycheckId: paychecksTable.id,
+      month: paychecksTable.month,
+      seq: paychecksTable.seq,
+    })
+    .from(allocationsTable)
+    .innerJoin(paychecksTable, eq(allocationsTable.paycheckId, paychecksTable.id))
+    .where(
+      accountId && !isNaN(accountId)
+        ? eq(allocationsTable.debtAccountId, accountId)
+        : isNotNull(allocationsTable.debtAccountId),
+    )
+    .orderBy(desc(paychecksTable.month), desc(paychecksTable.seq));
+
+  res.json(
+    rows.map((r) => ({
+      id: r.id,
+      amount: Number(r.amount),
+      note: r.note,
+      debtAccountId: r.debtAccountId,
+      applied: r.appliedSnapshotId != null,
+      paycheckId: r.paycheckId,
+      month: r.month,
+      seq: r.seq,
+    })),
+  );
+});
+
 // ── Debt snapshots ────────────────────────────────────────────────────────────
 
 router.get("/debt-snapshots", async (req, res): Promise<void> => {
