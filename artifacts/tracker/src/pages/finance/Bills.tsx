@@ -4,12 +4,27 @@ import { currentMonth, dollars, monthName, toAmount } from "../../lib/format";
 import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
+const BUDGET_KEY = "bills-budget";
+const DEFAULT_BUDGET = 2000;
+
+function useBudget() {
+  const stored = parseFloat(localStorage.getItem(BUDGET_KEY) ?? "");
+  const [budget, setBudgetState] = useState(isNaN(stored) ? DEFAULT_BUDGET : stored);
+  const setBudget = (v: number) => {
+    localStorage.setItem(BUDGET_KEY, String(v));
+    setBudgetState(v);
+  };
+  return [budget, setBudget] as const;
+}
+
 type BillItem = { id: number; month: string; name: string; amount: number; sortOrder: number };
 
 export default function Bills() {
   const [month, setMonth] = useState(currentMonth());
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
+  const [budget, setBudget] = useBudget();
+  const [editingBudget, setEditingBudget] = useState(false);
   const addInputRef = useRef<HTMLInputElement>(null);
 
   const { data, loading, reload } = useApi<BillItem[]>(
@@ -19,6 +34,7 @@ export default function Bills() {
 
   const items = data ?? [];
   const total = items.reduce((s, b) => s + b.amount, 0);
+  const leftover = budget - total;
 
   const guard = (fn: () => Promise<unknown>) => async () => {
     setError(null);
@@ -132,16 +148,46 @@ export default function Bills() {
                 </tr>
               ))}
             </tbody>
-            {items.length > 0 && (
-              <tfoot>
-                <tr>
-                  <td>Total</td>
-                  <td className="num">{dollars(total)}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            )}
           </table>
+        )}
+
+        {items.length > 0 && (
+          <div className="bills-stat-strip">
+            <div className="bills-stat">
+              <span className="eyebrow">Total</span>
+              <span className="fig">{dollars(total)}</span>
+            </div>
+            <div className="bills-stat">
+              <span className="eyebrow">Budget</span>
+              {editingBudget ? (
+                <input
+                  className="bills-budget-input fig"
+                  autoFocus
+                  inputMode="decimal"
+                  defaultValue={String(budget)}
+                  onBlur={(e) => {
+                    const v = toAmount(e.target.value);
+                    if (v > 0) setBudget(v);
+                    setEditingBudget(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                    if (e.key === "Escape") setEditingBudget(false);
+                  }}
+                />
+              ) : (
+                <button className="quiet bills-budget-btn fig" onClick={() => setEditingBudget(true)} title="Click to edit">
+                  {dollars(budget)}
+                </button>
+              )}
+            </div>
+            <div className="bills-stat">
+              <span className="eyebrow">{leftover < 0 ? "Over budget" : "Leftover"}</span>
+              <span className="fig" style={{ color: leftover < 0 ? "var(--stamp)" : "#5fc97a" }}>
+                {dollars(Math.abs(leftover))}
+              </span>
+            </div>
+          </div>
         )}
 
         <div className="panel-body bills-add-row" style={{ borderTop: "1px solid var(--rule)" }}>
