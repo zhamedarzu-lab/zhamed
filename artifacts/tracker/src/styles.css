@@ -37,6 +37,11 @@ body,
   height: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--ledger);
@@ -1382,6 +1387,10 @@ button.btn-icon {
   color: var(--ledger);
 }
 
+.nav-label-short {
+  display: none;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
   .grid-2,
@@ -1432,6 +1441,24 @@ button.btn-icon {
     white-space: nowrap;
     padding: 0.4rem 0.5rem;
     font-size: 0.75rem;
+  }
+  .nav-scroll {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
+  }
+}
+
+/* Guaranteed-fit fallback: swap to abbreviated labels before the nav can overflow. */
+@media (max-width: 420px) {
+  .nav-label-full {
+    display: none;
+  }
+  .nav-label-short {
+    display: inline;
+  }
+  .nav-scroll {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   .panel-head {
     flex-wrap: wrap;

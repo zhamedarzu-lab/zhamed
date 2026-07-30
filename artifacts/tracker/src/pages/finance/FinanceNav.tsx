@@ -1,11 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 
 const views = [
-  { to: "/", label: "Paychecks" },
-  { to: "/finance/monthly", label: "Monthly" },
-  { to: "/finance/bills", label: "Bills" },
-  { to: "/finance/subscriptions", label: "Subscriptions" },
-  { to: "/finance/debt", label: "Debt" },
+  { to: "/", label: "Paychecks", short: "Pay" },
+  { to: "/finance/monthly", label: "Monthly", short: "Mo." },
+  { to: "/finance/bills", label: "Bills", short: "Bills" },
+  { to: "/finance/subscriptions", label: "Subscriptions", short: "Subs" },
+  { to: "/finance/debt", label: "Debt", short: "Debt" },
 ];
 
 export default function FinanceNav() {
@@ -13,7 +13,7 @@ export default function FinanceNav() {
   const { pathname } = useLocation();
 
   return (
-    <div className="segmented" role="group" aria-label="Finance views">
+    <div className="segmented nav-scroll" role="group" aria-label="Finance views">
       {views.map((v) => (
         <button
           key={v.to}
@@ -21,7 +21,8 @@ export default function FinanceNav() {
           aria-pressed={pathname === v.to}
           onClick={() => navigate(v.to)}
         >
-          {v.label}
+          <span className="nav-label-full">{v.label}</span>
+          <span className="nav-label-short">{v.short}</span>
         </button>
       ))}
     </div>
