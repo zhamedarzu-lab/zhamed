@@ -146,10 +146,10 @@ export default function Subscriptions() {
           <table>
             <thead>
               <tr>
-                <th style={{ width: 32 }} />
+                <th className="col-swatch" />
                 <th>Subscription</th>
-                <th className="num" style={{ width: 160 }}>Amount</th>
-                <th style={{ width: 40 }} />
+                <th className="num col-amount">Amount</th>
+                <th className="col-del" />
               </tr>
             </thead>
             <tbody>

@@ -1064,6 +1064,16 @@ button.btn-icon {
   flex: 1;
 }
 
+.col-swatch {
+  width: 32px;
+}
+.col-amount {
+  width: 160px;
+}
+.col-del {
+  width: 40px;
+}
+
 /* Bills inline add row */
 .bills-add-row {
   display: flex;
@@ -1391,6 +1401,81 @@ button.btn-icon {
   }
   .cal-preview {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  main {
+    padding: 1.25rem 0.875rem 3rem;
+  }
+  .page-head {
+    align-items: flex-start;
+  }
+  .editor-deposit-bar {
+    flex-wrap: wrap;
+  }
+  .editor-deposit-amount {
+    flex: 1 1 100%;
+  }
+  .segmented {
+    display: flex;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .segmented::-webkit-scrollbar {
+    display: none;
+  }
+  .segmented button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .panel-head {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+  .panel-head > div:last-child {
+    width: 100%;
+  }
+  .panel-head .button-row {
+    justify-content: flex-end;
+  }
+  .paycheck-spending {
+    border-right: none;
+    padding-right: 0;
+    margin-right: auto;
+    align-items: flex-start;
+  }
+  .col-swatch {
+    width: 22px;
+  }
+  .col-amount {
+    width: 76px;
+  }
+  .col-del {
+    width: 30px;
+  }
+  table {
+    font-size: 0.875rem;
+  }
+  .bills-stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  }
+  .bills-stat {
+    border-right: none;
+    border-bottom: 1px solid var(--rule);
+    padding: 0.6rem 0.75rem;
+  }
+  .stats {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+  .stat-cell {
+    padding: 0.6rem 0.75rem;
+  }
+  .stat-cell .amount {
+    font-size: 1.05rem;
   }
 }
 
