@@ -507,6 +507,24 @@ button.danger {
   color: var(--stamp);
 }
 
+button.btn-lg {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9375rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+button.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  width: 2rem;
+  height: 2rem;
+  line-height: 1;
+}
+
 .button-row {
   display: flex;
   gap: 0.5rem;

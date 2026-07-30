@@ -27,6 +27,32 @@ const blankRow = (): Row => ({ key: newKey(), amount: 0, note: "" });
 
 const SEQ_LABELS: Record<number, string> = { 1: "1/2", 2: "2/2", 3: "3/2" };
 
+/* ── Icon helpers ──────────────────────────────────────────────────── */
+const IcBack = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19 12H5"/><path d="M9 6l-6 6 6 6"/>
+  </svg>
+);
+const IcCheck = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 12l5 5L20 6"/>
+  </svg>
+);
+const IcPlus = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+    <path d="M12 5v14M5 12h14"/>
+  </svg>
+);
+const IcTrash = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+  </svg>
+);
+
 export default function PaycheckEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -105,9 +131,11 @@ export default function PaycheckEditor() {
           <h1>{editing ? "Edit paycheck" : "Record a paycheck"}</h1>
         </div>
         <div className="button-row">
-          <button onClick={() => navigate("/finance")}>Cancel</button>
-          <button className="primary" onClick={save} disabled={saving}>
-            {saving ? "Saving…" : editing ? "Save changes" : "Save paycheck"}
+          <button className="btn-lg" onClick={() => navigate("/finance")} aria-label="Cancel">
+            <IcBack /> Cancel
+          </button>
+          <button className="primary btn-lg" onClick={save} disabled={saving} aria-label="Save">
+            {saving ? "Saving…" : <><IcCheck /> {editing ? "Save changes" : "Save paycheck"}</>}
           </button>
         </div>
       </div>
@@ -118,15 +146,11 @@ export default function PaycheckEditor() {
         {/* ── Left column ─────────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
 
-          {/* Deposit meta — no panel title, just clean fields */}
+          {/* Deposit meta — Month → Paycheck → Amount */}
           <div className="editor-deposit-bar">
             <div className="editor-deposit-field">
               <span className="field-label">Month</span>
               <MonthPicker month={month} onChange={setMonth} />
-            </div>
-            <div className="editor-deposit-field editor-deposit-amount">
-              <span className="field-label">Amount</span>
-              <MoneyInput value={amount} onChange={setAmount} autoFocus={!editing} />
             </div>
             <div className="editor-deposit-field">
               <span className="field-label">Paycheck</span>
@@ -143,14 +167,18 @@ export default function PaycheckEditor() {
                 ))}
               </div>
             </div>
+            <div className="editor-deposit-field editor-deposit-amount">
+              <span className="field-label">Amount</span>
+              <MoneyInput value={amount} onChange={setAmount} autoFocus={!editing} />
+            </div>
           </div>
 
           {/* Allocations */}
           <Panel
             title="Where it went"
             action={
-              <button className="quiet" onClick={() => setRows((r) => [...r, blankRow()])}>
-                + Add row
+              <button className="quiet btn-icon" onClick={() => setRows((r) => [...r, blankRow()])} aria-label="Add row">
+                <IcPlus />
               </button>
             }
           >
@@ -191,11 +219,11 @@ export default function PaycheckEditor() {
                 />
 
                 <button
-                  className="quiet danger"
+                  className="quiet danger btn-icon"
                   onClick={() => removeRow(row.key)}
                   aria-label="Remove this allocation"
                 >
-                  ×
+                  <IcTrash />
                 </button>
               </div>
             ))}
