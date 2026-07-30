@@ -85,49 +85,17 @@ export default function Biweekly() {
             }
             bodyless
           >
-            <div className="tape-bar" aria-hidden="true">
-              <div
-                className="tape-seg"
-                style={{
-                  width: `${p.amount ? Math.min(100, (p.totals.allocated / p.amount) * 100) : 0}%`,
-                }}
-              />
+            <div className="panel-body">
+              {p.allocations.length === 0 ? (
+                <span className="muted">Nothing recorded yet.</span>
+              ) : (
+                <ul className="alloc-list">
+                  {p.allocations.map((a) => (
+                    <li key={a.id}>{a.note || <span className="muted">Untitled</span>}</li>
+                  ))}
+                </ul>
+              )}
             </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>Note</th>
-                  <th className="num">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {p.allocations.length === 0 && (
-                  <tr>
-                    <td colSpan={2} className="muted">
-                      Nothing allocated from this paycheck yet.
-                    </td>
-                  </tr>
-                )}
-                {p.allocations.map((a) => (
-                  <tr key={a.id}>
-                    <td>{a.note || <span className="muted">Untitled</span>}</td>
-                    <td className="num">{dollars(a.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td>
-                    Allocated
-                    {p.totals.unallocated > 0.005 && (
-                      <span className="neg"> · {dollars(p.totals.unallocated)} left unassigned</span>
-                    )}
-                  </td>
-                  <td className="num">{dollars(p.totals.allocated)}</td>
-                </tr>
-              </tfoot>
-            </table>
           </Panel>
         ))}
       </div>

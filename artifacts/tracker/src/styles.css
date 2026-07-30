@@ -623,6 +623,27 @@ button.danger {
   border-bottom: 1px solid var(--rule);
 }
 
+/* Simple list of allocation notes on a paycheck card. */
+.alloc-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.alloc-list li {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.alloc-list li::before {
+  content: "·";
+  margin-right: 0.35rem;
+  color: var(--rule-strong);
+}
+
 /* The arrows must stay on the line with the dropdown even in a narrow
    form column, so the select shrinks rather than the row wrapping. */
 .month-picker {
