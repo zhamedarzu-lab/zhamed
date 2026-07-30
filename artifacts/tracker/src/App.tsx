@@ -6,6 +6,7 @@ import JournalDay from "./pages/JournalDay";
 import Biweekly from "./pages/finance/Biweekly";
 import PaycheckEditor from "./pages/finance/PaycheckEditor";
 import Bills from "./pages/finance/Bills";
+import Subscriptions from "./pages/finance/Subscriptions";
 import Debt from "./pages/finance/Debt";
 import MonthlySummary from "./pages/finance/MonthlySummary";
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/finance/new" element={<PaycheckEditor />} />
           <Route path="/finance/paycheck/:id" element={<PaycheckEditor />} />
           <Route path="/finance/bills" element={<Bills />} />
+          <Route path="/finance/subscriptions" element={<Subscriptions />} />
           <Route path="/finance/debt" element={<Debt />} />
           <Route path="/finance/monthly" element={<MonthlySummary />} />
           <Route path="/fitness" element={<Fitness />} />

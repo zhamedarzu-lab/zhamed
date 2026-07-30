@@ -75,6 +75,14 @@ export const allocationsTable = pgTable("allocations", {
   note: text("note").notNull().default(""),
 });
 
+export const monthlySubscriptionItemsTable = pgTable("monthly_subscription_items", {
+  id:        serial("id").primaryKey(),
+  month:     text("month").notNull(),
+  name:      text("name").notNull(),
+  amount:    numeric("amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 export const monthlyBillItemsTable = pgTable("monthly_bill_items", {
   id:        serial("id").primaryKey(),
   month:     text("month").notNull(),            // YYYY-MM

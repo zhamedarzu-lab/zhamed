@@ -4,6 +4,7 @@ const views = [
   { to: "/finance", label: "Paychecks" },
   { to: "/finance/monthly", label: "Monthly" },
   { to: "/finance/bills", label: "Bills" },
+  { to: "/finance/subscriptions", label: "Subscriptions" },
   { to: "/finance/debt", label: "Debt" },
 ];
 

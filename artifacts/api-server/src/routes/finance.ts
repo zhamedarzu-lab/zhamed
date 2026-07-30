@@ -6,6 +6,7 @@ import {
   paychecksTable,
   allocationsTable,
   monthlyBillItemsTable,
+  monthlySubscriptionItemsTable,
   debtAccountsTable,
   debtSnapshotsTable,
 } from "@workspace/db";
@@ -376,6 +377,104 @@ router.patch("/bills/:id", async (req, res): Promise<void> => {
 router.delete("/bills/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   await db.delete(monthlyBillItemsTable).where(eq(monthlyBillItemsTable.id, id));
+  res.sendStatus(204);
+});
+
+// ── Subscriptions ─────────────────────────────────────────────────────────────
+
+router.get("/subscriptions/history", async (_req, res): Promise<void> => {
+  const items = await db
+    .select()
+    .from(monthlySubscriptionItemsTable)
+    .orderBy(monthlySubscriptionItemsTable.month, monthlySubscriptionItemsTable.sortOrder);
+
+  const byMonth = new Map<string, Record<string, number>>();
+  for (const item of items) {
+    if (!byMonth.has(item.month)) byMonth.set(item.month, {});
+    const row = byMonth.get(item.month)!;
+    row[item.name] = (row[item.name] ?? 0) + Number(item.amount);
+  }
+  const allNamesSet = new Set<string>();
+  for (const row of byMonth.values())
+    for (const name of Object.keys(row)) allNamesSet.add(name);
+
+  const months = [...byMonth.entries()].map(([month, row]) => ({
+    month,
+    total: Object.values(row).reduce((s, v) => s + v, 0),
+    ...row,
+  }));
+  res.json({ months, allNames: [...allNamesSet].sort() });
+});
+
+router.get("/subscriptions", async (req, res): Promise<void> => {
+  const month = typeof req.query.month === "string" ? req.query.month : undefined;
+  if (!month || !MONTH_RE.test(month)) {
+    res.status(400).json({ error: "month query param required (YYYY-MM)" });
+    return;
+  }
+  let items = await db
+    .select()
+    .from(monthlySubscriptionItemsTable)
+    .where(eq(monthlySubscriptionItemsTable.month, month))
+    .orderBy(monthlySubscriptionItemsTable.sortOrder);
+
+  if (items.length === 0) {
+    const [prev] = await db
+      .select({ month: monthlySubscriptionItemsTable.month })
+      .from(monthlySubscriptionItemsTable)
+      .where(lt(monthlySubscriptionItemsTable.month, month))
+      .orderBy(desc(monthlySubscriptionItemsTable.month))
+      .limit(1);
+    if (prev) {
+      const source = await db
+        .select()
+        .from(monthlySubscriptionItemsTable)
+        .where(eq(monthlySubscriptionItemsTable.month, prev.month))
+        .orderBy(monthlySubscriptionItemsTable.sortOrder);
+      if (source.length > 0) {
+        items = await db
+          .insert(monthlySubscriptionItemsTable)
+          .values(source.map((s) => ({ month, name: s.name, amount: "0", sortOrder: s.sortOrder })))
+          .returning();
+      }
+    }
+  }
+  res.json(items.map((b) => ({ ...b, amount: Number(b.amount) })));
+});
+
+router.post("/subscriptions", async (req, res): Promise<void> => {
+  const parsed = z
+    .object({ month: z.string().regex(MONTH_RE), name: z.string().min(1), sortOrder: z.number().int().optional() })
+    .safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: String(parsed.error) }); return; }
+  const [item] = await db
+    .insert(monthlySubscriptionItemsTable)
+    .values({ month: parsed.data.month, name: parsed.data.name, amount: "0", sortOrder: parsed.data.sortOrder ?? 0 })
+    .returning();
+  res.status(201).json({ ...item, amount: Number(item.amount) });
+});
+
+router.patch("/subscriptions/:id", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  const parsed = z
+    .object({ name: z.string().min(1).optional(), amount: z.number().min(0).optional() })
+    .safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: String(parsed.error) }); return; }
+  const update: Record<string, unknown> = {};
+  if (parsed.data.name !== undefined) update.name = parsed.data.name;
+  if (parsed.data.amount !== undefined) update.amount = parsed.data.amount.toFixed(2);
+  const [item] = await db
+    .update(monthlySubscriptionItemsTable)
+    .set(update)
+    .where(eq(monthlySubscriptionItemsTable.id, id))
+    .returning();
+  if (!item) { res.status(404).json({ error: "Not found" }); return; }
+  res.json({ ...item, amount: Number(item.amount) });
+});
+
+router.delete("/subscriptions/:id", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  await db.delete(monthlySubscriptionItemsTable).where(eq(monthlySubscriptionItemsTable.id, id));
   res.sendStatus(204);
 });
 
