@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 
 const views = [
-  { to: "/finance", label: "Paychecks" },
+  { to: "/", label: "Paychecks" },
   { to: "/finance/monthly", label: "Monthly" },
   { to: "/finance/bills", label: "Bills" },
   { to: "/finance/subscriptions", label: "Subscriptions" },

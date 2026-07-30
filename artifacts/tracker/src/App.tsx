@@ -1,8 +1,4 @@
-import { NavLink, Link, Route, Routes, useLocation } from "react-router-dom";
-import Home from "./pages/Home";
-import Fitness from "./pages/Fitness";
-import Journal from "./pages/Journal";
-import JournalDay from "./pages/JournalDay";
+import { Link, Route, Routes } from "react-router-dom";
 import Biweekly from "./pages/finance/Biweekly";
 import PaycheckEditor from "./pages/finance/PaycheckEditor";
 import Bills from "./pages/finance/Bills";
@@ -10,9 +6,6 @@ import Subscriptions from "./pages/finance/Subscriptions";
 import Debt from "./pages/finance/Debt";
 import MonthlySummary from "./pages/finance/MonthlySummary";
 export default function App() {
-  // On the dashboard the bubbles are the menu, so the tabs would only repeat them.
-  const onDashboard = useLocation().pathname === "/";
-
   return (
     <div className="shell">
       <header className="masthead">
@@ -21,29 +14,18 @@ export default function App() {
             <span className="wordmark-rule" aria-hidden="true" />
             Tracker
           </Link>
-          {!onDashboard && (
-            <nav className="tabs">
-              <NavLink to="/finance">Finance</NavLink>
-              <NavLink to="/fitness">Fitness</NavLink>
-              <NavLink to="/journal">Journal</NavLink>
-            </nav>
-          )}
         </div>
       </header>
 
       <main>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/finance" element={<Biweekly />} />
+          <Route path="/" element={<Biweekly />} />
           <Route path="/finance/new" element={<PaycheckEditor />} />
           <Route path="/finance/paycheck/:id" element={<PaycheckEditor />} />
           <Route path="/finance/bills" element={<Bills />} />
           <Route path="/finance/subscriptions" element={<Subscriptions />} />
           <Route path="/finance/debt" element={<Debt />} />
           <Route path="/finance/monthly" element={<MonthlySummary />} />
-          <Route path="/fitness" element={<Fitness />} />
-          <Route path="/journal" element={<Journal />} />
-          <Route path="/journal/:date" element={<JournalDay />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

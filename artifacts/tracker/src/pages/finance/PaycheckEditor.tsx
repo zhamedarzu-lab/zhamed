@@ -112,7 +112,7 @@ export default function PaycheckEditor() {
     try {
       if (editing) await api.patch(`/api/finance/paychecks/${id}`, payload);
       else await api.post("/api/finance/paychecks", payload);
-      navigate("/finance");
+      navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save this paycheck.");
     } finally {
@@ -131,7 +131,7 @@ export default function PaycheckEditor() {
           <h1>{editing ? "Edit paycheck" : "Record a paycheck"}</h1>
         </div>
         <div className="button-row">
-          <button className="btn-lg" onClick={() => navigate("/finance")} aria-label="Cancel">
+          <button className="btn-lg" onClick={() => navigate("/")} aria-label="Cancel">
             <IcBack /> Cancel
           </button>
           <button className="primary btn-lg" onClick={save} disabled={saving} aria-label="Save">
