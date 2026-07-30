@@ -1430,6 +1430,8 @@ button.btn-icon {
   .segmented button {
     flex: 0 0 auto;
     white-space: nowrap;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
   }
   .panel-head {
     flex-wrap: wrap;
