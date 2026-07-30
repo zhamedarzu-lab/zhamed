@@ -636,12 +636,20 @@ button.danger {
 .alloc-list li {
   font-size: 0.875rem;
   color: var(--ink-soft);
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
 }
 
 .alloc-list li::before {
   content: "·";
-  margin-right: 0.35rem;
   color: var(--rule-strong);
+  flex-shrink: 0;
+}
+
+.alloc-amt {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
 }
 
 /* The arrows must stay on the line with the dropdown even in a narrow

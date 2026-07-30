@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { dollars, monthName, ordinal } from "../../lib/format";
+import { dollars, shortMonth } from "../../lib/format";
 import { Empty, Loading, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
@@ -67,9 +67,11 @@ export default function Biweekly() {
             key={p.id}
             title={
               <div>
-                <span className="eyebrow">{ordinal(p.seq)} paycheck</span>
                 <h2 style={{ marginTop: "0.1rem" }}>
-                  {monthName(p.month)} · <span className="fig">{dollars(p.amount)}</span>
+                  <span className="fig">{shortMonth(p.month)}</span>
+                  <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em", marginLeft: "0.4rem" }}>{p.seq}/2</span>
+                  <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
+                  <span className="fig">{dollars(p.amount)}</span>
                 </h2>
               </div>
             }
@@ -91,7 +93,10 @@ export default function Biweekly() {
               ) : (
                 <ul className="alloc-list">
                   {p.allocations.map((a) => (
-                    <li key={a.id}>{a.note || <span className="muted">Untitled</span>}</li>
+                    <li key={a.id}>
+                      {a.note || <span className="muted">Untitled</span>}
+                      <span className="fig alloc-amt">{dollars(a.amount)}</span>
+                    </li>
                   ))}
                 </ul>
               )}
