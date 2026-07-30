@@ -89,6 +89,5 @@ attached_assets/README_PERSONAL_TRACKER.md   the original spec
   bills and restarting brings the template back.
 - Without Object Storage, photos land in `./uploads`, which does not survive a
   Repl reset. `STORAGE_DRIVER=local` forces that path deliberately.
-- The repo still carries an unrelated pnpm-workspace scaffold at `lib/`,
-  `artifacts/`, `scripts/`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, and
-  `tsconfig.base.json`. Nothing in this app imports it. It can be deleted.
+- This project is npm, not pnpm. `package-lock.json` is the only lockfile; the
+  pnpm-workspace scaffold the repo started from has been removed.
