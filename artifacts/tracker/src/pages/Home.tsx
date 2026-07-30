@@ -1,24 +1,44 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useApi } from "../lib/api";
-import { currentMonth, dollars, monthName, shortDate } from "../lib/format";
+import { currentMonth, dollars, shortDate } from "../lib/format";
 
 type Summary = { income: number };
 type DebtAccount = { id: number; name: string; active: boolean; currentBalance: number | null };
 type FitnessLog = { id: number; date: string; workoutType: string | null };
 type JournalEntry = { id: number; date: string };
 
-function useClock() {
+/* The clock owns its own state so the once-a-second tick repaints only these
+   two lines, not the API-backed dashboard sitting underneath it. */
+function Clock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  return now;
+
+  return (
+    <div>
+      <span className="eyebrow">
+        {now.toLocaleDateString(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })}
+      </span>
+      <h1 className="fig">
+        {now.toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })}
+      </h1>
+    </div>
+  );
 }
 
 export default function Home() {
-  const now = useClock();
   const month = currentMonth();
   const summary = useApi<Summary>(`/api/finance/summary/${month}`);
   const debts = useApi<DebtAccount[]>("/api/finance/debt-accounts");
@@ -64,14 +84,7 @@ export default function Home() {
   return (
     <>
       <div className="page-head bare">
-        <div>
-          <span className="eyebrow">
-            {now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-          </span>
-          <h1 className="fig">
-            {now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-          </h1>
-        </div>
+        <Clock />
       </div>
 
       <nav className="bubbles" aria-label="Books">

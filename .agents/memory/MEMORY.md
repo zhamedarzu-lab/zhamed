@@ -1,2 +1,3 @@
 - [Tracker stack decisions](tracker-stack.md) — key constraints and non-obvious choices for the Personal Tracker app
 - [Object storage init](object-storage-init.md) — @replit/object-storage must be lazy-initialized; top-level await crashes the server
+- [DB migrations are hand-run](db-migrations.md) — lib/db/migrations/*.sql never auto-apply; errors naming fields absent from source mean stale DB or stale dist bundle
