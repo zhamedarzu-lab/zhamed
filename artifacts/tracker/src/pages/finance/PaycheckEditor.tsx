@@ -2,13 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { currentMonth, dollars } from "../../lib/format";
-import { AllocBar, tagColor, Field, MonthPicker, MoneyInput, Notice, Panel, SPENDING_COLOR } from "../../components/ui";
+import {
+  AllocBar,
+  tagColor,
+  MonthPicker,
+  MoneyInput,
+  Notice,
+  Panel,
+  SPENDING_COLOR,
+} from "../../components/ui";
 
-type Row = {
-  key: string;
-  amount: number;
-  note: string;
-};
+type Row = { key: string; amount: number; note: string };
 
 type LoadedPaycheck = {
   id: number;
@@ -19,8 +23,9 @@ type LoadedPaycheck = {
 };
 
 const newKey = () => Math.random().toString(36).slice(2);
-
 const blankRow = (): Row => ({ key: newKey(), amount: 0, note: "" });
+
+const SEQ_LABELS: Record<number, string> = { 1: "1/2", 2: "2/2", 3: "3/2" };
 
 export default function PaycheckEditor() {
   const { id } = useParams();
@@ -28,6 +33,18 @@ export default function PaycheckEditor() {
   const editing = Boolean(id);
 
   const existing = useApi<LoadedPaycheck>(editing ? `/api/finance/paychecks/${id}` : null);
+
+  // For tag autocomplete — pull all unique notes from past paychecks
+  const allPaychecks = useApi<Array<{ allocations: Array<{ note: string }> }>>(
+    "/api/finance/paychecks",
+  );
+  const tagSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const p of allPaychecks.data ?? [])
+      for (const a of p.allocations)
+        if (a.note.trim()) seen.add(a.note.trim());
+    return [...seen].sort();
+  }, [allPaychecks.data]);
 
   const [month, setMonth] = useState(currentMonth());
   const [amount, setAmount] = useState(0);
@@ -41,13 +58,7 @@ export default function PaycheckEditor() {
     setMonth(existing.data.month);
     setAmount(existing.data.amount);
     setSeq(existing.data.seq);
-    setRows(
-      existing.data.allocations.map((a) => ({
-        key: newKey(),
-        amount: a.amount,
-        note: a.note,
-      })),
-    );
+    setRows(existing.data.allocations.map((a) => ({ key: newKey(), ...a })));
   }, [existing.data]);
 
   const totals = useMemo(() => {
@@ -58,24 +69,20 @@ export default function PaycheckEditor() {
   const update = (key: string, patch: Partial<Row>) =>
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
-  const removeRow = (key: string) => setRows((prev) => prev.filter((r) => r.key !== key));
+  const removeRow = (key: string) =>
+    setRows((prev) => prev.filter((r) => r.key !== key));
 
   async function save() {
     setError(null);
-    if (amount <= 0) {
-      setError("Enter the paycheck amount before saving.");
-      return;
-    }
+    if (amount <= 0) { setError("Enter the paycheck amount before saving."); return; }
     setSaving(true);
     const payload = {
-      month,
-      seq,
-      amount,
-      allocations: rows
-        .filter((r) => r.amount > 0)
-        .map((r) => ({ amount: r.amount, note: r.note.trim() })),
+      month, seq, amount,
+      allocations: rows.filter((r) => r.amount > 0).map((r) => ({
+        amount: r.amount,
+        note: r.note.trim(),
+      })),
     };
-
     try {
       if (editing) await api.patch(`/api/finance/paychecks/${id}`, payload);
       else await api.post("/api/finance/paychecks", payload);
@@ -90,15 +97,12 @@ export default function PaycheckEditor() {
   const remainderState =
     totals.remaining < -0.005 ? "over" : Math.abs(totals.remaining) < 0.005 ? "clear" : "open";
 
-  const allocatedPct = amount > 0 ? Math.min(100, (totals.allocated / amount) * 100) : 0;
-
   return (
     <>
       <div className="page-head">
         <div>
           <span className="eyebrow">Finance</span>
           <h1>{editing ? "Edit paycheck" : "Record a paycheck"}</h1>
-          <p>Enter the deposit, then give each piece of it an amount and a note.</p>
         </div>
         <div className="button-row">
           <button onClick={() => navigate("/finance")}>Cancel</button>
@@ -111,49 +115,67 @@ export default function PaycheckEditor() {
       <Notice>{error}</Notice>
 
       <div className="editor-grid">
-        <div className="grid" style={{ gap: "1rem", alignContent: "start" }}>
-          <Panel title="The deposit">
-            <div className="grid grid-3" style={{ gap: "0.75rem" }}>
-              <Field label="Month">
-                <MonthPicker month={month} onChange={setMonth} />
-              </Field>
-              <Field label="Amount">
-                <MoneyInput value={amount} onChange={setAmount} autoFocus={!editing} />
-              </Field>
-              <Field label="Which paycheck">
-                <div className="segmented" role="group" aria-label="Which paycheck of the month">
-                  {([1, 2, 3] as const).map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      aria-pressed={seq === n}
-                      onClick={() => setSeq(n)}
-                    >
-                      {n}
-                      {n === 1 ? "st" : n === 2 ? "nd" : "rd"}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-            </div>
-          </Panel>
+        {/* ── Left column ─────────────────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
 
+          {/* Deposit meta — no panel title, just clean fields */}
+          <div className="editor-deposit-bar">
+            <div className="editor-deposit-field">
+              <span className="field-label">Month</span>
+              <MonthPicker month={month} onChange={setMonth} />
+            </div>
+            <div className="editor-deposit-field editor-deposit-amount">
+              <span className="field-label">Amount</span>
+              <MoneyInput value={amount} onChange={setAmount} autoFocus={!editing} />
+            </div>
+            <div className="editor-deposit-field">
+              <span className="field-label">Paycheck</span>
+              <div className="segmented" role="group" aria-label="Which paycheck of the month">
+                {([1, 2, 3] as const).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-pressed={seq === n}
+                    onClick={() => setSeq(n)}
+                  >
+                    {SEQ_LABELS[n]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Allocations */}
           <Panel
-            title="Allocations"
+            title="Where it went"
             action={
               <button className="quiet" onClick={() => setRows((r) => [...r, blankRow()])}>
-                + Add
+                + Add row
               </button>
             }
           >
+            {/* Datalist powers the autocomplete on every note field */}
+            <datalist id="alloc-tags">
+              {tagSuggestions.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+
             {rows.length === 0 && (
               <p className="muted" style={{ margin: 0 }}>
-                Nothing allocated yet. Add a row.
+                Nothing allocated yet — add a row.
               </p>
             )}
 
             {rows.map((row) => (
               <div className="alloc-row" key={row.key}>
+                {/* Live colour dot — updates as you type the note */}
+                <span
+                  className="alloc-row-dot"
+                  style={{ background: tagColor(row.note) }}
+                  aria-hidden="true"
+                />
+
                 <MoneyInput
                   ariaLabel="Amount"
                   value={row.amount}
@@ -162,6 +184,7 @@ export default function PaycheckEditor() {
 
                 <input
                   aria-label="Note"
+                  list="alloc-tags"
                   placeholder="What's it for?"
                   value={row.note}
                   onChange={(e) => update(row.key, { note: e.target.value })}
@@ -179,6 +202,7 @@ export default function PaycheckEditor() {
           </Panel>
         </div>
 
+        {/* ── Right sidebar ────────────────────────────────────── */}
         <aside>
           <div className="tape">
             <div className="tape-total">
@@ -219,13 +243,9 @@ export default function PaycheckEditor() {
                 {remainderState === "over" ? "Over-allocated" : "Remaining"}
               </span>
               <span className="amount fig">{dollars(Math.abs(totals.remaining))}</span>
-              <span className="hint">
-                {remainderState === "over"
-                  ? "You've assigned more than the deposit."
-                  : remainderState === "clear"
-                    ? ""
-                    : "Send it somewhere below."}
-              </span>
+              {remainderState === "over" && (
+                <span className="hint">You've assigned more than the deposit.</span>
+              )}
             </div>
           </div>
         </aside>

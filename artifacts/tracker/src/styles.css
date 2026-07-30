@@ -613,14 +613,50 @@ button.danger {
   align-items: start;
 }
 
+/* Deposit meta bar above the allocations panel */
+.editor-deposit-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r);
+  padding: 1rem;
+}
+
+.editor-deposit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.editor-deposit-amount {
+  flex: 1;
+}
+
+.field-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
 /* ---------- Allocation rows ---------- */
 .alloc-row {
   display: grid;
-  grid-template-columns: 130px 1fr 32px;
+  grid-template-columns: 14px 130px 1fr 32px;
   gap: 0.5rem;
   align-items: center;
   padding: 0.6rem 0;
   border-bottom: 1px solid var(--rule);
+}
+
+.alloc-row-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: background 0.15s;
 }
 
 /* Spending remainder badge on paycheck cards. */

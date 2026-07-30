@@ -30,6 +30,7 @@ function hashStr(s: string): number {
 
 export function tagColor(note: string): string {
   const n = (note || "").trim();
+  if (!n) return "var(--rule-strong)";
   for (const [re, color] of TAG_KEYWORDS) if (re.test(n)) return color;
   return FALLBACK[hashStr(n.toLowerCase()) % FALLBACK.length];
 }
