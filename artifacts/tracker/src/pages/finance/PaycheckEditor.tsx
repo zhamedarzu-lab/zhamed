@@ -210,7 +210,7 @@ export default function PaycheckEditor() {
                 {remainderState === "over"
                   ? "You've assigned more than the deposit."
                   : remainderState === "clear"
-                    ? "Every dollar has a job."
+                    ? ""
                     : "Send it somewhere below."}
               </span>
             </div>
