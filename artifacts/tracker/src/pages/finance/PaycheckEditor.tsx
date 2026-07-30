@@ -204,18 +204,18 @@ export default function PaycheckEditor() {
                   aria-hidden="true"
                 />
 
-                <MoneyInput
-                  ariaLabel="Amount"
-                  value={row.amount}
-                  onChange={(n) => update(row.key, { amount: n })}
-                />
-
                 <input
                   aria-label="Note"
                   list="alloc-tags"
                   placeholder="What's it for?"
                   value={row.note}
                   onChange={(e) => update(row.key, { note: e.target.value })}
+                />
+
+                <MoneyInput
+                  ariaLabel="Amount"
+                  value={row.amount}
+                  onChange={(n) => update(row.key, { amount: n })}
                 />
 
                 <button

@@ -662,10 +662,10 @@ button.btn-icon {
 /* ---------- Allocation rows ---------- */
 .alloc-row {
   display: grid;
-  grid-template-columns: 14px 130px 1fr 32px;
+  grid-template-columns: 12px 1fr 120px 32px;
   gap: 0.5rem;
   align-items: center;
-  padding: 0.6rem 0;
+  padding: 0.55rem 0;
   border-bottom: 1px solid var(--rule);
 }
 
