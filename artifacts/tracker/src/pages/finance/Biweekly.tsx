@@ -76,7 +76,13 @@ export default function Biweekly() {
               </div>
             }
             action={
-              <div className="button-row">
+              <div className="button-row" style={{ alignItems: "center" }}>
+                {p.totals.unallocated > 0.005 && (
+                  <span className="paycheck-spending">
+                    <span className="paycheck-spending-label">spending</span>
+                    <span className="fig">{dollars(p.totals.unallocated)}</span>
+                  </span>
+                )}
                 <button className="quiet" onClick={() => navigate(`/finance/paycheck/${p.id}`)}>
                   Edit
                 </button>

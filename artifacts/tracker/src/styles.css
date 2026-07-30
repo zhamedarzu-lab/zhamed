@@ -623,6 +623,30 @@ button.danger {
   border-bottom: 1px solid var(--rule);
 }
 
+/* Spending remainder badge on paycheck cards. */
+.paycheck-spending {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+  margin-right: 0.5rem;
+  padding-right: 0.75rem;
+  border-right: 1px solid var(--rule-strong);
+}
+
+.paycheck-spending .fig {
+  color: #5fc97a;
+  font-size: 0.9375rem;
+}
+
+.paycheck-spending-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5fc97a;
+  opacity: 0.75;
+}
+
 /* Simple list of allocation notes on a paycheck card. */
 .alloc-list {
   margin: 0;
