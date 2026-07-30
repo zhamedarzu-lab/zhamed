@@ -72,10 +72,6 @@ export default function MonthlySummary() {
               <span className="amount fig">{dollars(income)}</span>
             </div>
             <div className="stat-cell">
-              <span className="eyebrow">Allocated</span>
-              <span className="amount fig">{dollars(summary.data.allocated)}</span>
-            </div>
-            <div className="stat-cell">
               <span className="eyebrow">
                 {spending < -0.005 ? "Over-allocated" : "Spending"}
               </span>
