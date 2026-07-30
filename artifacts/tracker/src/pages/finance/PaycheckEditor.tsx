@@ -54,6 +54,12 @@ const IcTrash = () => (
     <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
   </svg>
 );
+const IcCard = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+  </svg>
+);
 
 export default function PaycheckEditor() {
   const { id } = useParams();
@@ -201,57 +207,71 @@ export default function PaycheckEditor() {
               </p>
             )}
 
-            {rows.map((row) => (
-              <div className="alloc-row" key={row.key}>
-                {/* Live colour dot — updates as you type the note */}
-                <span
-                  className="alloc-row-dot"
-                  style={{ background: tagColor(row.note) }}
-                  aria-hidden="true"
-                />
+            {rows.map((row) => {
+              const linkedCard = cards.find((c) => c.id === row.debtAccountId);
+              return (
+                <div className="alloc-row" key={row.key}>
+                  <div className="alloc-row-main">
+                    {/* Live colour dot — updates as you type the note */}
+                    <span
+                      className="alloc-row-dot"
+                      style={{ background: tagColor(row.note) }}
+                      aria-hidden="true"
+                    />
 
-                <input
-                  aria-label="Note"
-                  list="alloc-tags"
-                  placeholder="What's it for?"
-                  value={row.note}
-                  onChange={(e) => update(row.key, { note: e.target.value })}
-                />
+                    <input
+                      aria-label="Note"
+                      list="alloc-tags"
+                      placeholder="What's it for?"
+                      value={row.note}
+                      onChange={(e) => update(row.key, { note: e.target.value })}
+                    />
 
-                <select
-                  aria-label="Goes toward a card"
-                  className="alloc-card-select"
-                  value={row.debtAccountId ?? ""}
-                  onChange={(e) => {
-                    const val = e.target.value ? Number(e.target.value) : null;
-                    const card = cards.find((c) => c.id === val);
-                    update(row.key, {
-                      debtAccountId: val,
-                      note: !row.note.trim() && card ? card.name : row.note,
-                    });
-                  }}
-                >
-                  <option value="">No card</option>
-                  {cards.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                    <MoneyInput
+                      ariaLabel="Amount"
+                      className="alloc-amount"
+                      value={row.amount}
+                      onChange={(n) => update(row.key, { amount: n })}
+                    />
+                  </div>
 
-                <MoneyInput
-                  ariaLabel="Amount"
-                  value={row.amount}
-                  onChange={(n) => update(row.key, { amount: n })}
-                />
+                  <div className="alloc-row-meta">
+                    <label
+                      className="alloc-card-picker"
+                      data-linked={linkedCard ? "true" : "false"}
+                      style={linkedCard ? { color: tagColor(linkedCard.name) } : undefined}
+                    >
+                      <IcCard />
+                      <select
+                        aria-label="Goes toward a card"
+                        value={row.debtAccountId ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          const card = cards.find((c) => c.id === val);
+                          update(row.key, {
+                            debtAccountId: val,
+                            note: !row.note.trim() && card ? card.name : row.note,
+                          });
+                        }}
+                      >
+                        <option value="">No card</option>
+                        {cards.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </label>
 
-                <button
-                  className="quiet danger btn-icon"
-                  onClick={() => removeRow(row.key)}
-                  aria-label="Remove this allocation"
-                >
-                  <IcTrash />
-                </button>
-              </div>
-            ))}
+                    <button
+                      className="quiet danger btn-icon"
+                      onClick={() => removeRow(row.key)}
+                      aria-label="Remove this allocation"
+                    >
+                      <IcTrash />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </Panel>
         </div>
 

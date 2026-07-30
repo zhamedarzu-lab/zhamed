@@ -539,22 +539,27 @@ button.btn-icon {
 
 /* ---------- Allocation rows ---------- */
 .alloc-row {
-  display: grid;
-  grid-template-columns: 12px 1fr 108px 120px 32px;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.55rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.65rem 0;
   border-bottom: 1px solid var(--rule);
 }
 
-.alloc-card-select {
-  font-size: 0.8125rem;
-  padding: 0.35rem 0.4rem;
-  color: var(--ink-soft);
+.alloc-row-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.alloc-card-select:has(option:checked:not([value=""])) {
-  color: var(--ink);
+.alloc-row-main input[aria-label="Note"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.alloc-amount {
+  flex: 0 0 108px;
+  width: 108px;
 }
 
 .alloc-row-dot {
@@ -563,6 +568,50 @@ button.btn-icon {
   border-radius: 2px;
   flex-shrink: 0;
   transition: background 0.15s;
+}
+
+/* Secondary line: card link + delete, indented to sit under the note text */
+.alloc-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: calc(14px + 0.6rem);
+}
+
+.alloc-card-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem 0.15rem 0.45rem;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.alloc-card-picker:hover {
+  border-color: var(--ink-soft);
+}
+
+.alloc-card-picker[data-linked="true"] {
+  border-style: solid;
+  border-color: currentColor;
+}
+
+.alloc-card-picker select {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  color: inherit;
+  max-width: 140px;
+}
+
+.alloc-row-meta .btn-icon {
+  margin-left: auto;
 }
 
 /* Spending remainder badge on paycheck cards. */
@@ -1303,9 +1352,6 @@ button.btn-icon {
   }
   .tape {
     position: static;
-  }
-  .alloc-row {
-    grid-template-columns: 1fr 1fr;
   }
   .masthead-inner {
     flex-wrap: wrap;

@@ -144,11 +144,13 @@ export function MoneyInput({
   onChange,
   ariaLabel,
   autoFocus,
+  className,
 }: {
   value: number;
   onChange: (n: number) => void;
   ariaLabel?: string;
   autoFocus?: boolean;
+  className?: string;
 }) {
   return (
     <input
@@ -156,6 +158,7 @@ export function MoneyInput({
       inputMode="decimal"
       aria-label={ariaLabel ?? "Amount"}
       autoFocus={autoFocus}
+      className={className}
       value={value === 0 ? "" : String(value)}
       placeholder="0.00"
       style={{ textAlign: "right", fontFamily: "var(--fig)" }}
