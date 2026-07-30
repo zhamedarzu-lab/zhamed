@@ -11,13 +11,13 @@
   --ledger: #131c17;
   --paper: #1b2820;
   --paper-sunk: #101810;
-  --ink: #eaf2e7;
-  --ink-soft: #b8cbb9;
-  --ink-faint: #84998a;
+  --ink: #f2f8f0;
+  --ink-soft: #cfddd0;
+  --ink-faint: #a3baa8;
   --rule: #2e4435;
-  --rule-strong: #5a7a63;
+  --rule-strong: #6a8a73;
   --stamp: #d44e44;
-  --carbon: #6890cc;
+  --carbon: #7aa8e8;
 
   --ui: "Archivo", system-ui, -apple-system, sans-serif;
   --fig: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
@@ -42,7 +42,7 @@ body {
   background: var(--ledger);
   color: var(--ink);
   font-family: var(--ui);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
