@@ -69,6 +69,8 @@ export default function Bills() {
       await Promise.all([payments.reload(), summary.reload()]);
     })();
 
+  const [templateOpen, setTemplateOpen] = useState(true);
+
   const active = (bills.data ?? []).filter((b) => b.active);
   const templateTotal = active.reduce((s, b) => s + b.expectedAmount, 0);
   const paidTotal = active.reduce((s, b) => s + paidFor(b.id), 0);
@@ -172,80 +174,97 @@ export default function Bills() {
 
       <div style={{ height: "1.25rem" }} />
 
-      <Panel title="Bill template" bodyless>
-        <table>
-          <thead>
-            <tr>
-              <th>Bill</th>
-              <th className="num" style={{ width: 160 }}>
-                Expected monthly
-              </th>
-              <th style={{ width: 110 }} />
-            </tr>
-          </thead>
-          <tbody>
-            {(bills.data ?? []).map((b) => (
-              <tr key={b.id} style={b.active ? undefined : { opacity: 0.5 }}>
-                <td>
-                  <input
-                    aria-label="Bill name"
-                    defaultValue={b.name}
-                    onBlur={(e) => {
-                      const name = e.target.value.trim();
-                      if (name && name !== b.name) void patchBill(b.id, { name });
-                    }}
-                  />
-                </td>
-                <td className="num">
-                  <input
-                    aria-label={`Expected amount for ${b.name}`}
-                    inputMode="decimal"
-                    defaultValue={String(b.expectedAmount)}
-                    onBlur={(e) => {
-                      const v = toAmount(e.target.value);
-                      if (v !== b.expectedAmount) void patchBill(b.id, { expectedAmount: v });
-                    }}
-                  />
-                </td>
-                <td>
-                  <div className="button-row">
-                    <button className="quiet" onClick={() => patchBill(b.id, { active: !b.active })}>
-                      {b.active ? "Pause" : "Resume"}
-                    </button>
-                    <button className="quiet danger" onClick={() => removeBill(b)}>
-                      ×
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <Panel
+        title="Bill template"
+        bodyless
+        action={
+          <button
+            className="quiet"
+            onClick={() => setTemplateOpen((o) => !o)}
+            aria-expanded={templateOpen}
+            aria-label={templateOpen ? "Collapse bill template" : "Expand bill template"}
+          >
+            {templateOpen ? "▲ Collapse" : "▼ Expand"}
+          </button>
+        }
+      >
+        {templateOpen && (
+          <>
+            <table>
+              <thead>
+                <tr>
+                  <th>Bill</th>
+                  <th className="num" style={{ width: 160 }}>
+                    Expected monthly
+                  </th>
+                  <th style={{ width: 110 }} />
+                </tr>
+              </thead>
+              <tbody>
+                {(bills.data ?? []).map((b) => (
+                  <tr key={b.id} style={b.active ? undefined : { opacity: 0.5 }}>
+                    <td>
+                      <input
+                        aria-label="Bill name"
+                        defaultValue={b.name}
+                        onBlur={(e) => {
+                          const name = e.target.value.trim();
+                          if (name && name !== b.name) void patchBill(b.id, { name });
+                        }}
+                      />
+                    </td>
+                    <td className="num">
+                      <input
+                        aria-label={`Expected amount for ${b.name}`}
+                        inputMode="decimal"
+                        defaultValue={String(b.expectedAmount)}
+                        onBlur={(e) => {
+                          const v = toAmount(e.target.value);
+                          if (v !== b.expectedAmount) void patchBill(b.id, { expectedAmount: v });
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <div className="button-row">
+                        <button className="quiet" onClick={() => patchBill(b.id, { active: !b.active })}>
+                          {b.active ? "Pause" : "Resume"}
+                        </button>
+                        <button className="quiet danger" onClick={() => removeBill(b)}>
+                          ×
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-        <div className="panel-body" style={{ borderTop: "1px solid var(--rule)" }}>
-          <div className="grid" style={{ gridTemplateColumns: "1fr 160px auto", gap: "0.5rem", alignItems: "end" }}>
-            <Field label="Add a bill">
-              <input
-                value={newName}
-                placeholder="Internet, gym, tolls…"
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addBill()}
-              />
-            </Field>
-            <Field label="Expected">
-              <input
-                inputMode="decimal"
-                value={newAmount}
-                placeholder="0.00"
-                onChange={(e) => setNewAmount(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addBill()}
-              />
-            </Field>
-            <button className="primary" onClick={addBill} disabled={!newName.trim()}>
-              Add bill
-            </button>
-          </div>
-        </div>
+            <div className="panel-body" style={{ borderTop: "1px solid var(--rule)" }}>
+              <div className="grid" style={{ gridTemplateColumns: "1fr 160px auto", gap: "0.5rem", alignItems: "end" }}>
+                <Field label="Add a bill">
+                  <input
+                    value={newName}
+                    placeholder="Internet, gym, tolls…"
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addBill()}
+                  />
+                </Field>
+                <Field label="Expected">
+                  <input
+                    inputMode="decimal"
+                    value={newAmount}
+                    placeholder="0.00"
+                    onChange={(e) => setNewAmount(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addBill()}
+                  />
+                </Field>
+                <button className="primary" onClick={addBill} disabled={!newName.trim()}>
+                  Add bill
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </Panel>
     </>
   );
