@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
 import { api, useApi } from "../../lib/api";
 import { currentMonth, dollars, monthName, toAmount } from "../../lib/format";
-import { Empty, Loading, MonthPicker, Notice, Panel, tagColor } from "../../components/ui";
+import { Empty, Loading, Notice, Panel, tagColor } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
-import SubscriptionsCharts from "./SubscriptionsCharts";
 
 const BUDGET_KEY  = "subs-budget";
 const COLORS_KEY  = "sub-colors";
@@ -37,7 +36,7 @@ function useSubColors() {
 type SubItem = { id: number; month: string; name: string; amount: number; sortOrder: number };
 
 export default function Subscriptions() {
-  const [month, setMonth]               = useState(currentMonth());
+  const month                           = currentMonth();
   const [error, setError]               = useState<string | null>(null);
   const [newName, setNewName]           = useState("");
   const [budget, setBudget]             = useBudget();
@@ -90,7 +89,6 @@ export default function Subscriptions() {
         </div>
         <div className="button-row">
           <FinanceNav />
-          <MonthPicker month={month} onChange={setMonth} />
         </div>
       </div>
 
@@ -225,7 +223,6 @@ export default function Subscriptions() {
         </div>
       </Panel>
 
-      <SubscriptionsCharts budget={budget} colors={colors} />
     </>
   );
 }
