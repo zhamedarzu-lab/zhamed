@@ -3,6 +3,7 @@ import { api, useApi } from "../../lib/api";
 import { currentMonth, dollars, monthName, toAmount } from "../../lib/format";
 import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
+import BillsCharts from "./BillsCharts";
 
 const BUDGET_KEY = "bills-budget";
 const DEFAULT_BUDGET = 2000;
@@ -204,6 +205,8 @@ export default function Bills() {
           </button>
         </div>
       </Panel>
+
+      <BillsCharts budget={budget} />
     </>
   );
 }

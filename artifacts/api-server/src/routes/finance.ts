@@ -259,6 +259,34 @@ router.delete("/paychecks/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
+// ── Bills history (all months, for charts) ────────────────────────────────────
+
+router.get("/bills/history", async (_req, res): Promise<void> => {
+  const items = await db
+    .select()
+    .from(monthlyBillItemsTable)
+    .orderBy(monthlyBillItemsTable.month, monthlyBillItemsTable.sortOrder);
+
+  const byMonth = new Map<string, Record<string, number>>();
+  for (const item of items) {
+    if (!byMonth.has(item.month)) byMonth.set(item.month, {});
+    const row = byMonth.get(item.month)!;
+    row[item.name] = (row[item.name] ?? 0) + Number(item.amount);
+  }
+
+  const allNamesSet = new Set<string>();
+  for (const row of byMonth.values())
+    for (const name of Object.keys(row)) allNamesSet.add(name);
+
+  const months = [...byMonth.entries()].map(([month, row]) => ({
+    month,
+    total: Object.values(row).reduce((s, v) => s + v, 0),
+    ...row,
+  }));
+
+  res.json({ months, allNames: [...allNamesSet].sort() });
+});
+
 // ── Monthly bill items ────────────────────────────────────────────────────────
 // Each row belongs to exactly one month. Deleting April's row never touches March.
 // Visiting a month with no rows auto-seeds names from the most recent prior month.
