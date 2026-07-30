@@ -27,11 +27,12 @@ export const billPaymentsTable = pgTable("bill_payments", {
 });
 
 export const debtAccountsTable = pgTable("debt_accounts", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  kind: text("kind").notNull().default("other"), // card | bnpl | loan | other
-  active: boolean("active").notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
+  id:          serial("id").primaryKey(),
+  name:        text("name").notNull(),
+  kind:        text("kind").notNull().default("other"),
+  active:      boolean("active").notNull().default(true),
+  sortOrder:   integer("sort_order").notNull().default(0),
+  creditLimit: numeric("credit_limit", { precision: 10, scale: 2 }),
 });
 
 export const debtSnapshotsTable = pgTable("debt_snapshots", {

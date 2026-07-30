@@ -884,6 +884,135 @@ button.btn-icon {
   border-bottom: none;
 }
 
+/* ── Debt card ──────────────────────────────────────────────── */
+.debt-card-body {
+  padding: 1rem 1rem 0.75rem;
+}
+
+.debt-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.debt-card-remove {
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.debt-card-body:hover .debt-card-remove {
+  opacity: 1;
+}
+
+.debt-card-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  width: 100%;
+  margin-bottom: 0.6rem;
+  padding: 0;
+}
+
+.debt-card-name:focus {
+  outline: none;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.debt-balance-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.debt-balance-fig {
+  font-family: var(--fig);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.debt-balance-date {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-family: var(--fig);
+}
+
+.debt-limit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+  font-family: var(--fig);
+  font-size: 0.8125rem;
+}
+
+.debt-limit-btn {
+  font-size: 0.8125rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink-soft);
+  text-decoration: underline dotted var(--rule-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.debt-limit-btn:hover {
+  color: var(--ink);
+}
+
+.debt-limit-edit {
+  display: inline-flex;
+  align-items: center;
+}
+
+.debt-limit-input {
+  width: 9ch;
+  font-size: 0.8125rem;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink);
+}
+
+.debt-util-pct {
+  font-family: var(--fig);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.debt-util-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--rule-strong);
+  overflow: hidden;
+}
+
+.debt-util-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.debt-card-footer {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.debt-bal-input {
+  flex: 1;
+}
+
 /* Bills inline add row */
 .bills-add-row {
   display: flex;

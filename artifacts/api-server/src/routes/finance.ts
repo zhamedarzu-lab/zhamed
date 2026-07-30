@@ -496,8 +496,9 @@ router.get("/debt-accounts", async (_req, res): Promise<void> => {
       const latest = snapshots.find((s) => s.debtAccountId === a.id);
       return {
         ...a,
+        creditLimit:    a.creditLimit != null ? Number(a.creditLimit) : null,
         currentBalance: latest ? Number(latest.balance) : null,
-        lastUpdated: latest ? latest.snapshotDate : null,
+        lastUpdated:    latest ? latest.snapshotDate : null,
       };
     }),
   );
@@ -525,25 +526,31 @@ router.patch("/debt-accounts/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const parsed = z
     .object({
-      name: z.string().min(1).optional(),
-      kind: z.enum(["card", "bnpl", "loan", "other"]).optional(),
-      active: z.boolean().optional(),
+      name:        z.string().min(1).optional(),
+      kind:        z.enum(["card", "bnpl", "loan", "other"]).optional(),
+      active:      z.boolean().optional(),
+      creditLimit: z.number().min(0).nullable().optional(),
     })
     .safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: String(parsed.error) });
     return;
   }
+  const update: Record<string, unknown> = {};
+  if (parsed.data.name        !== undefined) update.name        = parsed.data.name;
+  if (parsed.data.kind        !== undefined) update.kind        = parsed.data.kind;
+  if (parsed.data.active      !== undefined) update.active      = parsed.data.active;
+  if (parsed.data.creditLimit !== undefined) update.creditLimit = parsed.data.creditLimit == null ? null : parsed.data.creditLimit.toFixed(2);
   const [account] = await db
     .update(debtAccountsTable)
-    .set(parsed.data)
+    .set(update)
     .where(eq(debtAccountsTable.id, id))
     .returning();
   if (!account) {
     res.status(404).json({ error: "Not found" });
     return;
   }
-  res.json(account);
+  res.json({ ...account, creditLimit: account.creditLimit != null ? Number(account.creditLimit) : null });
 });
 
 router.delete("/debt-accounts/:id", async (req, res): Promise<void> => {
