@@ -753,6 +753,40 @@ button.btn-icon {
   color: var(--ink-faint);
 }
 
+/* Stacked variant — vertical rows with note growing and pct right-aligned */
+.alloc-list.stacked {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+.alloc-list.stacked li {
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.alloc-list.stacked li:last-child {
+  border-bottom: none;
+}
+
+.alloc-list.stacked li::before {
+  display: none;
+}
+
+.alloc-note {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+}
+
+.alloc-pct {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  min-width: 2.5ch;
+  text-align: right;
+}
+
 /* The arrows must stay on the line with the dropdown even in a narrow
    form column, so the select shrinks rather than the row wrapping. */
 .month-picker {

@@ -1,7 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApi } from "../../lib/api";
-import { currentMonth, dollars, monthName, ordinal } from "../../lib/format";
-import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
+import { currentMonth, dollars, monthName } from "../../lib/format";
+import {
+  AllocBar,
+  Empty,
+  Loading,
+  MonthPicker,
+  Notice,
+  Panel,
+  SPENDING_COLOR,
+  tagColor,
+} from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
 type Summary = {
@@ -23,9 +33,19 @@ type Paycheck = {
 
 export default function MonthlySummary() {
   const [month, setMonth] = useState(currentMonth());
+  const navigate = useNavigate();
 
   const summary = useApi<Summary>(`/api/finance/summary/${month}`, [month]);
   const paychecks = useApi<Paycheck[]>(`/api/finance/paychecks?month=${month}`, [month]);
+
+  // Month-level bar: all notes rolled up
+  const monthSegments = useMemo(
+    () => (summary.data?.byNote ?? []).map((r) => ({ amount: r.amount, color: tagColor(r.note) })),
+    [summary.data],
+  );
+
+  const spending = summary.data?.unallocated ?? 0;
+  const income = summary.data?.income ?? 0;
 
   return (
     <>
@@ -33,7 +53,6 @@ export default function MonthlySummary() {
         <div>
           <span className="eyebrow">Finance</span>
           <h1>Monthly summary</h1>
-          <p>Every paycheck rolled up for {monthName(month)}.</p>
         </div>
         <div className="button-row">
           <FinanceNav />
@@ -45,112 +64,155 @@ export default function MonthlySummary() {
       {summary.loading && <Loading />}
 
       {summary.data && (
-        <div className="stats" style={{ marginBottom: "1rem" }}>
-          <div className="stat-cell">
-            <span className="eyebrow">Income</span>
-            <span className="amount fig">{dollars(summary.data.income)}</span>
+        <>
+          {/* ── Stats ──────────────────────────────────────────────── */}
+          <div className="stats" style={{ marginBottom: "1rem" }}>
+            <div className="stat-cell">
+              <span className="eyebrow">Income</span>
+              <span className="amount fig">{dollars(income)}</span>
+            </div>
+            <div className="stat-cell">
+              <span className="eyebrow">Allocated</span>
+              <span className="amount fig">{dollars(summary.data.allocated)}</span>
+            </div>
+            <div className="stat-cell">
+              <span className="eyebrow">
+                {spending < -0.005 ? "Over-allocated" : "Spending"}
+              </span>
+              <span
+                className="amount fig"
+                style={{ color: spending < -0.005 ? "var(--stamp)" : SPENDING_COLOR }}
+              >
+                {dollars(Math.abs(spending))}
+              </span>
+            </div>
           </div>
-          <div className="stat-cell">
-            <span className="eyebrow">Allocated</span>
-            <span className="amount fig">{dollars(summary.data.allocated)}</span>
-          </div>
-          <div className="stat-cell">
-            <span className="eyebrow">
-              {summary.data.unallocated < 0 ? "Over-allocated" : "Unallocated"}
-            </span>
-            <span
-              className={`amount fig ${summary.data.unallocated < 0 ? "neg" : ""}`}
-            >
-              {dollars(Math.abs(summary.data.unallocated))}
-            </span>
-          </div>
-          <div className="stat-cell">
-            <span className="eyebrow">Bills paid</span>
-            <span className="amount fig">{dollars(summary.data.actuallyPaid)}</span>
-          </div>
-        </div>
-      )}
 
-      {(summary.data?.byNote.length ?? 0) > 0 && (
-        <Panel title="By note" bodyless>
-          <table>
-            <thead>
-              <tr>
-                <th>Note</th>
-                <th className="num">Amount</th>
-                <th className="num">% of income</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.data?.byNote.map((r) => (
-                <tr key={r.note}>
-                  <td>{r.note}</td>
-                  <td className="num">{dollars(r.amount)}</td>
-                  <td className="num muted">
-                    {summary.data && summary.data.income > 0
-                      ? `${Math.round((r.amount / summary.data.income) * 100)}%`
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Panel>
+          {/* ── Monthly rollup ─────────────────────────────────────── */}
+          {summary.data.byNote.length > 0 && (
+            <Panel title={monthName(month)} bodyless>
+              <AllocBar
+                segments={monthSegments}
+                total={income}
+                remainder={spending > 0.005 ? spending : undefined}
+                height={10}
+              />
+              <div className="panel-body">
+                <ul className="alloc-list stacked">
+                  {summary.data.byNote.map((r) => (
+                    <li key={r.note}>
+                      <span className="alloc-dot" style={{ background: tagColor(r.note) }} />
+                      <span className="alloc-note">{r.note || <span className="muted">Untitled</span>}</span>
+                      <span className="fig alloc-amt">{dollars(r.amount)}</span>
+                      {income > 0 && (
+                        <span className="alloc-pct">
+                          {Math.round((r.amount / income) * 100)}%
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                  {spending > 0.005 && (
+                    <li>
+                      <span className="alloc-dot" style={{ background: SPENDING_COLOR, opacity: 0.55 }} />
+                      <span className="alloc-note muted">Spending</span>
+                      <span className="fig alloc-amt" style={{ color: SPENDING_COLOR }}>
+                        {dollars(spending)}
+                      </span>
+                      {income > 0 && (
+                        <span className="alloc-pct">
+                          {Math.round((spending / income) * 100)}%
+                        </span>
+                      )}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </Panel>
+          )}
+        </>
       )}
 
       {paychecks.loading && <Loading />}
 
       {!paychecks.loading && (paychecks.data?.length ?? 0) === 0 && (
-        <Panel>
+        <Panel style={{ marginTop: "1rem" }}>
           <Empty title={`No paychecks for ${monthName(month)}`}>
             <p>Record a paycheck on the Paychecks tab and it will show up here.</p>
           </Empty>
         </Panel>
       )}
 
+      {/* ── Per-paycheck cards ─────────────────────────────────────── */}
       <div className="grid" style={{ gap: "1rem", marginTop: "1rem" }}>
         {paychecks.data?.map((p) => (
           <Panel
             key={p.id}
             title={
-              <div>
-                <span className="eyebrow">{ordinal(p.seq)} paycheck</span>
-                <h2 style={{ marginTop: "0.1rem" }}>{dollars(p.amount)}</h2>
+              <h2 style={{ marginTop: "0.1rem" }}>
+                <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em" }}>
+                  {p.seq}/2
+                </span>
+                <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
+                <span className="fig">{dollars(p.amount)}</span>
+              </h2>
+            }
+            action={
+              <div className="button-row" style={{ alignItems: "center" }}>
+                {p.totals.unallocated > 0.005 && (
+                  <span className="paycheck-spending">
+                    <span className="paycheck-spending-label">spending</span>
+                    <span className="fig">{dollars(p.totals.unallocated)}</span>
+                  </span>
+                )}
+                <button className="quiet" onClick={() => navigate(`/finance/paycheck/${p.id}`)}>
+                  Edit
+                </button>
               </div>
             }
             bodyless
           >
-            <table>
-              <thead>
-                <tr>
-                  <th>Note</th>
-                  <th className="num">Amount</th>
-                  <th className="num">% of deposit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {p.allocations.map((a) => (
-                  <tr key={a.id}>
-                    <td>{a.note || <span className="muted">Untitled</span>}</td>
-                    <td className="num">{dollars(a.amount)}</td>
-                    <td className="num muted">
-                      {p.amount > 0 ? `${Math.round((a.amount / p.amount) * 100)}%` : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td>Allocated</td>
-                  <td className="num">{dollars(p.totals.allocated)}</td>
-                  <td className="num muted">
-                    {p.amount > 0
-                      ? `${Math.round((p.totals.allocated / p.amount) * 100)}%`
-                      : "—"}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+            <AllocBar
+              segments={p.allocations.map((a) => ({ amount: a.amount, color: tagColor(a.note) }))}
+              total={p.amount}
+              remainder={p.totals.unallocated}
+              height={8}
+            />
+            <div className="panel-body">
+              {p.allocations.length === 0 ? (
+                <span className="muted">Nothing recorded yet.</span>
+              ) : (
+                <ul className="alloc-list stacked">
+                  {p.allocations.map((a) => (
+                    <li key={a.id}>
+                      <span className="alloc-dot" style={{ background: tagColor(a.note) }} />
+                      <span className="alloc-note">
+                        {a.note || <span className="muted">Untitled</span>}
+                      </span>
+                      <span className="fig alloc-amt">{dollars(a.amount)}</span>
+                      {p.amount > 0 && (
+                        <span className="alloc-pct">
+                          {Math.round((a.amount / p.amount) * 100)}%
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                  {p.totals.unallocated > 0.005 && (
+                    <li>
+                      <span className="alloc-dot" style={{ background: SPENDING_COLOR, opacity: 0.55 }} />
+                      <span className="alloc-note muted">Spending</span>
+                      <span className="fig alloc-amt" style={{ color: SPENDING_COLOR }}>
+                        {dollars(p.totals.unallocated)}
+                      </span>
+                      {p.amount > 0 && (
+                        <span className="alloc-pct">
+                          {Math.round((p.totals.unallocated / p.amount) * 100)}%
+                        </span>
+                      )}
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
           </Panel>
         ))}
       </div>
