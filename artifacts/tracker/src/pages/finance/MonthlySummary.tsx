@@ -14,6 +14,7 @@ import {
   tagColor,
 } from "../../components/ui";
 import { AllocationList } from "../../components/finance-ui";
+import MonthlyCharts from "./MonthlyCharts";
 import FinanceNav from "./FinanceNav";
 
 type Summary = {
@@ -251,6 +252,8 @@ export default function MonthlySummary() {
           );
         })}
       </div>
+
+      <MonthlyCharts />
     </>
   );
 }
