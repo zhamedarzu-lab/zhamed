@@ -489,8 +489,9 @@ export default function Journal() {
         color:     punch.color,
       });
       setEntries(prev => [entry, ...prev]);
-    } finally {
-      setPunches(punches.filter(p => p.id !== id));
+      setPunches(punches.filter(p => p.id !== id));  // only remove on success
+    } catch {
+      // save failed — leave the punch alive so nothing is lost
     }
   }
 
