@@ -759,12 +759,17 @@ button.btn-icon {
   transition: background 0.15s;
 }
 
+.alloc-add-row {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
 .alloc-add-btn {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  width: 100%;
-  padding: 0.55rem 0 0.1rem;
+  padding: 0.5rem 0 0.1rem;
   border: none;
   background: none;
   font: inherit;

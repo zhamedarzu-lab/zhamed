@@ -13,8 +13,15 @@ import {
   SPENDING_COLOR,
 } from "../../components/ui";
 
-type Row = { key: string; amount: number; note: string; debtAccountId: number | null };
-type ExtraRow = { key: string; amount: number; note: string };
+type RowKind = "alloc" | "extra";
+
+type Row = {
+  key: string;
+  kind: RowKind;
+  amount: number;
+  note: string;
+  debtAccountId: number | null;
+};
 
 type LoadedPaycheck = {
   id: number;
@@ -28,8 +35,8 @@ type LoadedPaycheck = {
 type Card = { id: number; name: string; active: boolean };
 
 const newKey = () => Math.random().toString(36).slice(2);
-const blankRow = (): Row => ({ key: newKey(), amount: 0, note: "", debtAccountId: null });
-const blankExtraRow = (): ExtraRow => ({ key: newKey(), amount: 0, note: "" });
+const blankAlloc = (): Row => ({ key: newKey(), kind: "alloc", amount: 0, note: "", debtAccountId: null });
+const blankExtra = (): Row => ({ key: newKey(), kind: "extra", amount: 0, note: "", debtAccountId: null });
 
 const SEQ_LABELS: Record<number, string> = { 1: "1/2", 2: "2/2", 3: "3/2" };
 
@@ -72,17 +79,19 @@ export default function PaycheckEditor() {
 
   const existing = useApi<LoadedPaycheck>(editing ? `/api/finance/paychecks/${id}` : null);
 
-  // For tag autocomplete — pull all unique notes from past paychecks
+  // Autocomplete suggestions pulled from all past paychecks
   const allPaychecks = useApi<
     Array<{ allocations: Array<{ note: string }>; extraIncome: Array<{ note: string }> }>
   >("/api/finance/paychecks");
-  const tagSuggestions = useMemo(() => {
+
+  const allocSuggestions = useMemo(() => {
     const seen = new Set<string>();
     for (const p of allPaychecks.data ?? [])
       for (const a of p.allocations)
         if (a.note.trim()) seen.add(a.note.trim());
     return [...seen].sort();
   }, [allPaychecks.data]);
+
   const extraSuggestions = useMemo(() => {
     const seen = new Set<string>();
     for (const p of allPaychecks.data ?? [])
@@ -97,8 +106,7 @@ export default function PaycheckEditor() {
   const [month, setMonth] = useState(currentMonth());
   const [amount, setAmount] = useState(0);
   const [seq, setSeq] = useState<1 | 2 | 3>(1);
-  const [rows, setRows] = useState<Row[]>([blankRow()]);
-  const [extraRows, setExtraRows] = useState<ExtraRow[]>([]);
+  const [rows, setRows] = useState<Row[]>([blankAlloc()]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -107,28 +115,24 @@ export default function PaycheckEditor() {
     setMonth(existing.data.month);
     setAmount(existing.data.amount);
     setSeq(existing.data.seq);
-    setRows(existing.data.allocations.map((a) => ({ key: newKey(), ...a })));
-    setExtraRows(existing.data.extraIncome.map((e) => ({ key: newKey(), ...e })));
+    setRows([
+      ...existing.data.allocations.map((a) => ({ key: newKey(), kind: "alloc" as RowKind, ...a })),
+      ...existing.data.extraIncome.map((e) => ({ key: newKey(), kind: "extra" as RowKind, debtAccountId: null, ...e })),
+    ]);
   }, [existing.data]);
 
   const totals = useMemo(() => {
-    const allocated = rows.reduce((s, r) => s + r.amount, 0);
-    const extra = extraRows.reduce((s, r) => s + r.amount, 0);
+    const allocated = rows.filter((r) => r.kind === "alloc").reduce((s, r) => s + r.amount, 0);
+    const extra = rows.filter((r) => r.kind === "extra").reduce((s, r) => s + r.amount, 0);
     const pool = amount + extra;
     return { allocated, extra, pool, remaining: pool - allocated };
-  }, [rows, extraRows, amount]);
+  }, [rows, amount]);
 
-  const update = (key: string, patch: Partial<Row>) =>
+  const updateRow = (key: string, patch: Partial<Row>) =>
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
   const removeRow = (key: string) =>
     setRows((prev) => prev.filter((r) => r.key !== key));
-
-  const updateExtra = (key: string, patch: Partial<ExtraRow>) =>
-    setExtraRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-
-  const removeExtraRow = (key: string) =>
-    setExtraRows((prev) => prev.filter((r) => r.key !== key));
 
   async function save() {
     setError(null);
@@ -136,15 +140,12 @@ export default function PaycheckEditor() {
     setSaving(true);
     const payload = {
       month, seq, amount,
-      allocations: rows.filter((r) => r.amount > 0).map((r) => ({
-        amount: r.amount,
-        note: r.note.trim(),
-        debtAccountId: r.debtAccountId,
-      })),
-      extraIncome: extraRows.filter((r) => r.amount > 0).map((r) => ({
-        amount: r.amount,
-        note: r.note.trim(),
-      })),
+      allocations: rows
+        .filter((r) => r.kind === "alloc" && r.amount > 0)
+        .map((r) => ({ amount: r.amount, note: r.note.trim(), debtAccountId: r.debtAccountId })),
+      extraIncome: rows
+        .filter((r) => r.kind === "extra" && r.amount > 0)
+        .map((r) => ({ amount: r.amount, note: r.note.trim() })),
     };
     try {
       if (editing) await api.patch(`/api/finance/paychecks/${id}`, payload);
@@ -159,6 +160,9 @@ export default function PaycheckEditor() {
 
   const remainderState =
     totals.remaining < -0.005 ? "over" : Math.abs(totals.remaining) < 0.005 ? "clear" : "open";
+
+  const dotColor = (row: Row) =>
+    row.kind === "extra" ? EXTRA_INCOME_COLOR : tagColor(row.note);
 
   return (
     <>
@@ -210,35 +214,40 @@ export default function PaycheckEditor() {
             </div>
           </div>
 
-          {/* Allocations */}
-          <Panel title="Where it went">
+          {/* Activity — allocations + extra income in one panel */}
+          <Panel title="Activity">
             <datalist id="alloc-tags">
-              {tagSuggestions.map((t) => <option key={t} value={t} />)}
+              {allocSuggestions.map((t) => <option key={t} value={t} />)}
+            </datalist>
+            <datalist id="extra-tags">
+              {extraSuggestions.map((t) => <option key={t} value={t} />)}
             </datalist>
 
             {rows.map((row) => {
-              const linkedCard = cards.find((c) => c.id === row.debtAccountId);
+              const linkedCard = row.kind === "alloc"
+                ? cards.find((c) => c.id === row.debtAccountId)
+                : undefined;
               return (
                 <div className="alloc-row" key={row.key}>
                   <span
                     className="alloc-row-dot"
-                    style={{ background: tagColor(row.note) }}
+                    style={{ background: dotColor(row) }}
                     aria-hidden="true"
                   />
                   <input
-                    aria-label="Note"
-                    list="alloc-tags"
-                    placeholder="What's it for?"
+                    aria-label={row.kind === "extra" ? "Source" : "Note"}
+                    list={row.kind === "extra" ? "extra-tags" : "alloc-tags"}
+                    placeholder={row.kind === "extra" ? "Where'd it come from?" : "What's it for?"}
                     value={row.note}
-                    onChange={(e) => update(row.key, { note: e.target.value })}
+                    onChange={(e) => updateRow(row.key, { note: e.target.value })}
                   />
                   <MoneyInput
                     ariaLabel="Amount"
                     className="alloc-amount"
                     value={row.amount}
-                    onChange={(n) => update(row.key, { amount: n })}
+                    onChange={(n) => updateRow(row.key, { amount: n })}
                   />
-                  {cards.length > 0 && (
+                  {row.kind === "alloc" && cards.length > 0 && (
                     <label
                       className="alloc-card-picker"
                       data-linked={linkedCard ? "true" : "false"}
@@ -251,7 +260,7 @@ export default function PaycheckEditor() {
                         onChange={(e) => {
                           const val = e.target.value ? Number(e.target.value) : null;
                           const card = cards.find((c) => c.id === val);
-                          update(row.key, {
+                          updateRow(row.key, {
                             debtAccountId: val,
                             note: card ? card.name : row.note,
                           });
@@ -267,7 +276,7 @@ export default function PaycheckEditor() {
                   <button
                     className="quiet danger btn-icon"
                     onClick={() => removeRow(row.key)}
-                    aria-label="Remove this allocation"
+                    aria-label="Remove row"
                   >
                     <IcTrash />
                   </button>
@@ -275,56 +284,20 @@ export default function PaycheckEditor() {
               );
             })}
 
-            <button
-              className="alloc-add-btn"
-              onClick={() => setRows((r) => [...r, blankRow()])}
-            >
-              <IcPlus /> Add
-            </button>
-          </Panel>
-
-          {/* Extra income — a bill surplus, a refund, a gift. */}
-          <Panel title="Extra income">
-            <datalist id="extra-tags">
-              {extraSuggestions.map((t) => <option key={t} value={t} />)}
-            </datalist>
-
-            {extraRows.map((row) => (
-              <div className="alloc-row" key={row.key}>
-                <span
-                  className="alloc-row-dot"
-                  style={{ background: EXTRA_INCOME_COLOR }}
-                  aria-hidden="true"
-                />
-                <input
-                  aria-label="Source"
-                  list="extra-tags"
-                  placeholder="Where'd it come from?"
-                  value={row.note}
-                  onChange={(e) => updateExtra(row.key, { note: e.target.value })}
-                />
-                <MoneyInput
-                  ariaLabel="Amount"
-                  className="alloc-amount"
-                  value={row.amount}
-                  onChange={(n) => updateExtra(row.key, { amount: n })}
-                />
-                <button
-                  className="quiet danger btn-icon"
-                  onClick={() => removeExtraRow(row.key)}
-                  aria-label="Remove this extra income"
-                >
-                  <IcTrash />
-                </button>
-              </div>
-            ))}
-
-            <button
-              className="alloc-add-btn"
-              onClick={() => setExtraRows((r) => [...r, blankExtraRow()])}
-            >
-              <IcPlus /> Add
-            </button>
+            <div className="alloc-add-row">
+              <button
+                className="alloc-add-btn"
+                onClick={() => setRows((r) => [...r, blankAlloc()])}
+              >
+                <IcPlus /> Allocation
+              </button>
+              <button
+                className="alloc-add-btn"
+                onClick={() => setRows((r) => [...r, blankExtra()])}
+              >
+                <IcPlus /> Extra income
+              </button>
+            </div>
           </Panel>
         </div>
 
@@ -346,7 +319,7 @@ export default function PaycheckEditor() {
 
             <AllocBar
               segments={rows
-                .filter((r) => r.amount > 0)
+                .filter((r) => r.kind === "alloc" && r.amount > 0)
                 .map((r) => ({ amount: r.amount, color: tagColor(r.note) }))}
               total={totals.pool}
               remainder={totals.remaining > 0.005 ? totals.remaining : undefined}
@@ -355,7 +328,7 @@ export default function PaycheckEditor() {
 
             <div className="tape-legend">
               {rows
-                .filter((r) => r.amount > 0)
+                .filter((r) => r.kind === "alloc" && r.amount > 0)
                 .map((r) => (
                   <div className="tape-legend-row" key={r.key}>
                     <span className="swatch" style={{ background: tagColor(r.note) }} />
