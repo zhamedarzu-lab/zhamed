@@ -234,6 +234,18 @@ export default function PaycheckEditor() {
                     style={{ background: dotColor(row) }}
                     aria-hidden="true"
                   />
+                  <button
+                    className="alloc-kind-toggle"
+                    data-kind={row.kind}
+                    onClick={() => updateRow(row.key, {
+                      kind: row.kind === "alloc" ? "extra" : "alloc",
+                      debtAccountId: null,
+                    })}
+                    aria-label={row.kind === "alloc" ? "Switch to extra income" : "Switch to allocation"}
+                    title={row.kind === "alloc" ? "Allocation — click to switch to Extra income" : "Extra income — click to switch to Allocation"}
+                  >
+                    {row.kind === "alloc" ? "Alloc" : "Extra"}
+                  </button>
                   <input
                     aria-label={row.kind === "extra" ? "Source" : "Note"}
                     list={row.kind === "extra" ? "extra-tags" : "alloc-tags"}
@@ -284,20 +296,12 @@ export default function PaycheckEditor() {
               );
             })}
 
-            <div className="alloc-add-row">
-              <button
-                className="alloc-add-btn"
-                onClick={() => setRows((r) => [...r, blankAlloc()])}
-              >
-                <IcPlus /> Allocation
-              </button>
-              <button
-                className="alloc-add-btn"
-                onClick={() => setRows((r) => [...r, blankExtra()])}
-              >
-                <IcPlus /> Extra income
-              </button>
-            </div>
+            <button
+              className="alloc-add-btn"
+              onClick={() => setRows((r) => [...r, blankAlloc()])}
+            >
+              <IcPlus /> Add
+            </button>
           </Panel>
         </div>
 
