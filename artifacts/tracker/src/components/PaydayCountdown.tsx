@@ -17,6 +17,11 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 const weekdayDate = (d: Date) =>
   d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
+const fmtClock = (d: Date) => {
+  const h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
+  return `${h % 12 || 12}:${pad2(m)}:${pad2(s)} ${h >= 12 ? "pm" : "am"}`;
+};
+
 // Each cell: [value, label, pad] — pad=true uses 2-digit zero-padding (for
 // remainder units 0-59). The leading "total" unit in collapsed modes is never
 // padded since it can be 3+ digits.
@@ -104,6 +109,7 @@ export default function PaydayCountdown() {
           >
             <span className="eyebrow">Today</span>
             <span className="fig payday-today">{weekdayDate(now)}</span>
+            <span className="payday-clock fig">{fmtClock(now)}</span>
           </button>
 
           {/* NEXT PAYDAY — cycles through display formats on each tap */}

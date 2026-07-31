@@ -590,9 +590,8 @@ export default function Journal() {
                         onClick={() => setModal(e)}
                         role="button" tabIndex={0}
                         onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
-                        {e.subject && <p className="journal-hday-entry-subject">{e.subject}</p>}
+                        <p className="journal-hday-entry-label">{e.subject || (e.content ? e.content.slice(0,60) : "—")}</p>
                         <p className="journal-hday-entry-time">{fmtRange(e.startTime, e.endTime)}</p>
-                        {e.content && <p className="journal-hday-entry-content">{e.content}</p>}
                       </div>
                     );
                   })}
