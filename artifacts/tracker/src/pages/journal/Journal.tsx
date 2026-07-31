@@ -89,17 +89,18 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
   const [hasEnd,    setHasEnd]    = useState(Boolean(initial?.endTime));
   const [endHHMM,   setEndHHMM]   = useState(initial?.endTime ? toHHMM(initial.endTime) : "");
   const [color,     setColor]     = useState(initial?.color ?? ENTRY_COLORS[0].hex);
+  const [date,      setDate]      = useState(initial?.entryDate ?? entryDate);
   const [saving,    setSaving]    = useState(false);
 
   async function submit() {
     setSaving(true);
     try {
-      const startIso = toISOWithDate(entryDate, startHHMM);
-      const endIso   = hasEnd && endHHMM ? toISOWithDate(entryDate, endHHMM) : null;
+      const startIso = toISOWithDate(date, startHHMM);
+      const endIso   = hasEnd && endHHMM ? toISOWithDate(date, endHHMM) : null;
       const payload = {
         subject:   subject.trim() || null,
         content:   content.trim(),
-        entryDate,
+        entryDate: date,
         startTime: startIso,
         endTime:   endIso,
         color,
@@ -145,6 +146,10 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
         ))}
       </div>
       <div className="entry-form-times">
+        <label className="entry-form-time-label">
+          <span>Day</span>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+        </label>
         <label className="entry-form-time-label">
           <span>From</span>
           <input type="time" value={startHHMM} onChange={e => setStartHHMM(e.target.value)} />
