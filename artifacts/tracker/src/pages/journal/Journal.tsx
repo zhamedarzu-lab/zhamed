@@ -195,14 +195,14 @@ export default function Journal() {
         </div>
 
         <div className="journal-nav">
-          <button className="journal-nav-btn" onClick={() => navigate(-1)} aria-label="Previous"><IcLeft /></button>
+          <button className="journal-nav-btn" onClick={() => navigate(-1)} aria-label="Previous">‹</button>
           <span
             className="journal-period"
             data-today={view === "day" && isToday ? "true" : "false"}
           >
             {periodLabel()}
           </span>
-          <button className="journal-nav-btn" onClick={() => navigate(1)} aria-label="Next"><IcRight /></button>
+          <button className="journal-nav-btn" onClick={() => navigate(1)} aria-label="Next">›</button>
           {toYMD(focus) !== toYMD(new Date()) && view === "day" && (
             <button className="journal-today-btn" onClick={goToday}>Today</button>
           )}

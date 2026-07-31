@@ -254,6 +254,8 @@ a:hover {
   border-radius: 5px;
   background: var(--paper-sunk);
   color: var(--ink);
+  font-size: 1.25rem;
+  line-height: 1;
   cursor: pointer;
   transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
