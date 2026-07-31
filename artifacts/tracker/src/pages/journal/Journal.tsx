@@ -183,14 +183,86 @@ function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps
   );
 }
 
+/* ── Entry detail modal ─────────────────────────────────────────────── */
+function fmtFullDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric", year:"numeric" });
+}
+
+type EntryModalProps = {
+  entry: Entry;
+  onClose: () => void;
+  onUpdate: (e: Entry) => void;
+  onDelete: (id: number) => void;
+};
+function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalProps) {
+  const [editing, setEditing] = useState(false);
+
+  // Close on backdrop click
+  function handleBackdrop(e: React.MouseEvent) {
+    if (e.target === e.currentTarget) onClose();
+  }
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div className="entry-modal-backdrop" onClick={handleBackdrop}>
+      <div className="entry-modal" role="dialog" aria-modal="true">
+        <div className="entry-modal-header">
+          <span className="entry-modal-date">{fmtFullDate(entry.entryDate + "T00:00:00")}</span>
+          <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
+
+        {editing ? (
+          <div className="entry-modal-body">
+            <EntryForm
+              entryDate={entry.entryDate}
+              initial={entry}
+              onSave={e => { onUpdate(e); setEditing(false); }}
+              onCancel={() => setEditing(false)}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="entry-modal-body">
+              <p className="entry-modal-time">{fmtRange(entry.startTime, entry.endTime)}</p>
+              {entry.subject && <h2 className="entry-modal-subject">{entry.subject}</h2>}
+              {entry.content && <p className="entry-modal-content">{entry.content}</p>}
+              {!entry.subject && !entry.content && (
+                <p className="entry-modal-empty">No content.</p>
+              )}
+            </div>
+            <div className="entry-modal-footer">
+              <button
+                className="journal-action-btn danger"
+                onClick={() => { onDelete(entry.id); onClose(); }}
+                aria-label="Delete"
+              >
+                <IcTrash /> Delete
+              </button>
+              <button className="primary" onClick={() => setEditing(true)}>
+                <IcEdit /> Edit
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════ */
 export default function Journal() {
-  const [view,    setView]    = useState<View>("day");
+  const [view,    setView]    = useState<View>("month");
   const [focus,   setFocus]   = useState(() => new Date());
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(false);
   const [adding,  setAdding]  = useState(false);
   const [nowMin,  setNowMin]  = useState(nowMinutes());
+  const [modal,   setModal]   = useState<Entry | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -227,9 +299,11 @@ export default function Journal() {
   async function deleteEntry(id: number) {
     await api.del(`/api/journal/entries/${id}`);
     setEntries(prev => prev.filter(e => e.id !== id));
+    setModal(prev => prev?.id === id ? null : prev);
   }
   function updateEntry(updated: Entry) {
     setEntries(prev => prev.map(e => e.id === updated.id ? updated : e));
+    setModal(prev => prev?.id === updated.id ? updated : prev);
   }
 
   function periodLabel() {
@@ -297,6 +371,16 @@ export default function Journal() {
       )}
 
       {loading && <div className="journal-loading">Loading…</div>}
+
+      {/* Entry detail modal */}
+      {modal && (
+        <EntryModal
+          entry={modal}
+          onClose={() => setModal(null)}
+          onUpdate={updateEntry}
+          onDelete={deleteEntry}
+        />
+      )}
 
       {/* ════ DAY VIEW ════ */}
       {view === "day" && (() => {
@@ -396,7 +480,10 @@ export default function Journal() {
                           : undefined;
                         return (
                           <div key={e.id} className="journal-week-entry"
-                            style={{ top, ...(height ? { height, alignItems:"flex-start" } : {}) }}>
+                            style={{ top, ...(height ? { height, alignItems:"flex-start" } : {}) }}
+                            onClick={() => setModal(e)}
+                            role="button" tabIndex={0}
+                            onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
                             <span className="journal-week-entry-time">{fmtRange(e.startTime, e.endTime)}</span>
                             {e.subject && <p className="journal-week-entry-subject">{e.subject}</p>}
                             {e.content && <p className="journal-week-entry-content">{e.content}</p>}

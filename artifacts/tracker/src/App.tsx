@@ -1,4 +1,5 @@
 import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { useRef, useState } from "react";
 import Biweekly from "./pages/finance/Biweekly";
 import PaycheckEditor from "./pages/finance/PaycheckEditor";
 import Bills from "./pages/finance/Bills";
@@ -17,17 +18,37 @@ function WordmarkNav() {
     : pathname.startsWith("/fitness") ? "Fitness"
     : "Finance";
 
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleMouseEnter() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  }
+  function handleMouseLeave() {
+    closeTimer.current = setTimeout(() => setOpen(false), 200);
+  }
+  function handleLinkClick() {
+    setOpen(false);
+  }
+
   return (
-    <div className="wordmark-wrap">
+    <div
+      className="wordmark-wrap"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <span className="wordmark">
         <span className="wordmark-rule" aria-hidden="true" />
         {section}
       </span>
-      <nav className="wordmark-nav" aria-label="Sections">
-        <Link to="/" className={section === "Finance" ? "active" : ""}>Finance</Link>
-        <Link to="/journal" className={section === "Journal" ? "active" : ""}>Journal</Link>
-        <Link to="/fitness" className={section === "Fitness" ? "active" : ""}>Fitness</Link>
-      </nav>
+      {open && (
+        <nav className="wordmark-nav" aria-label="Sections">
+          <Link to="/" className={section === "Finance" ? "active" : ""} onClick={handleLinkClick}>Finance</Link>
+          <Link to="/journal" className={section === "Journal" ? "active" : ""} onClick={handleLinkClick}>Journal</Link>
+          <Link to="/fitness" className={section === "Fitness" ? "active" : ""} onClick={handleLinkClick}>Fitness</Link>
+        </nav>
+      )}
     </div>
   );
 }
