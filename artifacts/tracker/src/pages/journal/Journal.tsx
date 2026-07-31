@@ -529,6 +529,7 @@ export default function Journal() {
         const nowY     = (curMinIH / 60) * GRID_H;
 
         return (
+          <>
           <div className="journal-hday journal-hday--2d">
             {/* Fixed minute-axis panel */}
             <div className="journal-hday-min-axis" style={{ paddingTop: AXIS_H }}>
@@ -637,6 +638,20 @@ export default function Journal() {
               </div>
             </div>
           </div>
+
+          {/* Entry list below grid */}
+          {dayEntries.length > 0 && (
+            <div className="journal-hday-list">
+              {dayEntries.map(e => (
+                <button key={e.id} className="journal-hday-list-row" onClick={() => setModal(e)}>
+                  <span className="journal-hday-list-dot" style={{ background: e.color } as React.CSSProperties} />
+                  <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                  <span className="journal-hday-list-label">{e.subject || e.content || "—"}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          </>
         );
       })()}
 
