@@ -241,56 +241,72 @@ export default function Journal() {
       {loading && <div className="journal-loading">Loading…</div>}
 
       {/* ════════════════════════════════════════════ DAY VIEW */}
-      {view === "day" && (
-        <div className="journal-day" ref={timelineRef}>
-          <div className="journal-timeline" style={{ height: HOUR_H * 24 }}>
-            {/* Hour rows */}
-            {Array.from({ length: 24 }, (_, h) => (
-              <div
-                key={h}
-                className="journal-hour-row"
-                style={{ top: h * HOUR_H, height: HOUR_H }}
-              >
-                <span className="journal-hour-label">
-                  {h === 0 ? "12 am" : h < 12 ? `${h} am` : h === 12 ? "12 pm" : `${h - 12} pm`}
-                </span>
-              </div>
-            ))}
+      {view === "day" && (() => {
+        const dayEntries = [...(byDate.get(toYMD(focus)) ?? [])].sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        const past   = isToday ? dayEntries.filter(e => minuteOfDay(e.createdAt) <= nowMin) : dayEntries;
+        const future = isToday ? dayEntries.filter(e => minuteOfDay(e.createdAt) >  nowMin) : [];
+        const dayPct = Math.min(100, Math.round((nowMin / (24 * 60)) * 100));
 
-            {/* Current time marker */}
+        const nowLabel = (() => {
+          const n = new Date();
+          const h = n.getHours(), m = n.getMinutes();
+          const ampm = h >= 12 ? "pm" : "am";
+          return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
+        })();
+
+        const FeedEntry = ({ entry, dim }: { entry: Entry; dim?: boolean }) => (
+          <div className={`journal-feed-row${dim ? " is-future" : ""}`} key={entry.id}>
+            <span className="journal-feed-time">{fmtTime(entry.createdAt)}</span>
+            <span className="journal-feed-node" aria-hidden="true" />
+            <div className="journal-feed-card">
+              <p className="journal-feed-text">{entry.content}</p>
+              <button
+                className="journal-delete-btn"
+                onClick={() => deleteEntry(entry.id)}
+                aria-label="Delete entry"
+              ><IcTrash /></button>
+            </div>
+          </div>
+        );
+
+        return (
+          <div className="journal-day-v2">
+            {/* Day progress bar */}
             {isToday && (
-              <div
-                className="journal-now-line"
-                style={{ top: (nowMin / 60) * HOUR_H }}
-              >
-                <span className="journal-now-dot" />
+              <div className="journal-progress-bar">
+                <div className="journal-progress-fill" style={{ width: `${dayPct}%` }} />
+                <span className="journal-progress-label">{dayPct}%</span>
               </div>
             )}
 
-            {/* Entries */}
-            {(byDate.get(toYMD(focus)) ?? []).map((entry) => {
-              const min = minuteOfDay(entry.createdAt);
-              return (
-                <div
-                  key={entry.id}
-                  className="journal-day-entry"
-                  style={{ top: (min / 60) * HOUR_H + 2 }}
-                >
-                  <span className="journal-day-entry-time">{fmtTime(entry.createdAt)}</span>
-                  <span className="journal-day-entry-content">{entry.content}</span>
-                  <button
-                    className="journal-delete-btn"
-                    onClick={() => deleteEntry(entry.id)}
-                    aria-label="Delete entry"
-                  >
-                    <IcTrash />
-                  </button>
+            <div className="journal-feed">
+              {/* Past entries */}
+              {past.map(e => <FeedEntry key={e.id} entry={e} />)}
+
+              {/* NOW divider — only on today */}
+              {isToday && (
+                <div className="journal-feed-now">
+                  <span className="journal-feed-now-dot" aria-hidden="true" />
+                  <span className="journal-feed-now-label">now · {nowLabel}</span>
+                  <span className="journal-feed-now-rule" aria-hidden="true" />
                 </div>
-              );
-            })}
+              )}
+
+              {/* Future entries (backdated or clocked past midnight) */}
+              {future.map(e => <FeedEntry key={e.id} entry={e} dim />)}
+
+              {/* Empty state */}
+              {dayEntries.length === 0 && (
+                <p className="journal-feed-empty">
+                  {isToday ? "Nothing logged yet — add your first entry above." : "No entries for this day."}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ════════════════════════════════════════════ WEEK VIEW */}
       {view === "week" && (

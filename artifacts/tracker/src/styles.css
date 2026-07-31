@@ -375,90 +375,154 @@ a:hover {
 }
 .journal-delete-btn:hover { color: var(--danger, #e05252); }
 
-/* ── DAY VIEW ── */
-.journal-day {
-  overflow-y: auto;
-  max-height: calc(100vh - 220px);
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  background: var(--paper-sunk);
+/* ── DAY VIEW v2 ── */
+.journal-day-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-.journal-timeline {
+/* Day progress */
+.journal-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 4px;
+  background: var(--rule);
+  border-radius: 2px;
   position: relative;
-  width: 100%;
 }
-
-.journal-hour-row {
+.journal-progress-fill {
+  height: 100%;
+  background: var(--amber);
+  border-radius: 2px;
+  transition: width 60s linear;
+}
+.journal-progress-label {
   position: absolute;
-  left: 0;
   right: 0;
-  border-top: 1px solid var(--rule);
-  box-sizing: border-box;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  background: var(--paper);
+  padding-left: 0.4rem;
 }
 
-.journal-hour-label {
+/* Feed spine + rows */
+.journal-feed {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-bottom: 2rem;
+}
+
+/* Vertical spine */
+.journal-feed::before {
+  content: "";
   position: absolute;
-  left: 0.75rem;
-  top: 0.35rem;
+  left: 84px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--rule-strong);
+  opacity: 0.5;
+}
+
+.journal-feed-row {
+  display: grid;
+  grid-template-columns: 76px 16px 1fr;
+  align-items: start;
+  gap: 0 0.5rem;
+  padding: 0.4rem 0;
+}
+.journal-feed-row.is-future { opacity: 0.45; }
+
+.journal-feed-time {
+  text-align: right;
   font-size: 0.7rem;
   color: var(--ink-soft);
-  opacity: 0.55;
   font-variant-numeric: tabular-nums;
+  padding-top: 0.6rem;
   user-select: none;
 }
 
-/* Current time marker */
-.journal-now-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--amber);
-  opacity: 0.85;
-  z-index: 4;
-  pointer-events: none;
+.journal-feed-node {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.6rem;
+  position: relative;
 }
-.journal-now-dot {
-  position: absolute;
-  left: 68px;
-  top: 50%;
-  transform: translate(-50%, -50%);
+.journal-feed-node::after {
+  content: "";
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--amber);
+  border: 2px solid var(--paper);
+  box-sizing: border-box;
+  display: block;
+  flex-shrink: 0;
 }
 
-/* Day entries */
-.journal-day-entry {
-  position: absolute;
-  left: 80px;
-  right: 1rem;
+.journal-feed-card {
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.55rem 0.7rem;
   display: flex;
   align-items: flex-start;
-  gap: 0.6rem;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 5px;
-  padding: 0.4rem 0.6rem;
-  z-index: 3;
-  min-height: 28px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  gap: 0.5rem;
+  transition: border-color 0.15s;
 }
-.journal-day-entry-time {
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  color: var(--amber);
-  font-variant-numeric: tabular-nums;
-  padding-top: 1px;
-}
-.journal-day-entry-content {
+.journal-feed-card:hover { border-color: var(--rule-strong); }
+
+.journal-feed-text {
   flex: 1;
-  font-size: 0.875rem;
+  margin: 0;
+  font-size: 0.9rem;
   color: var(--ink);
-  line-height: 1.45;
+  line-height: 1.55;
   word-break: break-word;
+}
+
+/* NOW divider */
+.journal-feed-now {
+  display: grid;
+  grid-template-columns: 76px 16px 1fr;
+  align-items: center;
+  gap: 0 0.5rem;
+  padding: 0.75rem 0;
+}
+.journal-feed-now-dot {
+  grid-column: 2;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 25%, transparent);
+  justify-self: center;
+}
+.journal-feed-now-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--amber);
+  padding-left: 0.5rem;
+}
+.journal-feed-now-rule {
+  display: none;
+}
+
+.journal-feed-empty {
+  grid-column: 3;
+  margin: 0.5rem 0 0 calc(76px + 16px + 1rem);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  opacity: 0.6;
 }
 
 /* ── WEEK VIEW ── */
