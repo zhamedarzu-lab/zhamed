@@ -55,7 +55,9 @@ function dayProgressPct(now: Date): number {
 
 export default function PaydayCountdown() {
   const { pathname } = useLocation();
-  const isJournal = pathname.startsWith("/journal");
+  const isJournal  = pathname.startsWith("/journal");
+  const isFitness  = pathname.startsWith("/fitness");
+  const isFinance  = !isJournal && !isFitness;
   const now = useNow(1000);
   const payday = nextPayday(now);
   const msLeft = payday.getTime() - now.getTime();
@@ -89,60 +91,83 @@ export default function PaydayCountdown() {
     };
   }, [open]);
 
+  const barClass  = isJournal ? "day-top-bar"  : "payday-top-bar";
+  const fillClass = isJournal ? "day-top-bar-fill" : "payday-top-bar-fill";
+
   return (
     <>
-      {/* Fixed so it runs the full width of the viewport, pinned to the very
-          top edge regardless of scroll — independent of the masthead's own
-          (narrower, positioned) layout below it. */}
+      {/* Progress bar — full-width, pinned to very top of viewport */}
       <div
-        className={isJournal ? "day-top-bar" : "payday-top-bar"}
+        className={barClass}
         role="progressbar"
         aria-label={isJournal ? "Progress through the current day" : "Progress through the current pay cycle"}
         aria-valuenow={progressPct}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className={isJournal ? "day-top-bar-fill" : "payday-top-bar-fill"} style={{ width: `${progressPct}%` }} />
+        <div className={fillClass} style={{ width: `${progressPct}%` }} />
+        <span className="top-bar-pct">{progressPct}%</span>
       </div>
 
-      <div className="payday-trigger-wrap" ref={wrapRef}>
-        <div className="payday-strip">
-          {/* TODAY — opens/closes the calendar popover */}
-          <button
-            type="button"
-            className="payday-field payday-field-btn"
-            onClick={() => setOpen((o) => !o)}
-            aria-haspopup="dialog"
-            aria-expanded={open}
-            aria-label="Open payday calendar"
-          >
-            <span className="eyebrow">Today</span>
-            <span className="fig payday-today">{weekdayDate(now)}</span>
-            <span className="payday-clock fig">{fmtClock(now)}</span>
-          </button>
+      {/* Countdown widget — finance only */}
+      {isFinance && (
+        <div className="payday-trigger-wrap" ref={wrapRef}>
+          <div className="payday-strip">
+            {/* TODAY — opens/closes the calendar popover */}
+            <button
+              type="button"
+              className="payday-field payday-field-btn"
+              onClick={() => setOpen((o) => !o)}
+              aria-haspopup="dialog"
+              aria-expanded={open}
+              aria-label="Open payday calendar"
+            >
+              <span className="eyebrow">Today</span>
+              <span className="fig payday-today">{weekdayDate(now)}</span>
+              <span className="payday-clock fig">{fmtClock(now)}</span>
+            </button>
 
-          {/* NEXT PAYDAY — cycles through display formats on each tap */}
-          <button
-            type="button"
-            className="payday-field payday-field-btn"
-            onClick={() => setDisplayMode((m) => (m + 1) % modes.length)}
-            aria-label={`Next payday: ${formatCountdown(msLeft)}. Tap to change format.`}
-          >
-            <span className="eyebrow">Next payday</span>
-            <span className="payday-timer">
-              {cells.map(([val, label, pad]) => (
-                <span key={label} className="payday-timer-cell">
-                  <span className="payday-timer-num fig">{pad ? pad2(val) : val}</span>
-                  <span className="payday-timer-label">{label}</span>
-                </span>
-              ))}
-            </span>
-            <span className="payday-target">{weekdayDate(payday)}</span>
-          </button>
+            {/* NEXT PAYDAY — cycles through display formats on each tap */}
+            <button
+              type="button"
+              className="payday-field payday-field-btn"
+              onClick={() => setDisplayMode((m) => (m + 1) % modes.length)}
+              aria-label={`Next payday: ${formatCountdown(msLeft)}. Tap to change format.`}
+            >
+              <span className="eyebrow">Next payday</span>
+              <span className="payday-timer">
+                {cells.map(([val, label, pad]) => (
+                  <span key={label} className="payday-timer-cell">
+                    <span className="payday-timer-num fig">{pad ? pad2(val) : val}</span>
+                    <span className="payday-timer-label">{label}</span>
+                  </span>
+                ))}
+              </span>
+              <span className="payday-target">{weekdayDate(payday)}</span>
+            </button>
+          </div>
+
+          {open && <PaydayCalendar now={now} />}
         </div>
+      )}
 
-        {open && <PaydayCalendar now={now} />}
-      </div>
+      {/* On non-finance pages just show Today + clock */}
+      {!isFinance && (
+        <div className="payday-trigger-wrap">
+          <div className="payday-strip">
+            <button
+              type="button"
+              className="payday-field payday-field-btn"
+              onClick={() => {}}
+              aria-label="Today's date"
+            >
+              <span className="eyebrow">Today</span>
+              <span className="fig payday-today">{weekdayDate(now)}</span>
+              <span className="payday-clock fig">{fmtClock(now)}</span>
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -1687,12 +1687,13 @@ a:hover {
 }
 
 /* Full-bleed strip pinned to the very top of the viewport. */
-.payday-top-bar {
+.payday-top-bar,
+.day-top-bar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 6px;
+  height: 16px;
   background: var(--paper-sunk);
   z-index: 40;
   pointer-events: none;
@@ -1704,20 +1705,23 @@ a:hover {
   transition: width 1s linear;
 }
 
-.day-top-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 6px;
-  background: var(--paper-sunk);
-  z-index: 40;
-  pointer-events: none;
-}
 .day-top-bar-fill {
   height: 100%;
   background: #6b9fd4;
   transition: width 60s linear;
+}
+
+.top-bar-pct {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  font-family: var(--ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.03em;
+  line-height: 1;
 }
 
 /* Popover calendar */

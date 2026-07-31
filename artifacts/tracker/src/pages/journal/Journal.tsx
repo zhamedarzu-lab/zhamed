@@ -575,8 +575,7 @@ export default function Journal() {
 
   const nowLabel = (() => {
     const n = new Date(), h = n.getHours(), m = n.getMinutes();
-    const pct = Math.round((h * 60 + m) / 1440 * 100);
-    return `${h % 12 || 12}:${String(m).padStart(2,"0")} ${h >= 12 ? "pm" : "am"} · ${pct}%`;
+    return `${h % 12 || 12}:${String(m).padStart(2,"0")} ${h >= 12 ? "pm" : "am"}`;
   })();
 
   return (
