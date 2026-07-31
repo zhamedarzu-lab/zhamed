@@ -1,9 +1,12 @@
 import { pgTable, serial, text, date, timestamp } from "drizzle-orm/pg-core";
 
 export const journalEntriesTable = pgTable("journal_entries", {
-  id: serial("id").primaryKey(),
-  content: text("content").notNull().default(""),
+  id:        serial("id").primaryKey(),
+  subject:   text("subject"),
+  content:   text("content").notNull().default(""),
   entryDate: date("entry_date", { mode: "string" }).notNull(),
+  startTime: timestamp("start_time", { withTimezone: true }).notNull().defaultNow(),
+  endTime:   timestamp("end_time",   { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

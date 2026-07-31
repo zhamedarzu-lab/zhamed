@@ -354,6 +354,159 @@ a:hover {
   padding: 1rem 0;
 }
 
+/* ── Entry form (add / edit) ── */
+.entry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.entry-form-subject {
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule-strong);
+  color: var(--ink);
+  padding: 0.25rem 0;
+  outline: none;
+  width: 100%;
+}
+.entry-form-subject::placeholder { color: var(--ink-soft); font-weight: 400; }
+.entry-form-subject:focus { border-bottom-color: var(--amber); }
+
+.entry-form-content {
+  font: inherit;
+  font-size: 0.875rem;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  color: var(--ink);
+  padding: 0.5rem 0.65rem;
+  resize: vertical;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.entry-form-content:focus { border-color: var(--amber); }
+
+.entry-form-times {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.entry-form-time-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.entry-form-time-label span { user-select: none; }
+.entry-form-time-label input[type="time"] {
+  font: inherit;
+  font-size: 0.78rem;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--ink);
+  padding: 0.2rem 0.4rem;
+  outline: none;
+}
+.entry-form-time-label input[type="time"]:focus { border-color: var(--amber); }
+.entry-form-remove-end {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.entry-form-remove-end:hover { color: var(--stamp); }
+.entry-form-add-end {
+  background: none;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 4px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.entry-form-add-end:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+.entry-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* ── Feed card inner layout ── */
+.journal-feed-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.journal-feed-subject {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.journal-feed-actions {
+  display: flex;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.journal-feed-card:hover .journal-feed-actions { opacity: 1; }
+.journal-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 3px;
+  transition: color 0.12s;
+}
+.journal-action-btn:hover { color: var(--ink); }
+.journal-action-btn.danger:hover { color: var(--stamp); }
+
+/* Week entry subject */
+.journal-week-entry-subject {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* Month chips (replace plain dots) */
+.journal-month-chip {
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  border-left: 2px solid var(--amber);
+}
+
 /* Delete button (shared) */
 .journal-delete-btn {
   flex-shrink: 0;

@@ -6,9 +6,12 @@ import { and, gte, lte, desc, eq } from "drizzle-orm";
 
 const router = Router();
 
-const CreateEntryInput = z.object({
-  content: z.string().default(""),
+const EntryInput = z.object({
+  subject:   z.string().nullable().optional(),
+  content:   z.string().default(""),
   entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  startTime: z.string().datetime({ offset: true }).optional(),
+  endTime:   z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 // GET /api/journal/entries?from=YYYY-MM-DD&to=YYYY-MM-DD
@@ -22,22 +25,49 @@ router.get("/entries", async (req, res) => {
     .select()
     .from(journalEntriesTable)
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(journalEntriesTable.createdAt));
+    .orderBy(desc(journalEntriesTable.startTime));
 
   res.json(rows);
 });
 
 // POST /api/journal/entries
 router.post("/entries", async (req, res) => {
-  const parsed = CreateEntryInput.safeParse(req.body);
+  const parsed = EntryInput.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
-  const { content, entryDate } = parsed.data;
-  const today = new Date().toISOString().slice(0, 10);
+  const { subject, content, entryDate, startTime, endTime } = parsed.data;
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
   const [row] = await db
     .insert(journalEntriesTable)
-    .values({ content, entryDate: entryDate ?? today })
+    .values({
+      subject:   subject ?? null,
+      content,
+      entryDate: entryDate ?? today,
+      startTime: startTime ? new Date(startTime) : now,
+      endTime:   endTime   ? new Date(endTime)   : null,
+    })
     .returning();
   res.status(201).json(row);
+});
+
+// PATCH /api/journal/entries/:id
+router.patch("/entries/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const parsed = EntryInput.partial().safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+  const patch: Record<string, unknown> = {};
+  if (parsed.data.subject   !== undefined) patch.subject   = parsed.data.subject;
+  if (parsed.data.content   !== undefined) patch.content   = parsed.data.content;
+  if (parsed.data.startTime !== undefined) patch.startTime = new Date(parsed.data.startTime!);
+  if (parsed.data.endTime   !== undefined) patch.endTime   = parsed.data.endTime ? new Date(parsed.data.endTime) : null;
+  if (!Object.keys(patch).length) { res.status(400).json({ error: "Nothing to update" }); return; }
+  const [row] = await db
+    .update(journalEntriesTable)
+    .set(patch)
+    .where(eq(journalEntriesTable.id, id))
+    .returning();
+  res.json(row);
 });
 
 // DELETE /api/journal/entries/:id
