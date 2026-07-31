@@ -74,6 +74,19 @@ function nowHHMM(): string { return toHHMM(new Date().toISOString()); }
 const IcPlus  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>;
 const IcTrash = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>;
 const IcEdit  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const IcSun   = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="4.5"/>
+    <line x1="12" y1="2"    x2="12" y2="5"/>
+    <line x1="12" y1="19"   x2="12" y2="22"/>
+    <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
+    <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+    <line x1="2"  y1="12"   x2="5"  y2="12"/>
+    <line x1="19" y1="12"   x2="22" y2="12"/>
+    <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
+    <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+  </svg>
+);
 
 /* ── add/edit form ─────────────────────────────────────────────────── */
 type EntryFormProps = {
@@ -206,18 +219,22 @@ type EntryCardProps = {
 function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps) {
   const [editing, setEditing] = useState(false);
   if (editing) return (
-    <EntryForm
-      entryDate={entryDate}
-      initial={entry}
-      onSave={e => { onUpdate(e); setEditing(false); }}
-      onCancel={() => setEditing(false)}
-    />
+    <div className="journal-feed-row">
+      <span className="journal-feed-time">{fmtRange(entry.startTime, entry.endTime)}</span>
+      <span className="journal-feed-node" style={{ "--dot-color": entry.color } as React.CSSProperties} aria-hidden="true" />
+      <EntryForm
+        entryDate={entryDate}
+        initial={entry}
+        onSave={e => { onUpdate(e); setEditing(false); }}
+        onCancel={() => setEditing(false)}
+      />
+    </div>
   );
   return (
     <div className={`journal-feed-row${dim ? " is-future" : ""}`}>
       <span className="journal-feed-time">{fmtRange(entry.startTime, entry.endTime)}</span>
-      <span className="journal-feed-node" aria-hidden="true" />
-      <div className="journal-feed-card">
+      <span className="journal-feed-node" style={{ "--dot-color": entry.color } as React.CSSProperties} aria-hidden="true" />
+      <div className="journal-feed-card" style={{ "--entry-color": entry.color } as React.CSSProperties}>
         <div className="journal-feed-body">
           {entry.subject && <p className="journal-feed-subject">{entry.subject}</p>}
           {entry.content && <p className="journal-feed-text">{entry.content}</p>}
@@ -494,38 +511,63 @@ export default function Journal() {
         const dayEntries = [...(byDate.get(toYMD(focus)) ?? [])].sort(
           (a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         );
-        const past   = isToday ? dayEntries.filter(e => minuteOfDay(e.startTime) <= nowMin) : dayEntries;
-        const future = isToday ? dayEntries.filter(e => minuteOfDay(e.startTime) >  nowMin) : [];
         const dayPct = Math.min(100, Math.round((nowMin / 1440) * 100));
+
+        // Build interleaved item list: entries + noon marker + now marker
+        type FeedItem =
+          | { kind: "entry"; entry: Entry }
+          | { kind: "noon" }
+          | { kind: "now" };
+        const items: FeedItem[] = [];
+        let noonDone = false;
+        let nowDone  = !isToday;
+        for (const e of dayEntries) {
+          const min = minuteOfDay(e.startTime);
+          if (!noonDone && min >= 720) { items.push({ kind: "noon" }); noonDone = true; }
+          if (!nowDone  && min >  nowMin) { items.push({ kind: "now"  }); nowDone  = true; }
+          items.push({ kind: "entry", entry: e });
+        }
+        if (!noonDone) items.push({ kind: "noon" });
+        if (!nowDone)  items.push({ kind: "now"  });
 
         return (
           <div className="journal-day-v2">
             {isToday && (
               <div className="journal-progress-bar">
-                <div className="journal-progress-fill" style={{ width:`${dayPct}%` }} />
+                <div className="journal-progress-fill" style={{ width:`${dayPct}%` }}>
+                  <span className="journal-progress-sun" aria-hidden="true">☀</span>
+                </div>
                 <span className="journal-progress-label">{dayPct}%</span>
               </div>
             )}
             <div className="journal-feed">
-              {past.map(e => (
-                <EntryCard key={e.id} entry={e} entryDate={toYMD(focus)}
-                  onDelete={deleteEntry} onUpdate={updateEntry} />
-              ))}
-              {isToday && (
-                <div className="journal-feed-now">
-                  <span className="journal-feed-now-dot" aria-hidden="true" />
-                  <span className="journal-feed-now-label">now · {nowLabel}</span>
-                </div>
-              )}
-              {future.map(e => (
-                <EntryCard key={e.id} entry={e} dim entryDate={toYMD(focus)}
-                  onDelete={deleteEntry} onUpdate={updateEntry} />
-              ))}
               {dayEntries.length === 0 && (
                 <p className="journal-feed-empty">
                   {isToday ? "Nothing logged yet — add your first entry above." : "No entries for this day."}
                 </p>
               )}
+              {items.map((item, idx) => {
+                if (item.kind === "entry") {
+                  const isFuture = isToday && minuteOfDay(item.entry.startTime) > nowMin;
+                  return (
+                    <EntryCard key={item.entry.id} entry={item.entry} dim={isFuture}
+                      entryDate={toYMD(focus)} onDelete={deleteEntry} onUpdate={updateEntry} />
+                  );
+                }
+                if (item.kind === "noon") return (
+                  <div key={`noon-${idx}`} className="journal-feed-marker journal-feed-noon">
+                    <span className="journal-feed-marker-time">12:00 pm</span>
+                    <span className="journal-feed-marker-node"><IcSun /></span>
+                    <span className="journal-feed-marker-label">Noon</span>
+                  </div>
+                );
+                return (
+                  <div key={`now-${idx}`} className="journal-feed-marker journal-feed-now">
+                    <span className="journal-feed-now-dot" />
+                    <span className="journal-feed-now-label">now · {nowLabel}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
