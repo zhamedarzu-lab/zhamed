@@ -23,7 +23,7 @@
   --ui: "Archivo", system-ui, -apple-system, sans-serif;
   --fig: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
 
-  --r: 2px;
+  --r: 10px;
   --gap: 1rem;
   --shadow: 0 1px 0 var(--rule-strong);
 }
@@ -167,7 +167,7 @@ a:hover {
   inset: 10px 0 0 0;
   background: var(--paper);
   border: 1px solid var(--rule-strong);
-  border-radius: 6px;
+  border-radius: 14px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.35);
   z-index: -1;
 }
@@ -212,7 +212,7 @@ a:hover {
 .journal-view-toggle {
   display: flex;
   background: var(--paper-sunk);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 3px;
   gap: 2px;
 }
@@ -224,7 +224,7 @@ a:hover {
   font-weight: 500;
   color: var(--ink-soft);
   padding: 0.3rem 0.75rem;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
@@ -250,7 +250,7 @@ a:hover {
   width: 30px;
   height: 30px;
   border: 1px solid var(--rule-strong);
-  border-radius: 5px;
+  border-radius: 10px;
   background: var(--paper-sunk);
   color: var(--ink);
   font-size: 1.25rem;
@@ -314,7 +314,7 @@ a:hover {
 .journal-add-form {
   background: var(--paper-sunk);
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: 14px;
   padding: 1rem;
   margin-bottom: 1.25rem;
   display: flex;
@@ -325,7 +325,7 @@ a:hover {
   width: 100%;
   background: var(--paper);
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: 10px;
   color: var(--ink);
   font: inherit;
   font-size: 0.9375rem;
@@ -367,7 +367,7 @@ a:hover {
 .entry-modal {
   background: var(--paper);
   border: 1px solid var(--rule-strong);
-  border-radius: 10px;
+  border-radius: 18px;
   width: 100%;
   max-width: 480px;
   box-shadow: 0 16px 48px rgba(0,0,0,0.5);
@@ -484,7 +484,7 @@ a:hover {
   font-size: 0.875rem;
   background: none;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: 10px;
   color: var(--ink);
   padding: 0.5rem 0.65rem;
   resize: vertical;
@@ -538,7 +538,7 @@ a:hover {
   font-size: 0.78rem;
   background: var(--paper-sunk);
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--ink);
   padding: 0.2rem 0.4rem;
   outline: none;
@@ -583,7 +583,7 @@ a:hover {
 .entry-form-time-toggle {
   background: none;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 0.85rem;
   line-height: 1;
   padding: 0.22rem 0.4rem;
@@ -629,7 +629,7 @@ a:hover {
   color: var(--ink-soft);
   cursor: pointer;
   padding: 0.2rem;
-  border-radius: 3px;
+  border-radius: 6px;
   transition: color 0.12s;
 }
 .journal-action-btn:hover { color: var(--ink); }
@@ -649,7 +649,7 @@ a:hover {
 .day-popup {
   background: var(--paper);
   border: 1px solid var(--rule-strong);
-  border-radius: 10px;
+  border-radius: 18px;
   width: 100%;
   max-width: 360px;
   box-shadow: 0 16px 48px rgba(0,0,0,0.5);
@@ -818,7 +818,7 @@ a:hover {
   scrollbar-width: thin;
   scrollbar-color: var(--rule-strong) transparent;
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 .journal-hday-scroll::-webkit-scrollbar { height: 4px; }
 .journal-hday-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -1002,6 +1002,7 @@ a:hover {
 /* ── Punch banner ── */
 .punch-banner {
   border-top: 1px solid color-mix(in srgb, var(--amber) 25%, var(--rule));
+  border-radius: 14px 14px 0 0;
   background: color-mix(in srgb, var(--amber) 6%, var(--paper));
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -1068,7 +1069,7 @@ a:hover {
   background: var(--amber);
   color: var(--ledger);
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 700;
   padding: 0.3rem 0.75rem;
@@ -1081,7 +1082,7 @@ a:hover {
 .entry-form-punch-btn {
   background: none;
   border: 1px solid var(--rule-strong);
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--ink-soft);
   font-size: 0.9rem;
   padding: 0.2rem 0.4rem;
@@ -1101,7 +1102,7 @@ a:hover {
   flex-direction: column;
   gap: 1px;
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: 12px;
   overflow: hidden;
 }
 .journal-hday-list-row {
@@ -1354,7 +1355,7 @@ a:hover {
 /* ── WEEK VIEW ── */
 .journal-week-outer {
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: 14px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1493,7 +1494,7 @@ a:hover {
   top: calc(100% + 5px);
   background: var(--paper);
   border: 1px solid var(--rule-strong);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 0.45rem 0.65rem;
   min-width: 160px;
   max-width: 240px;
@@ -1512,7 +1513,7 @@ a:hover {
 /* ── MONTH VIEW ── */
 .journal-month {
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: 14px;
   overflow: hidden;
 }
 .journal-month-header {
@@ -1660,7 +1661,7 @@ a:hover {
   flex-direction: column;
   align-items: center;
   background: var(--paper-sunk);
-  border-radius: 3px;
+  border-radius: 8px;
   padding: 0.2rem 0.35rem;
 }
 
@@ -1705,12 +1706,14 @@ a:hover {
 .payday-top-bar-fill {
   height: 100%;
   background: #e0b04e;
+  border-radius: 0 4px 4px 0;
   transition: width 1s linear;
 }
 
 .day-top-bar-fill {
   height: 100%;
   background: #6b9fd4;
+  border-radius: 0 4px 4px 0;
   transition: width 60s linear;
 }
 
