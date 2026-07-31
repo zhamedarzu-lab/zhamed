@@ -643,13 +643,7 @@ export default function Journal() {
                     <div className="journal-month-lines">
                       {dayEntries.slice(0, 5).map(e => (
                         <div key={e.id} className="journal-month-line"
-                          style={{ background: e.color }}>
-                          <div className="journal-month-line-tip">
-                            <span className="tip-time">{fmtRange(e.startTime, e.endTime)}</span>
-                            {e.subject && <strong className="tip-subject">{e.subject}</strong>}
-                            {e.content && <span className="tip-content">{e.content.slice(0, 80)}{e.content.length > 80 ? "…" : ""}</span>}
-                          </div>
-                        </div>
+                          style={{ background: e.color }} />
                       ))}
                       {dayEntries.length > 5 && (
                         <span className="journal-month-more">+{dayEntries.length - 5}</span>
