@@ -302,15 +302,63 @@ function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalProps) {
   );
 }
 
+/* ── Day entries popup ──────────────────────────────────────────────── */
+type DayPopupProps = {
+  date: Date;
+  entries: Entry[];
+  onClose: () => void;
+  onSelect: (e: Entry) => void;
+  onGoToDay: () => void;
+};
+function DayPopup({ date, entries, onClose, onSelect, onGoToDay }: DayPopupProps) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  );
+
+  return (
+    <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="day-popup" role="dialog" aria-modal="true">
+        <div className="day-popup-header">
+          <span className="day-popup-title">
+            {date.toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}
+          </span>
+          <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <div className="day-popup-list">
+          {sorted.map(e => (
+            <button key={e.id} className="day-popup-row" onClick={() => { onClose(); onSelect(e); }}>
+              <span className="day-popup-dot" style={{ background: e.color }} />
+              <span className="day-popup-time">{fmtRange(e.startTime, e.endTime)}</span>
+              <span className="day-popup-label">
+                {e.subject || e.content.slice(0, 60) || "—"}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="day-popup-footer">
+          <button onClick={() => { onClose(); onGoToDay(); }}>Open day view</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════ */
 export default function Journal() {
-  const [view,    setView]    = useState<View>("month");
-  const [focus,   setFocus]   = useState(() => new Date());
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [adding,  setAdding]  = useState(false);
-  const [nowMin,  setNowMin]  = useState(nowMinutes());
-  const [modal,   setModal]   = useState<Entry | null>(null);
+  const [view,     setView]     = useState<View>("month");
+  const [focus,    setFocus]    = useState(() => new Date());
+  const [entries,  setEntries]  = useState<Entry[]>([]);
+  const [loading,  setLoading]  = useState(false);
+  const [adding,   setAdding]   = useState(false);
+  const [nowMin,   setNowMin]   = useState(nowMinutes());
+  const [modal,    setModal]    = useState<Entry | null>(null);
+  const [dayPopup, setDayPopup] = useState<{ date: Date; entries: Entry[] } | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -419,6 +467,17 @@ export default function Journal() {
       )}
 
       {loading && <div className="journal-loading">Loading…</div>}
+
+      {/* Day entries popup */}
+      {dayPopup && (
+        <DayPopup
+          date={dayPopup.date}
+          entries={dayPopup.entries}
+          onClose={() => setDayPopup(null)}
+          onSelect={e => setModal(e)}
+          onGoToDay={() => { setFocus(dayPopup.date); setView("day"); }}
+        />
+      )}
 
       {/* Entry detail modal */}
       {modal && (
@@ -572,7 +631,10 @@ export default function Journal() {
                 return (
                   <div key={ymd}
                     className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}`}
-                    onClick={() => { setFocus(day); setView("day"); }}>
+                    onClick={() => {
+                      if (dayEntries.length > 0) setDayPopup({ date: day, entries: dayEntries });
+                      else { setFocus(day); setView("day"); }
+                    }}>
                     {isT && (
                       <div className="journal-month-now-bar"
                         style={{ width:`${Math.min(100,(nowMin/1440)*100)}%` }} />
