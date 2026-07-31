@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Personal Tracker"
+title = "zh finance"
 version = "1.0.0"
 id = "artifacts/tracker"
 router = "path"

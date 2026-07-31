@@ -211,56 +211,34 @@ export default function PaycheckEditor() {
           </div>
 
           {/* Allocations */}
-          <Panel
-            title="Where it went"
-            action={
-              <button className="quiet btn-icon" onClick={() => setRows((r) => [...r, blankRow()])} aria-label="Add row">
-                <IcPlus />
-              </button>
-            }
-          >
-            {/* Datalist powers the autocomplete on every note field */}
+          <Panel title="Where it went">
             <datalist id="alloc-tags">
-              {tagSuggestions.map((t) => (
-                <option key={t} value={t} />
-              ))}
+              {tagSuggestions.map((t) => <option key={t} value={t} />)}
             </datalist>
-
-            {rows.length === 0 && (
-              <p className="muted" style={{ margin: 0 }}>
-                Nothing allocated yet — add a row.
-              </p>
-            )}
 
             {rows.map((row) => {
               const linkedCard = cards.find((c) => c.id === row.debtAccountId);
               return (
                 <div className="alloc-row" key={row.key}>
-                  <div className="alloc-row-main">
-                    {/* Live colour dot — updates as you type the note */}
-                    <span
-                      className="alloc-row-dot"
-                      style={{ background: tagColor(row.note) }}
-                      aria-hidden="true"
-                    />
-
-                    <input
-                      aria-label="Note"
-                      list="alloc-tags"
-                      placeholder="What's it for?"
-                      value={row.note}
-                      onChange={(e) => update(row.key, { note: e.target.value })}
-                    />
-
-                    <MoneyInput
-                      ariaLabel="Amount"
-                      className="alloc-amount"
-                      value={row.amount}
-                      onChange={(n) => update(row.key, { amount: n })}
-                    />
-                  </div>
-
-                  <div className="alloc-row-meta">
+                  <span
+                    className="alloc-row-dot"
+                    style={{ background: tagColor(row.note) }}
+                    aria-hidden="true"
+                  />
+                  <input
+                    aria-label="Note"
+                    list="alloc-tags"
+                    placeholder="What's it for?"
+                    value={row.note}
+                    onChange={(e) => update(row.key, { note: e.target.value })}
+                  />
+                  <MoneyInput
+                    ariaLabel="Amount"
+                    className="alloc-amount"
+                    value={row.amount}
+                    onChange={(n) => update(row.key, { amount: n })}
+                  />
+                  {cards.length > 0 && (
                     <label
                       className="alloc-card-picker"
                       data-linked={linkedCard ? "true" : "false"}
@@ -273,8 +251,6 @@ export default function PaycheckEditor() {
                         onChange={(e) => {
                           const val = e.target.value ? Number(e.target.value) : null;
                           const card = cards.find((c) => c.id === val);
-                          // Attaching a card is the naming — no reason to type
-                          // a note too, so the note always follows the card.
                           update(row.key, {
                             debtAccountId: val,
                             note: card ? card.name : row.note,
@@ -287,54 +263,39 @@ export default function PaycheckEditor() {
                         ))}
                       </select>
                     </label>
-
-                    <button
-                      className="quiet danger btn-icon"
-                      onClick={() => removeRow(row.key)}
-                      aria-label="Remove this allocation"
-                    >
-                      <IcTrash />
-                    </button>
-                  </div>
+                  )}
+                  <button
+                    className="quiet danger btn-icon"
+                    onClick={() => removeRow(row.key)}
+                    aria-label="Remove this allocation"
+                  >
+                    <IcTrash />
+                  </button>
                 </div>
               );
             })}
+
+            <button
+              className="alloc-add-btn"
+              onClick={() => setRows((r) => [...r, blankRow()])}
+            >
+              <IcPlus /> Add
+            </button>
           </Panel>
 
-          {/* Extra income — a bill surplus, a refund, a gift: money added
-              on top of the deposit rather than a slice taken out of it. */}
-          <Panel
-            title="Extra income"
-            action={
-              <button
-                className="quiet btn-icon"
-                onClick={() => setExtraRows((r) => [...r, blankExtraRow()])}
-                aria-label="Add extra income"
-              >
-                <IcPlus />
-              </button>
-            }
-          >
+          {/* Extra income — a bill surplus, a refund, a gift. */}
+          <Panel title="Extra income">
             <datalist id="extra-tags">
-              {extraSuggestions.map((t) => (
-                <option key={t} value={t} />
-              ))}
+              {extraSuggestions.map((t) => <option key={t} value={t} />)}
             </datalist>
 
-            {extraRows.length === 0 && (
-              <p className="muted" style={{ margin: 0 }}>
-                Nothing extra this time — add a row for a bill surplus, refund, or gift.
-              </p>
-            )}
-
             {extraRows.map((row) => (
-              <div className="income-row" key={row.key}>
+              <div className="alloc-row" key={row.key}>
                 <span
                   className="alloc-row-dot"
                   style={{ background: EXTRA_INCOME_COLOR }}
                   aria-hidden="true"
                 />
-
                 <input
                   aria-label="Source"
                   list="extra-tags"
@@ -342,14 +303,12 @@ export default function PaycheckEditor() {
                   value={row.note}
                   onChange={(e) => updateExtra(row.key, { note: e.target.value })}
                 />
-
                 <MoneyInput
                   ariaLabel="Amount"
                   className="alloc-amount"
                   value={row.amount}
                   onChange={(n) => updateExtra(row.key, { amount: n })}
                 />
-
                 <button
                   className="quiet danger btn-icon"
                   onClick={() => removeExtraRow(row.key)}
@@ -359,6 +318,13 @@ export default function PaycheckEditor() {
                 </button>
               </div>
             ))}
+
+            <button
+              className="alloc-add-btn"
+              onClick={() => setExtraRows((r) => [...r, blankExtraRow()])}
+            >
+              <IcPlus /> Add
+            </button>
           </Panel>
         </div>
 
