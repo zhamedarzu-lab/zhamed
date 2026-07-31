@@ -479,8 +479,8 @@ export default function Journal() {
                           ? ((endMin - startMin) / 1440) * COL_H
                           : undefined;
                         return (
-                          <div key={e.id} className="journal-week-entry"
-                            style={{ top, ...(height ? { height, alignItems:"flex-start" } : {}) }}
+                          <div key={e.id} className={`journal-week-entry${height ? " is-span" : " is-point"}`}
+                            style={{ top, ...(height ? { height } : {}) }}
                             onClick={() => setModal(e)}
                             role="button" tabIndex={0}
                             onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
