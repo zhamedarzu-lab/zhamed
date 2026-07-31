@@ -479,6 +479,7 @@ export default function Journal() {
   function setPunch(p: PunchState | null) { savePunch(p); setPunchRaw(p); }
 
   function punchIn(note: string, color: string) {
+    if (punch) return;          // already clocked in — don't overwrite
     const now = new Date();
     setPunch({ startTime: now.toISOString(), entryDate: toYMD(now), content: note, color });
     setAdding(false);
@@ -599,15 +600,6 @@ export default function Journal() {
         </button>
       </div>
 
-      {/* Punch banner — persists while clocked in */}
-      {punch && (
-        <PunchBanner
-          punch={punch}
-          onUpdate={setPunch}
-          onPunchOut={punchOut}
-        />
-      )}
-
       {/* Add form */}
       {adding && (
         <div className="journal-add-form">
@@ -615,7 +607,7 @@ export default function Journal() {
             entryDate={view === "day" ? toYMD(focus) : todayYmd}
             onSave={e => { setEntries(prev => [e, ...prev]); setAdding(false); }}
             onCancel={() => setAdding(false)}
-            onPunch={punchIn}
+            onPunch={punch ? undefined : punchIn}
           />
         </div>
       )}
@@ -932,6 +924,15 @@ export default function Journal() {
           </div>
         );
       })()}
+
+      {/* Punch banner — fixed at the bottom while clocked in */}
+      {punch && (
+        <PunchBanner
+          punch={punch}
+          onUpdate={setPunch}
+          onPunchOut={punchOut}
+        />
+      )}
     </div>
   );
 }
