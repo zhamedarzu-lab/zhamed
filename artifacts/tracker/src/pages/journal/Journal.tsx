@@ -434,6 +434,12 @@ export default function Journal() {
                     className={`journal-month-cell${!inMonth ? " out-of-month" : ""}${isT ? " is-today" : ""}`}
                     onClick={() => { setFocus(day); setView("day"); }}
                   >
+                    {isT && (
+                      <div
+                        className="journal-month-now-bar"
+                        style={{ width: `${Math.min(100, (nowMin / 1440) * 100)}%` }}
+                      />
+                    )}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
                     {dayEntries.slice(0, 3).map((e) => (
                       <div key={e.id} className="journal-month-dot" title={e.content} />

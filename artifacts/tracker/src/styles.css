@@ -713,23 +713,23 @@ a:hover {
   flex-direction: column;
   gap: 0.25rem;
   transition: background 0.12s;
+  position: relative;
 }
 .journal-month-cell:hover { background: var(--paper-sunk); }
 .journal-month-cell:nth-child(7n) { border-right: none; }
 .journal-month-cell.out-of-month { opacity: 0.3; }
 .journal-month-cell.is-today {
   background: color-mix(in srgb, var(--amber) 6%, transparent);
-  position: relative;
 }
-.journal-month-cell.is-today::before {
-  content: "";
+
+.journal-month-now-bar {
   position: absolute;
-  left: 0;
-  top: 0;
   bottom: 0;
-  width: 3px;
+  left: 0;
+  height: 3px;
   background: var(--amber);
-  border-radius: 0;
+  border-radius: 0 2px 2px 0;
+  pointer-events: none;
 }
 .journal-month-cell-num {
   font-size: 0.8125rem;
