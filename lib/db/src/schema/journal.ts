@@ -7,6 +7,7 @@ export const journalEntriesTable = pgTable("journal_entries", {
   entryDate: date("entry_date", { mode: "string" }).notNull(),
   startTime: timestamp("start_time", { withTimezone: true }).notNull().defaultNow(),
   endTime:   timestamp("end_time",   { withTimezone: true }),
+  color:     text("color").notNull().default("#e0b04e"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

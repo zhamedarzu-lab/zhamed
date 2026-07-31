@@ -6,10 +6,22 @@ type Entry = {
   subject: string | null;
   content: string;
   entryDate: string;
-  startTime: string;   // ISO
-  endTime: string | null; // ISO or null
+  startTime: string;
+  endTime: string | null;
+  color: string;
   createdAt: string;
 };
+
+const ENTRY_COLORS: { hex: string; label: string }[] = [
+  { hex: "#e0b04e", label: "Amber"  },
+  { hex: "#e05555", label: "Red"    },
+  { hex: "#e08c3a", label: "Orange" },
+  { hex: "#4ecb71", label: "Green"  },
+  { hex: "#4e90e0", label: "Blue"   },
+  { hex: "#9b4ee0", label: "Purple" },
+  { hex: "#e04ea3", label: "Pink"   },
+  { hex: "#8a9aaa", label: "Muted"  },
+];
 
 type View = "day" | "week" | "month";
 
@@ -76,6 +88,7 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
   const [startHHMM, setStartHHMM] = useState(initial ? toHHMM(initial.startTime) : nowHHMM());
   const [hasEnd,    setHasEnd]    = useState(Boolean(initial?.endTime));
   const [endHHMM,   setEndHHMM]   = useState(initial?.endTime ? toHHMM(initial.endTime) : "");
+  const [color,     setColor]     = useState(initial?.color ?? ENTRY_COLORS[0].hex);
   const [saving,    setSaving]    = useState(false);
 
   async function submit() {
@@ -89,6 +102,7 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
         entryDate,
         startTime: startIso,
         endTime:   endIso,
+        color,
       };
       let row: Entry;
       if (initial) {
@@ -119,6 +133,17 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
         onChange={e => setContent(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit(); }}
       />
+      <div className="entry-form-colors">
+        {ENTRY_COLORS.map(c => (
+          <button
+            key={c.hex}
+            className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+            style={{ background: c.hex }}
+            aria-label={c.label}
+            onClick={() => setColor(c.hex)}
+          />
+        ))}
+      </div>
       <div className="entry-form-times">
         <label className="entry-form-time-label">
           <span>From</span>
@@ -481,7 +506,7 @@ export default function Journal() {
                         const snippet  = (e.subject || e.content || "").slice(0, 80);
                         return (
                           <div key={e.id} className="journal-week-line"
-                            style={{ top, height }}
+                            style={{ top, height, background: e.color }}
                             onClick={() => setModal(e)}
                             role="button" tabIndex={0}
                             onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
@@ -533,6 +558,7 @@ export default function Journal() {
                     <div className="journal-month-lines">
                       {dayEntries.slice(0, 5).map(e => (
                         <div key={e.id} className="journal-month-line"
+                          style={{ background: e.color }}
                           onClick={ev => { ev.stopPropagation(); setModal(e); }}>
                           <div className="journal-month-line-tip">
                             <span className="tip-time">{fmtRange(e.startTime, e.endTime)}</span>

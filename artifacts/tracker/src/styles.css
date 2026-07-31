@@ -492,6 +492,27 @@ a:hover {
 }
 .entry-form-content:focus { border-color: var(--amber); }
 
+.entry-form-colors {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.entry-color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+}
+.entry-color-swatch:hover { transform: scale(1.2); }
+.entry-color-swatch.selected {
+  border-color: var(--ink);
+  transform: scale(1.15);
+}
+
 .entry-form-times {
   display: flex;
   align-items: center;

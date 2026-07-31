@@ -12,6 +12,7 @@ const EntryInput = z.object({
   entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   startTime: z.string().datetime({ offset: true }).optional(),
   endTime:   z.string().datetime({ offset: true }).nullable().optional(),
+  color:     z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
 });
 
 // GET /api/journal/entries?from=YYYY-MM-DD&to=YYYY-MM-DD
@@ -45,6 +46,7 @@ router.post("/entries", async (req, res) => {
       entryDate: entryDate ?? today,
       startTime: startTime ? new Date(startTime) : now,
       endTime:   endTime   ? new Date(endTime)   : null,
+      color:     parsed.data.color ?? "#e0b04e",
     })
     .returning();
   res.status(201).json(row);
@@ -61,6 +63,7 @@ router.patch("/entries/:id", async (req, res) => {
   if (parsed.data.content   !== undefined) patch.content   = parsed.data.content;
   if (parsed.data.startTime !== undefined) patch.startTime = new Date(parsed.data.startTime!);
   if (parsed.data.endTime   !== undefined) patch.endTime   = parsed.data.endTime ? new Date(parsed.data.endTime) : null;
+  if (parsed.data.color     !== undefined) patch.color     = parsed.data.color;
   if (!Object.keys(patch).length) { res.status(400).json({ error: "Nothing to update" }); return; }
   const [row] = await db
     .update(journalEntriesTable)
