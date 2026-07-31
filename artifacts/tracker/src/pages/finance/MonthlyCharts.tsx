@@ -97,10 +97,15 @@ export default function MonthlyCharts() {
           months.map((m) => api.get<Summary>(`/api/finance/summary/${m}`)),
         );
 
-        // Collect all tag names across every month
+        // Normalize tags: strip trailing " N/N" suffixes so "bills 1/2" and
+        // "bills 2/2" both fold into "bills", then sum them.
+        const normalize = (note: string) =>
+          (note || "Untitled").replace(/\s+\d+\/\d+$/, "").trim() || "Untitled";
+
+        // Collect all normalized tag names across every month
         const tagSet = new Set<string>();
         for (const s of summaries) {
-          for (const b of s.byNote) tagSet.add(b.note || "Untitled");
+          for (const b of s.byNote) tagSet.add(normalize(b.note));
         }
         const tags = [...tagSet];
 
@@ -108,9 +113,11 @@ export default function MonthlyCharts() {
           .map((month, i) => {
             const s = summaries[i];
             const row: ChartRow = { month, _income: s.income };
-            for (const tag of tags) {
-              const found = s.byNote.find((b) => (b.note || "Untitled") === tag);
-              row[tag] = found?.amount ?? 0;
+            // Sum all raw notes that normalize to each tag
+            for (const tag of tags) row[tag] = 0;
+            for (const b of s.byNote) {
+              const tag = normalize(b.note);
+              row[tag] = ((row[tag] as number) || 0) + b.amount;
             }
             if (s.unallocated > 0.005) row["_spending"] = s.unallocated;
             return row;
