@@ -717,7 +717,20 @@ a:hover {
 .journal-month-cell:hover { background: var(--paper-sunk); }
 .journal-month-cell:nth-child(7n) { border-right: none; }
 .journal-month-cell.out-of-month { opacity: 0.3; }
-.journal-month-cell.is-today { background: color-mix(in srgb, var(--amber) 6%, transparent); }
+.journal-month-cell.is-today {
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+  position: relative;
+}
+.journal-month-cell.is-today::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--amber);
+  border-radius: 0;
+}
 .journal-month-cell-num {
   font-size: 0.8125rem;
   font-weight: 600;
