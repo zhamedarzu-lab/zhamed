@@ -142,6 +142,38 @@ a:hover {
   border-bottom: 2px solid var(--stamp);
 }
 
+/* ---------- Masthead payday strip ---------- */
+.payday-strip {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-left: auto;
+}
+
+.payday-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.3;
+}
+
+.payday-today {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.payday-count {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.payday-target {
+  font-family: var(--fig);
+  font-size: 0.6875rem;
+  color: var(--ink-faint);
+}
+
 main {
   flex: 1;
   max-width: 1080px;

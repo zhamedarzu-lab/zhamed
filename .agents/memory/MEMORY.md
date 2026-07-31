@@ -6,3 +6,5 @@
 - [Paycheck-to-debt-card linking](paycheck-debt-linking.md) — allocations can link to a card; it's attribution + balance-prefill only, never auto-applies
 - [Debt snapshot payday tagging](debt-snapshot-payday-tagging.md) — a balance snapshot can optionally be labeled by payday (month+seq) instead of just a date; separate from the allocation link
 - [Cash accounts](cash-accounts.md) — spendable balances (Cash App etc.) are a separate table/page from debt_accounts; sign is inverted, no limit/pending framing
+- [Money rounding convention](money-rounding.md) — frontend snaps amounts to cents at input time (MoneyInput/toAmount), not on every derived total
+- [Payday schedule](payday-schedule.md) — masthead countdown is a hardcoded anchor+14-day cycle, not a setting; update the anchor if the real schedule shifts

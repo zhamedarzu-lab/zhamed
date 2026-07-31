@@ -70,9 +70,16 @@ export function shiftMonth(month: string, delta: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/**
+ * Snap to the nearest cent. Every amount gets quantized the instant it's
+ * entered, so sums and comparisons downstream never have to guard against
+ * float drift themselves — there's nothing finer than a cent left to drift.
+ */
+export const roundCents = (n: number): number => Math.round(n * 100) / 100;
+
 /** Parse a text field into a number without punishing "$1,200.50". */
 export function toAmount(raw: string): number {
   const cleaned = raw.replace(/[^0-9.\-]/g, "");
   const n = Number.parseFloat(cleaned);
-  return Number.isFinite(n) ? n : 0;
+  return Number.isFinite(n) ? roundCents(n) : 0;
 }

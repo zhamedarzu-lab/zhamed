@@ -6,6 +6,7 @@ import Subscriptions from "./pages/finance/Subscriptions";
 import Debt from "./pages/finance/Debt";
 import Cash from "./pages/finance/Cash";
 import MonthlySummary from "./pages/finance/MonthlySummary";
+import PaydayCountdown from "./components/PaydayCountdown";
 export default function App() {
   return (
     <div className="shell">
@@ -15,6 +16,7 @@ export default function App() {
             <span className="wordmark-rule" aria-hidden="true" />
             Tracker
           </Link>
+          <PaydayCountdown />
         </div>
       </header>
 

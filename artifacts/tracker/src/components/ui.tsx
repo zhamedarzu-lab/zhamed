@@ -1,5 +1,5 @@
 import { useMemo, type CSSProperties, type ReactNode } from "react";
-import { currentMonth, shiftMonth, monthName } from "../lib/format";
+import { currentMonth, shiftMonth, monthName, roundCents } from "../lib/format";
 
 /** `label`, when set, overrides the axis tick text (e.g. "Jul 2/2" for a payday-tagged point). */
 export type Point = { date: string; value: number; label?: string };
@@ -171,7 +171,7 @@ export function MoneyInput({
       onChange={(e) => {
         const cleaned = e.target.value.replace(/[^0-9.]/g, "");
         const n = parseFloat(cleaned);
-        onChange(Number.isFinite(n) ? n : 0);
+        onChange(Number.isFinite(n) ? roundCents(n) : 0);
       }}
     />
   );
