@@ -997,6 +997,85 @@ a:hover {
   white-space: nowrap;
 }
 
+/* ── Punch banner ── */
+.punch-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 1.25rem;
+  background: color-mix(in srgb, var(--amber) 8%, var(--paper));
+  border-bottom: 1px solid color-mix(in srgb, var(--amber) 25%, var(--rule));
+  flex-wrap: wrap;
+}
+.punch-banner-live {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 30%, transparent);
+  animation: now-pulse 2s ease-in-out infinite;
+}
+.punch-banner-since {
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.punch-banner-elapsed {
+  font-family: var(--fig);
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--amber);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  min-width: 3.5ch;
+  flex-shrink: 0;
+}
+.punch-banner-input {
+  flex: 1;
+  min-width: 140px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule-strong);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 0.85rem;
+  padding: 0.15rem 0.25rem;
+  outline: none;
+}
+.punch-banner-input::placeholder { color: var(--ink-faint); }
+.punch-banner-input:focus { border-bottom-color: var(--amber); }
+.punch-banner-out {
+  flex-shrink: 0;
+  background: var(--amber);
+  color: var(--ledger);
+  border: none;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: opacity 0.12s;
+}
+.punch-banner-out:hover { opacity: 0.85; }
+
+.entry-form-punch-btn {
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color 0.12s, color 0.12s;
+}
+.entry-form-punch-btn:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
 /* Entry list below the 2D grid */
 .journal-hday-list {
   margin-top: 0.75rem;

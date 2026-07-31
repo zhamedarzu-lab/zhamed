@@ -88,14 +88,72 @@ const IcSun   = () => (
   </svg>
 );
 
+/* ── punch clock ───────────────────────────────────────────────────── */
+type PunchState = { startTime: string; entryDate: string; content: string; color: string };
+const PUNCH_KEY = "journal-punch";
+
+function loadPunch(): PunchState | null {
+  try { return JSON.parse(localStorage.getItem(PUNCH_KEY) ?? "null"); }
+  catch { return null; }
+}
+function savePunch(p: PunchState | null) {
+  if (p) localStorage.setItem(PUNCH_KEY, JSON.stringify(p));
+  else   localStorage.removeItem(PUNCH_KEY);
+}
+
+function fmtElapsed(startIso: string): string {
+  const sec = Math.max(0, Math.floor((Date.now() - new Date(startIso).getTime()) / 1000));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  const mm = String(m).padStart(2,"0"), ss = String(s).padStart(2,"0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
+type PunchBannerProps = {
+  punch: PunchState;
+  onUpdate: (p: PunchState) => void;
+  onPunchOut: () => void;
+};
+function PunchBanner({ punch, onUpdate, onPunchOut }: PunchBannerProps) {
+  const [elapsed, setElapsed] = useState(() => fmtElapsed(punch.startTime));
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(fmtElapsed(punch.startTime)), 1000);
+    return () => clearInterval(id);
+  }, [punch.startTime]);
+
+  const since = new Date(punch.startTime).toLocaleTimeString("en-US", {
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+
+  return (
+    <div className="punch-banner">
+      <span className="punch-banner-live" aria-label="Punched in" />
+      <span className="punch-banner-since">since {since}</span>
+      <span className="punch-banner-elapsed">{elapsed}</span>
+      <input
+        className="punch-banner-input"
+        placeholder="What are you up to?"
+        value={punch.content}
+        autoFocus
+        onChange={e => {
+          const p = { ...punch, content: e.target.value };
+          savePunch(p); onUpdate(p);
+        }}
+        onKeyDown={e => { if (e.key === "Enter") onPunchOut(); }}
+      />
+      <button className="punch-banner-out" onClick={onPunchOut}>Punch out</button>
+    </div>
+  );
+}
+
 /* ── add/edit form ─────────────────────────────────────────────────── */
 type EntryFormProps = {
   entryDate: string;
   initial?: Entry;
   onSave: (e: Entry) => void;
   onCancel: () => void;
+  onPunch?: (color: string) => void;
 };
-function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
+function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: EntryFormProps) {
   const [subject,   setSubject]   = useState(initial?.subject ?? "");
   const [content,   setContent]   = useState(initial?.content ?? "");
   const [startHHMM, setStartHHMM] = useState(initial ? toHHMM(initial.startTime) : nowHHMM());
@@ -190,6 +248,15 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
           ))}
         </div>
         <div className="entry-form-action-right">
+          {onPunch && (
+            <button
+              className="entry-form-punch-btn"
+              onClick={() => onPunch(color)}
+              aria-label="Punch in"
+              title="Punch in — starts a timed entry now"
+              type="button"
+            >⏱</button>
+          )}
           <button
             className={`entry-form-time-toggle${timesOpen ? " active" : ""}`}
             onClick={() => setTimesOpen(o => !o)}
@@ -376,8 +443,34 @@ export default function Journal() {
   const [nowMin,   setNowMin]   = useState(nowMinutes());
   const [modal,    setModal]    = useState<Entry | null>(null);
   const [dayPopup, setDayPopup] = useState<{ date: Date; entries: Entry[] } | null>(null);
+  const [punch,    setPunchRaw] = useState<PunchState | null>(loadPunch);
   const timelineRef  = useRef<HTMLDivElement>(null);
   const hdayScrollRef = useRef<HTMLDivElement>(null);
+
+  function setPunch(p: PunchState | null) { savePunch(p); setPunchRaw(p); }
+
+  function punchIn(color: string) {
+    const now = new Date();
+    setPunch({ startTime: now.toISOString(), entryDate: toYMD(now), content: "", color });
+    setAdding(false);
+  }
+
+  async function punchOut() {
+    if (!punch) return;
+    const endTime = new Date().toISOString();
+    try {
+      const entry = await api.post<Entry>("/api/journal/entries", {
+        entryDate: punch.entryDate,
+        content:   punch.content.trim() || "(punched in)",
+        startTime: punch.startTime,
+        endTime,
+        color:     punch.color,
+      });
+      setEntries(prev => [entry, ...prev]);
+    } finally {
+      setPunch(null);
+    }
+  }
 
   useEffect(() => {
     const id = setInterval(() => setNowMin(nowMinutes()), 60_000);
@@ -477,6 +570,15 @@ export default function Journal() {
         </button>
       </div>
 
+      {/* Punch banner — persists while clocked in */}
+      {punch && (
+        <PunchBanner
+          punch={punch}
+          onUpdate={setPunch}
+          onPunchOut={punchOut}
+        />
+      )}
+
       {/* Add form */}
       {adding && (
         <div className="journal-add-form">
@@ -484,6 +586,7 @@ export default function Journal() {
             entryDate={view === "day" ? toYMD(focus) : todayYmd}
             onSave={e => { setEntries(prev => [e, ...prev]); setAdding(false); }}
             onCancel={() => setAdding(false)}
+            onPunch={punchIn}
           />
         </div>
       )}
