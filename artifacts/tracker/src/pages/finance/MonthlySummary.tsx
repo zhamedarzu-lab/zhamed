@@ -185,7 +185,7 @@ export default function MonthlySummary() {
       {!paychecks.loading && (paychecks.data?.length ?? 0) === 0 && (
         <Panel style={{ marginTop: "1rem" }}>
           <Empty title={`No paychecks for ${monthName(month)}`}>
-            <p>Record a paycheck on the Paychecks tab and it will show up here.</p>
+            <p>Record a payday on the Paychecks tab and it will show up here.</p>
           </Empty>
         </Panel>
       )}

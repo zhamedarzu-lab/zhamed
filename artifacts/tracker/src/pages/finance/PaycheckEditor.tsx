@@ -168,7 +168,7 @@ export default function PaycheckEditor() {
     <>
       <div className="page-head">
         <div>
-          <h1>{editing ? "Edit paycheck" : "Record a paycheck"}</h1>
+          <h1>{editing ? "Edit paycheck" : "It's payday"}</h1>
         </div>
         <div className="button-row">
           <button className="btn-lg" onClick={() => navigate("/")} aria-label="Cancel">

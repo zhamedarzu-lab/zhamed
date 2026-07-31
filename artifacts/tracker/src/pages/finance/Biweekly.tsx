@@ -52,7 +52,7 @@ export default function Biweekly() {
 
       <div className="button-row" style={{ justifyContent: "flex-end", marginBottom: "1.25rem" }}>
         <button className="primary" onClick={() => navigate("/finance/new")}>
-          Record a paycheck
+          It's payday
         </button>
       </div>
 
@@ -63,7 +63,7 @@ export default function Biweekly() {
         <Panel>
           <Empty title="No paychecks recorded yet">
             <p>
-              Start with your most recent one — <Link to="/finance/new">record a paycheck</Link>{" "}
+              Start with your most recent one — <Link to="/finance/new">record a payday</Link>{" "}
               and give each piece of it an amount and a note.
             </p>
           </Empty>
