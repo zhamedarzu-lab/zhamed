@@ -42,36 +42,42 @@ export default function PaydayCountdown() {
   }, [open]);
 
   return (
-    <div className="payday-trigger-wrap" ref={wrapRef}>
-      <button
-        type="button"
-        className="payday-strip"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-label="Open payday calendar"
+    <>
+      {/* Fixed so it runs the full width of the viewport, pinned to the very
+          top edge regardless of scroll — independent of the masthead's own
+          (narrower, positioned) layout below it. */}
+      <div
+        className="payday-top-bar"
+        role="progressbar"
+        aria-label="Progress through the current pay cycle"
+        aria-valuenow={progressPct}
+        aria-valuemin={0}
+        aria-valuemax={100}
       >
-        <span className="payday-field">
-          <span className="eyebrow">Today</span>
-          <span className="fig payday-today">{weekdayDate(now)}</span>
-        </span>
-        <span className="payday-field">
-          <span className="eyebrow">Next payday</span>
-          <span className="fig payday-count">{formatCountdown(msLeft)}</span>
-          <span
-            className="payday-bar"
-            role="progressbar"
-            aria-label="Progress through the current pay cycle"
-            aria-valuenow={progressPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <span className="payday-bar-fill" style={{ width: `${progressPct}%` }} />
+        <div className="payday-top-bar-fill" style={{ width: `${progressPct}%` }} />
+      </div>
+
+      <div className="payday-trigger-wrap" ref={wrapRef}>
+        <button
+          type="button"
+          className="payday-strip"
+          onClick={() => setOpen((o) => !o)}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-label="Open payday calendar"
+        >
+          <span className="payday-field">
+            <span className="eyebrow">Today</span>
+            <span className="fig payday-today">{weekdayDate(now)}</span>
           </span>
-          <span className="payday-target">{weekdayDate(payday)}</span>
-        </span>
-      </button>
-      {open && <PaydayCalendar now={now} />}
-    </div>
+          <span className="payday-field">
+            <span className="eyebrow">Next payday</span>
+            <span className="fig payday-count">{formatCountdown(msLeft)}</span>
+            <span className="payday-target">{weekdayDate(payday)}</span>
+          </span>
+        </button>
+        {open && <PaydayCalendar now={now} />}
+      </div>
+    </>
   );
 }
