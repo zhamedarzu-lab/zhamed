@@ -941,6 +941,15 @@ a:hover {
   opacity: 0.85;
 }
 
+/* Span overlays — timed-range fill behind entry blocks */
+.journal-hday-span {
+  position: absolute;
+  opacity: 0.13;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+
 /* Entry blocks */
 .journal-hday-entry {
   position: absolute;

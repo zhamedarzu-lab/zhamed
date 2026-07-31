@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 
 type Entry = {
@@ -591,6 +591,26 @@ export default function Journal() {
                       </span>
                     </div>
                   )}
+
+                  {/* Span overlays — low-opacity fill for timed entries */}
+                  {dayEntries.filter(e => e.endTime).map(e => {
+                    const sH = new Date(e.startTime).getHours();
+                    const sM = new Date(e.startTime).getMinutes();
+                    const eH = new Date(e.endTime!).getHours();
+                    const eM = new Date(e.endTime!).getMinutes();
+                    if (eH * 60 + eM <= sH * 60 + sM) return null;
+                    const slices = [];
+                    for (let h = sH; h <= eH; h++) {
+                      const sliceTop    = h === sH ? (sM / 60) * GRID_H : 0;
+                      const sliceBottom = h === eH ? (eM / 60) * GRID_H : GRID_H;
+                      if (sliceBottom > sliceTop) slices.push(
+                        <div key={h}
+                          className="journal-hday-span"
+                          style={{ left: h * COL_W, top: sliceTop, width: COL_W, height: sliceBottom - sliceTop, background: e.color } as React.CSSProperties} />
+                      );
+                    }
+                    return <React.Fragment key={e.id}>{slices}</React.Fragment>;
+                  })}
 
                   {/* Entries — placed at (startHour col, startMinute row) */}
                   {dayEntries.map(e => {
