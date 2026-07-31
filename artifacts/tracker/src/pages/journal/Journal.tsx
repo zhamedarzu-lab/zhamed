@@ -643,8 +643,7 @@ export default function Journal() {
                     <div className="journal-month-lines">
                       {dayEntries.slice(0, 5).map(e => (
                         <div key={e.id} className="journal-month-line"
-                          style={{ background: e.color }}
-                          onClick={ev => { ev.stopPropagation(); setModal(e); }}>
+                          style={{ background: e.color }}>
                           <div className="journal-month-line-tip">
                             <span className="tip-time">{fmtRange(e.startTime, e.endTime)}</span>
                             {e.subject && <strong className="tip-subject">{e.subject}</strong>}

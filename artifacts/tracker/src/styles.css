@@ -738,29 +738,7 @@ a:hover {
   transition: opacity 0.12s;
   z-index: 1;
 }
-.journal-month-line:hover {
-  opacity: 1;
-  z-index: 20;
-}
-.journal-month-line-tip {
-  display: none;
-  position: absolute;
-  left: 0;
-  top: calc(100% + 5px);
-  background: var(--paper);
-  border: 1px solid var(--rule-strong);
-  border-radius: 6px;
-  padding: 0.45rem 0.65rem;
-  min-width: 160px;
-  max-width: 240px;
-  z-index: 50;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-  flex-direction: column;
-  gap: 0.2rem;
-  pointer-events: none;
-  white-space: normal;
-}
-.journal-month-line:hover .journal-month-line-tip { display: flex; }
+.journal-month-line:hover { opacity: 0.85; }
 
 /* Shared tooltip text styles */
 .tip-time {
