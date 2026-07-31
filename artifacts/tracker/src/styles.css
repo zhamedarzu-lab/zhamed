@@ -123,6 +123,12 @@ a:hover {
   min-height: 52px;
 }
 
+.wordmark-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .wordmark {
   display: flex;
   align-items: center;
@@ -130,9 +136,8 @@ a:hover {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ink);
-}
-.wordmark:hover {
-  text-decoration: none;
+  cursor: default;
+  user-select: none;
 }
 
 .wordmark-rule {
@@ -140,6 +145,42 @@ a:hover {
   height: 10px;
   border-top: 2px solid var(--ink);
   border-bottom: 2px solid var(--stamp);
+}
+
+/* Hover dropdown */
+.wordmark-nav {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: -0.75rem;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  padding: 0.35rem 0;
+  min-width: 130px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  z-index: 100;
+}
+.wordmark-wrap:hover .wordmark-nav {
+  display: flex;
+}
+.wordmark-nav a {
+  display: block;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: color 0.12s, background 0.12s;
+}
+.wordmark-nav a:hover {
+  color: var(--ink);
+  background: var(--paper-sunk);
+}
+.wordmark-nav a.active {
+  color: var(--ink);
+  font-weight: 700;
 }
 
 /* ---------- Masthead payday strip + calendar popover ---------- */
