@@ -14,7 +14,7 @@ export default function App() {
         <div className="masthead-inner">
           <Link to="/" className="wordmark">
             <span className="wordmark-rule" aria-hidden="true" />
-            Tracker
+            Finance
           </Link>
           <PaydayCountdown />
         </div>
