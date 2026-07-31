@@ -63,9 +63,21 @@ export default function MonthlySummary() {
   const summary = useApi<Summary>(`/api/finance/summary/${month}`, [month]);
   const paychecks = useApi<Paycheck[]>(`/api/finance/paychecks?month=${month}`, [month]);
 
+  /** Collapse "bills 1/2", "bills 2/2", "bills" → "bills" and sum amounts. */
+  const byNote = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of summary.data?.byNote ?? []) {
+      const key = (r.note || "Untitled").replace(/\s+\d+\/\d+$/, "").trim() || "Untitled";
+      map.set(key, (map.get(key) ?? 0) + r.amount);
+    }
+    return [...map.entries()]
+      .map(([note, amount]) => ({ note, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [summary.data]);
+
   const monthSegments = useMemo(
-    () => (summary.data?.byNote ?? []).map((r) => ({ amount: r.amount, color: tagColor(r.note) })),
-    [summary.data],
+    () => byNote.map((r) => ({ amount: r.amount, color: tagColor(r.note) })),
+    [byNote],
   );
 
   const spending = summary.data?.unallocated ?? 0;
@@ -91,7 +103,7 @@ export default function MonthlySummary() {
       {summary.data && (
         <>
           {/* ── Merged: stats + rollup in one panel ────────────────── */}
-          {(summary.data.byNote.length > 0 || income > 0) && (
+          {(byNote.length > 0 || income > 0) && (
             <Panel
               title={
                 <span style={{ display: "flex", alignItems: "baseline", gap: "1.5rem", flexWrap: "wrap" }}>
@@ -130,10 +142,10 @@ export default function MonthlySummary() {
                 remainder={spending > 0.005 ? spending : undefined}
                 height={10}
               />
-              {summary.data.byNote.length > 0 && (
+              {byNote.length > 0 && (
                 <div className="panel-body">
                   <ul className="alloc-list stacked">
-                    {summary.data.byNote.map((r) => (
+                    {byNote.map((r) => (
                       <li key={r.note}>
                         <span className="alloc-dot" style={{ background: tagColor(r.note) }} />
                         <span className="alloc-note">
