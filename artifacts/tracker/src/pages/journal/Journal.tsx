@@ -658,6 +658,14 @@ export default function Journal() {
 
         return (
           <>
+          {/* Mobile-only NOW bar — sits above the list on small screens */}
+          {isToday && (
+            <div className="journal-mobile-now-bar">
+              <span className="journal-mobile-now-dot" />
+              <span className="journal-mobile-now-label">{nowLabel}</span>
+            </div>
+          )}
+
           <div className="journal-hday journal-hday--2d">
             {/* Fixed minute-axis panel */}
             <div className="journal-hday-min-axis" style={{ paddingTop: AXIS_H }}>
@@ -787,8 +795,8 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* Entry list below grid */}
-          {dayEntries.length > 0 && (
+          {/* Entry list — supplemental on desktop, primary on mobile */}
+          {dayEntries.length > 0 ? (
             <div className="journal-hday-list">
               {dayEntries.map(e => (
                 <button key={e.id} className="journal-hday-list-row" onClick={() => setModal(e)}>
@@ -798,6 +806,10 @@ export default function Journal() {
                 </button>
               ))}
             </div>
+          ) : (
+            <p className="journal-mobile-empty">
+              {isToday ? "Nothing logged yet." : "No entries for this day."}
+            </p>
           )}
           </>
         );
