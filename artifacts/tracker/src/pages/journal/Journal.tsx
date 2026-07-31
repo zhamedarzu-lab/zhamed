@@ -805,7 +805,7 @@ export default function Journal() {
 
       {/* ════ WEEK VIEW ════ */}
       {view === "week" && (() => {
-        const COL_H = 720;
+        const MAJOR_HOURS = new Set([6, 12, 18]);
         const weekStart = startOfWeek(focus);
         return (
           <div className="journal-week-outer">
@@ -824,11 +824,14 @@ export default function Journal() {
               })}
             </div>
             <div className="journal-week-body">
-              <div className="journal-week-axis" style={{ height: COL_H }}>
+              <div className="journal-week-axis">
                 {Array.from({ length: 9 }, (_, i) => {
                   const h = i * 3;
+                  const isMajor = MAJOR_HOURS.has(h);
                   return (
-                    <span key={h} className="journal-week-axis-label" style={{ top: (h/24)*COL_H }}>
+                    <span key={h}
+                      className={`journal-week-axis-label${isMajor ? " major" : ""}`}
+                      style={{ top: `${(h/24)*100}%` }}>
                       {h===0?"12a":h<12?`${h}a`:h===12?"12p":`${h-12}p`}
                     </span>
                   );
@@ -841,26 +844,31 @@ export default function Journal() {
                   const isT = ymd === todayYmd;
                   const dayEntries = byDate.get(ymd) ?? [];
                   return (
-                    <div key={ymd} className={`journal-week-col${isT?" is-today":""}`} style={{ height: COL_H }}>
-                      {Array.from({ length: 9 }, (_, h) => (
-                        <div key={h} className="journal-week-hour-line" style={{ top: (h*3/24)*COL_H }} />
-                      ))}
+                    <div key={ymd} className={`journal-week-col${isT?" is-today":""}`}>
+                      {Array.from({ length: 9 }, (_, h) => {
+                        const hour = h * 3;
+                        const isMajor = MAJOR_HOURS.has(hour);
+                        return (
+                          <div key={h}
+                            className={`journal-week-hour-line${isMajor ? " major" : ""}`}
+                            style={{ top: `${(hour/24)*100}%` }} />
+                        );
+                      })}
                       {isT && (
-                        <div className="journal-week-now-line" style={{ top: (nowMin/1440)*COL_H }}>
+                        <div className="journal-week-now-line" style={{ top: `${(nowMin/1440)*100}%` }}>
                           <span className="journal-week-now-dot" aria-hidden="true" />
                         </div>
                       )}
                       {dayEntries.map(e => {
                         const startMin = minuteOfDay(e.startTime);
                         const endMin   = e.endTime ? minuteOfDay(e.endTime) : null;
-                        const top      = (startMin / 1440) * COL_H;
-                        const height   = endMin && endMin > startMin
-                          ? ((endMin - startMin) / 1440) * COL_H
+                        const topPct   = `${(startMin / 1440) * 100}%`;
+                        const heightVal = endMin && endMin > startMin
+                          ? `${((endMin - startMin) / 1440) * 100}%`
                           : 3;
-                        const snippet  = (e.subject || e.content || "").slice(0, 80);
                         return (
                           <div key={e.id} className="journal-week-line"
-                            style={{ top, height, background: e.color }}
+                            style={{ top: topPct, height: heightVal, background: e.color }}
                             onClick={() => setModal(e)}
                             role="button" tabIndex={0}
                             onKeyDown={ev => ev.key === "Enter" && setModal(e)}>

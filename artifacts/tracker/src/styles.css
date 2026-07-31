@@ -1359,6 +1359,9 @@ a:hover {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Fill available viewport height — no page scroll needed */
+  height: calc(100dvh - 220px);
+  min-height: 400px;
 }
 
 /* Header row: spacer + 7 day heads */
@@ -1398,11 +1401,12 @@ a:hover {
 }
 .journal-week-date.is-today { color: var(--amber); }
 
-/* Scrollable body */
+/* Body fills remaining height — no scroll */
 .journal-week-body {
   display: flex;
-  overflow-y: auto;
-  max-height: calc(100vh - 260px);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Time axis */
@@ -1411,6 +1415,7 @@ a:hover {
   flex-shrink: 0;
   position: relative;
   border-right: 1px solid var(--rule);
+  height: 100%;
 }
 .journal-week-axis-label {
   position: absolute;
@@ -1418,9 +1423,15 @@ a:hover {
   transform: translateY(-50%);
   font-size: 0.6rem;
   color: var(--ink-soft);
-  opacity: 0.5;
+  opacity: 0.4;
   font-variant-numeric: tabular-nums;
   user-select: none;
+}
+.journal-week-axis-label.major {
+  opacity: 1;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 /* Columns */
@@ -1428,10 +1439,12 @@ a:hover {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   flex: 1;
+  height: 100%;
 }
 .journal-week-col {
   position: relative;
   border-right: 1px solid var(--rule);
+  height: 100%;
 }
 .journal-week-col:last-child { border-right: none; }
 .journal-week-col.is-today {
@@ -1445,6 +1458,11 @@ a:hover {
   height: 1px;
   background: var(--rule);
   pointer-events: none;
+}
+.journal-week-hour-line.major {
+  background: color-mix(in srgb, var(--ink-soft) 35%, transparent);
+  height: 1px;
+  z-index: 1;
 }
 
 /* NOW line */
