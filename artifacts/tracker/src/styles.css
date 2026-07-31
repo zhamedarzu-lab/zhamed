@@ -3022,6 +3022,70 @@ button.btn-icon {
   }
 }
 
+/* ─── Entry form: mobile / touch fixes ──────────────────────────────── */
+@media (max-width: 600px) {
+  /* Prevent iOS auto-zoom on input focus — must be ≥ 16px */
+  .entry-form-content,
+  .entry-form-subject,
+  .punch-prep-input,
+  .entry-form-time-label input[type="time"],
+  .entry-form-time-label input[type="date"] {
+    font-size: 16px;
+  }
+
+  /* Bigger color swatches — easier to tap */
+  .entry-color-swatch {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Action row: wrap so buttons don't overflow */
+  .entry-form-actions {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  /* Buttons: taller tap targets */
+  .entry-form-action-right {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+  .entry-form-action-right button,
+  .entry-form-time-toggle,
+  .entry-form-punch-btn {
+    min-height: 40px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  .entry-form-time-toggle {
+    min-width: 40px;
+  }
+
+  /* Time row: wrap gracefully */
+  .entry-form-times {
+    gap: 0.5rem;
+  }
+  .entry-form-time-label {
+    font-size: 0.875rem;
+  }
+  .entry-form-time-label input[type="time"],
+  .entry-form-time-label input[type="date"] {
+    padding: 0.35rem 0.5rem;
+  }
+
+  /* Punch-prep mode: full-width input */
+  .punch-prep-input {
+    min-height: 44px;
+  }
+
+  /* Add-end button */
+  .entry-form-add-end {
+    min-height: 40px;
+    padding: 0.4rem 0.75rem;
+  }
+}
+
 /* ─── iPhone / touch optimizations ─────────────────────────────────── */
 
 /* Enlarge tap targets on touch screens */
