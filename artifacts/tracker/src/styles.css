@@ -3060,13 +3060,7 @@ button.btn-icon {
 }
 
 @media (max-width: 600px) {
-  /* Swap to list-only view */
-  .journal-hday { display: none; }
-  .journal-mobile-now-bar { display: flex; }
-  .journal-mobile-empty { display: block; }
-
-  /* List becomes the primary view — remove top gap, bigger rows */
-  .journal-hday-list { margin-top: 0; }
+  /* List rows — bigger touch targets */
   .journal-hday-list-row {
     min-height: 52px;
     padding: 0.75rem 0.875rem;
