@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { nextPayday, formatCountdown, cycleProgress } from "../lib/payday";
 import PaydayCalendar from "./PaydayCalendar";
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
 /** Ticks once a second so the countdown reads live instead of stale. */
 function useNow(intervalMs: number): Date {
   const [now, setNow] = useState(() => new Date());
@@ -72,7 +74,24 @@ export default function PaydayCountdown() {
           </span>
           <span className="payday-field">
             <span className="eyebrow">Next payday</span>
-            <span className="fig payday-count">{formatCountdown(msLeft)}</span>
+            <span
+              className="payday-timer"
+              aria-label={formatCountdown(msLeft)}
+            >
+              {(
+                [
+                  [Math.floor(Math.max(0, Math.round(msLeft / 1000)) / 86400), "days"],
+                  [Math.floor((Math.max(0, Math.round(msLeft / 1000)) % 86400) / 3600), "hrs"],
+                  [Math.floor((Math.max(0, Math.round(msLeft / 1000)) % 3600) / 60), "min"],
+                  [Math.max(0, Math.round(msLeft / 1000)) % 60, "sec"],
+                ] as [number, string][]
+              ).map(([val, label]) => (
+                <span key={label} className="payday-timer-cell">
+                  <span className="payday-timer-num fig">{pad2(val)}</span>
+                  <span className="payday-timer-label">{label}</span>
+                </span>
+              ))}
+            </span>
             <span className="payday-target">{weekdayDate(payday)}</span>
           </span>
         </button>

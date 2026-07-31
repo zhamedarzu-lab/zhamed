@@ -165,8 +165,8 @@ a:hover {
 }
 
 .payday-strip:hover .payday-today,
-.payday-strip:hover .payday-count {
-  color: var(--carbon);
+.payday-strip:hover .payday-timer-num {
+  color: #f0c97a;
 }
 
 .payday-strip:focus-visible {
@@ -187,12 +187,40 @@ a:hover {
   transition: color 0.15s;
 }
 
-.payday-count {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ink);
-  white-space: nowrap;
+/* ── Payday countdown timer cells ── */
+.payday-timer {
+  display: flex;
+  gap: 0.2rem;
+  margin: 0.15rem 0;
+}
+
+.payday-timer-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--paper-sunk);
+  border-radius: 3px;
+  padding: 0.2rem 0.3rem;
+  min-width: 2rem;
+}
+
+.payday-timer-num {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e0b04e;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   transition: color 0.15s;
+}
+
+.payday-timer-label {
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.1rem;
+  line-height: 1;
 }
 
 .payday-target {
@@ -207,7 +235,7 @@ a:hover {
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 6px;
   background: var(--paper-sunk);
   z-index: 40;
   pointer-events: none;
