@@ -49,12 +49,13 @@ export default function Biweekly() {
           <h1>Paycheck log</h1>
           <p>Every paycheck, and where each dollar of it went.</p>
         </div>
-        <div className="button-row">
-          <FinanceNav />
-          <button className="primary" onClick={() => navigate("/finance/new")}>
-            Record a paycheck
-          </button>
-        </div>
+        <FinanceNav />
+      </div>
+
+      <div className="button-row" style={{ justifyContent: "flex-end", marginBottom: "1.25rem" }}>
+        <button className="primary" onClick={() => navigate("/finance/new")}>
+          Record a paycheck
+        </button>
       </div>
 
       <Notice>{error}</Notice>
