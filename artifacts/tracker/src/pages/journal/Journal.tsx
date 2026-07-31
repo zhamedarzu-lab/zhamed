@@ -90,14 +90,17 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
   const [endHHMM,   setEndHHMM]   = useState(initial?.endTime ? toHHMM(initial.endTime) : "");
   const [color,     setColor]     = useState(initial?.color ?? ENTRY_COLORS[0].hex);
   const [date,      setDate]      = useState(initial?.entryDate ?? entryDate);
+  const [timesOpen, setTimesOpen] = useState(false);
   const [saving,    setSaving]    = useState(false);
+
+  const showSubject = content.trim().length >= 100 || Boolean(initial?.subject);
 
   async function submit() {
     setSaving(true);
     try {
       const startIso = toISOWithDate(date, startHHMM);
       const endIso   = hasEnd && endHHMM ? toISOWithDate(date, endHHMM) : null;
-      const payload = {
+      const payload  = {
         subject:   subject.trim() || null,
         content:   content.trim(),
         entryDate: date,
@@ -105,12 +108,9 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
         endTime:   endIso,
         color,
       };
-      let row: Entry;
-      if (initial) {
-        row = await api.patch<Entry>(`/api/journal/entries/${initial.id}`, payload);
-      } else {
-        row = await api.post<Entry>("/api/journal/entries", payload);
-      }
+      const row: Entry = initial
+        ? await api.patch<Entry>(`/api/journal/entries/${initial.id}`, payload)
+        : await api.post<Entry>("/api/journal/entries", payload);
       onSave(row);
     } finally {
       setSaving(false);
@@ -119,57 +119,75 @@ function EntryForm({ entryDate, initial, onSave, onCancel }: EntryFormProps) {
 
   return (
     <div className="entry-form">
-      <input
-        className="entry-form-subject"
-        placeholder="Subject"
-        value={subject}
-        onChange={e => setSubject(e.target.value)}
-        autoFocus={!initial}
-      />
+      {/* Note first */}
       <textarea
         className="entry-form-content"
-        placeholder="Notes…"
+        placeholder="What's on your mind…"
         value={content}
-        rows={3}
+        rows={2}
+        autoFocus={!initial}
         onChange={e => setContent(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit(); }}
       />
-      <div className="entry-form-colors">
-        {ENTRY_COLORS.map(c => (
-          <button
-            key={c.hex}
-            className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
-            style={{ background: c.hex }}
-            aria-label={c.label}
-            onClick={() => setColor(c.hex)}
-          />
-        ))}
-      </div>
-      <div className="entry-form-times">
-        <label className="entry-form-time-label">
-          <span>Day</span>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} />
-        </label>
-        <label className="entry-form-time-label">
-          <span>From</span>
-          <input type="time" value={startHHMM} onChange={e => setStartHHMM(e.target.value)} />
-        </label>
-        {hasEnd ? (
+
+      {/* Subject appears once note is long enough */}
+      {showSubject && (
+        <input
+          className="entry-form-subject"
+          placeholder="Subject (shown in previews)"
+          value={subject}
+          onChange={e => setSubject(e.target.value)}
+        />
+      )}
+
+      {/* Date / time — collapsed by default */}
+      {timesOpen && (
+        <div className="entry-form-times">
           <label className="entry-form-time-label">
-            <span>To</span>
-            <input type="time" value={endHHMM} onChange={e => setEndHHMM(e.target.value)} />
-            <button className="entry-form-remove-end" onClick={() => { setHasEnd(false); setEndHHMM(""); }} aria-label="Remove end time">×</button>
+            <span>Day</span>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </label>
-        ) : (
-          <button className="entry-form-add-end" onClick={() => setHasEnd(true)}>+ end time</button>
-        )}
-      </div>
+          <label className="entry-form-time-label">
+            <span>From</span>
+            <input type="time" value={startHHMM} onChange={e => setStartHHMM(e.target.value)} />
+          </label>
+          {hasEnd ? (
+            <label className="entry-form-time-label">
+              <span>To</span>
+              <input type="time" value={endHHMM} onChange={e => setEndHHMM(e.target.value)} />
+              <button className="entry-form-remove-end" onClick={() => { setHasEnd(false); setEndHHMM(""); }} aria-label="Remove end time">×</button>
+            </label>
+          ) : (
+            <button className="entry-form-add-end" onClick={() => setHasEnd(true)}>+ end time</button>
+          )}
+        </div>
+      )}
+
+      {/* Bottom row: color · time toggle · cancel · save */}
       <div className="entry-form-actions">
-        <span className="journal-add-hint">⌘↵ to save</span>
-        <div style={{ display:"flex", gap:"0.5rem" }}>
+        <div className="entry-form-colors">
+          {ENTRY_COLORS.map(c => (
+            <button
+              key={c.hex}
+              className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+              style={{ background: c.hex }}
+              aria-label={c.label}
+              onClick={() => setColor(c.hex)}
+            />
+          ))}
+        </div>
+        <div className="entry-form-action-right">
+          <button
+            className={`entry-form-time-toggle${timesOpen ? " active" : ""}`}
+            onClick={() => setTimesOpen(o => !o)}
+            aria-label="Edit date and time"
+            title={timesOpen ? "Hide time" : "Edit date & time"}
+          >
+            🕐
+          </button>
           <button onClick={onCancel}>Cancel</button>
-          <button className="primary" onClick={submit} disabled={saving || (!subject.trim() && !content.trim())}>
-            {saving ? "Saving…" : initial ? "Save changes" : "Add"}
+          <button className="primary" onClick={submit} disabled={saving || !content.trim()}>
+            {saving ? "Saving…" : initial ? "Save" : "Add"}
           </button>
         </div>
       </div>

@@ -494,12 +494,13 @@ a:hover {
 
 .entry-form-colors {
   display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  flex-shrink: 0;
 }
 .entry-color-swatch {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 2px solid transparent;
   cursor: pointer;
@@ -507,10 +508,10 @@ a:hover {
   transition: transform 0.1s, border-color 0.1s;
   flex-shrink: 0;
 }
-.entry-color-swatch:hover { transform: scale(1.2); }
+.entry-color-swatch:hover { transform: scale(1.25); }
 .entry-color-swatch.selected {
   border-color: var(--ink);
-  transform: scale(1.15);
+  transform: scale(1.2);
 }
 
 .entry-form-times {
@@ -518,6 +519,8 @@ a:hover {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--rule);
 }
 .entry-form-time-label {
   display: flex;
@@ -527,7 +530,8 @@ a:hover {
   color: var(--ink-soft);
 }
 .entry-form-time-label span { user-select: none; }
-.entry-form-time-label input[type="time"] {
+.entry-form-time-label input[type="time"],
+.entry-form-time-label input[type="date"] {
   font: inherit;
   font-size: 0.78rem;
   background: var(--paper-sunk);
@@ -537,7 +541,8 @@ a:hover {
   padding: 0.2rem 0.4rem;
   outline: none;
 }
-.entry-form-time-label input[type="time"]:focus { border-color: var(--amber); }
+.entry-form-time-label input[type="time"]:focus,
+.entry-form-time-label input[type="date"]:focus { border-color: var(--amber); }
 .entry-form-remove-end {
   background: none;
   border: none;
@@ -561,11 +566,33 @@ a:hover {
 }
 .entry-form-add-end:hover { color: var(--ink); border-color: var(--ink-soft); }
 
+/* Bottom action row: swatches left, buttons right */
 .entry-form-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+.entry-form-action-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.entry-form-time-toggle {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.22rem 0.4rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+  transition: border-color 0.12s, background 0.12s;
+}
+.entry-form-time-toggle:hover,
+.entry-form-time-toggle.active {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
 }
 
 /* ── Feed card inner layout ── */
