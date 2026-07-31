@@ -112,6 +112,7 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 20;
+  padding-top: 16px; /* clear the fixed progress bar */
 }
 
 .masthead-inner {
