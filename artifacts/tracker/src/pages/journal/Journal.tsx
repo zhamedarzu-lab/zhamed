@@ -89,16 +89,16 @@ const IcSun   = () => (
 );
 
 /* ── punch clock ───────────────────────────────────────────────────── */
-type PunchState = { startTime: string; entryDate: string; content: string; color: string };
-const PUNCH_KEY = "journal-punch";
+const PUNCH_MAX = 3;
+type PunchState = { id: string; startTime: string; entryDate: string; content: string; color: string };
+const PUNCH_KEY = "journal-punches";
 
-function loadPunch(): PunchState | null {
-  try { return JSON.parse(localStorage.getItem(PUNCH_KEY) ?? "null"); }
-  catch { return null; }
+function loadPunches(): PunchState[] {
+  try { return JSON.parse(localStorage.getItem(PUNCH_KEY) ?? "[]"); }
+  catch { return []; }
 }
-function savePunch(p: PunchState | null) {
-  if (p) localStorage.setItem(PUNCH_KEY, JSON.stringify(p));
-  else   localStorage.removeItem(PUNCH_KEY);
+function savePunches(ps: PunchState[]) {
+  localStorage.setItem(PUNCH_KEY, JSON.stringify(ps));
 }
 
 function fmtElapsed(startIso: string): string {
@@ -108,12 +108,12 @@ function fmtElapsed(startIso: string): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
-type PunchBannerProps = {
+type PunchRowProps = {
   punch: PunchState;
   onUpdate: (p: PunchState) => void;
-  onPunchOut: () => void;
+  onPunchOut: (id: string) => void;
 };
-function PunchBanner({ punch, onUpdate, onPunchOut }: PunchBannerProps) {
+function PunchRow({ punch, onUpdate, onPunchOut }: PunchRowProps) {
   const [elapsed, setElapsed] = useState(() => fmtElapsed(punch.startTime));
   useEffect(() => {
     const id = setInterval(() => setElapsed(fmtElapsed(punch.startTime)), 1000);
@@ -125,22 +125,12 @@ function PunchBanner({ punch, onUpdate, onPunchOut }: PunchBannerProps) {
   });
 
   return (
-    <div className="punch-banner">
-      <span className="punch-banner-live" aria-label="Punched in" />
+    <div className="punch-banner-row">
+      <span className="punch-banner-live" style={{ background: punch.color }} aria-hidden="true" />
       <span className="punch-banner-since">since {since}</span>
       <span className="punch-banner-elapsed">{elapsed}</span>
-      <input
-        className="punch-banner-input"
-        placeholder="What are you up to?"
-        value={punch.content}
-        autoFocus
-        onChange={e => {
-          const p = { ...punch, content: e.target.value };
-          savePunch(p); onUpdate(p);
-        }}
-        onKeyDown={e => { if (e.key === "Enter") onPunchOut(); }}
-      />
-      <button className="punch-banner-out" onClick={onPunchOut}>Punch out</button>
+      <span className="punch-banner-label">{punch.content || <em>no note</em>}</span>
+      <button className="punch-banner-out" onClick={() => onPunchOut(punch.id)}>Punch out</button>
     </div>
   );
 }
@@ -472,20 +462,22 @@ export default function Journal() {
   const [nowMin,   setNowMin]   = useState(nowMinutes());
   const [modal,    setModal]    = useState<Entry | null>(null);
   const [dayPopup, setDayPopup] = useState<{ date: Date; entries: Entry[] } | null>(null);
-  const [punch,    setPunchRaw] = useState<PunchState | null>(loadPunch);
+  const [punches,  setPunchesRaw] = useState<PunchState[]>(loadPunches);
   const timelineRef  = useRef<HTMLDivElement>(null);
   const hdayScrollRef = useRef<HTMLDivElement>(null);
 
-  function setPunch(p: PunchState | null) { savePunch(p); setPunchRaw(p); }
+  function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
 
   function punchIn(note: string, color: string) {
-    if (punch) return;          // already clocked in — don't overwrite
+    if (punches.length >= PUNCH_MAX) return;
     const now = new Date();
-    setPunch({ startTime: now.toISOString(), entryDate: toYMD(now), content: note, color });
+    const p: PunchState = { id: String(Date.now()), startTime: now.toISOString(), entryDate: toYMD(now), content: note, color };
+    setPunches([...punches, p]);
     setAdding(false);
   }
 
-  async function punchOut() {
+  async function punchOut(id: string) {
+    const punch = punches.find(p => p.id === id);
     if (!punch) return;
     const endTime = new Date().toISOString();
     try {
@@ -498,8 +490,13 @@ export default function Journal() {
       });
       setEntries(prev => [entry, ...prev]);
     } finally {
-      setPunch(null);
+      setPunches(punches.filter(p => p.id !== id));
     }
+  }
+
+  function updatePunch(updated: PunchState) {
+    const next = punches.map(p => p.id === updated.id ? updated : p);
+    setPunches(next);
   }
 
   useEffect(() => {
@@ -607,7 +604,7 @@ export default function Journal() {
             entryDate={view === "day" ? toYMD(focus) : todayYmd}
             onSave={e => { setEntries(prev => [e, ...prev]); setAdding(false); }}
             onCancel={() => setAdding(false)}
-            onPunch={punch ? undefined : punchIn}
+            onPunch={punches.length >= PUNCH_MAX ? undefined : punchIn}
           />
         </div>
       )}
@@ -925,13 +922,13 @@ export default function Journal() {
         );
       })()}
 
-      {/* Punch banner — fixed at the bottom while clocked in */}
-      {punch && (
-        <PunchBanner
-          punch={punch}
-          onUpdate={setPunch}
-          onPunchOut={punchOut}
-        />
+      {/* Punch banners — up to 3, stacked at the bottom */}
+      {punches.length > 0 && (
+        <div className="punch-banner">
+          {punches.map(p => (
+            <PunchRow key={p.id} punch={p} onUpdate={updatePunch} onPunchOut={punchOut} />
+          ))}
+        </div>
       )}
     </div>
   );

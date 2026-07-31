@@ -999,13 +999,18 @@ a:hover {
 
 /* ── Punch banner ── */
 .punch-banner {
+  border-top: 1px solid color-mix(in srgb, var(--amber) 25%, var(--rule));
+  background: color-mix(in srgb, var(--amber) 6%, var(--paper));
+}
+.punch-banner-row {
   display: flex;
   align-items: center;
   gap: 0.65rem;
   padding: 0.55rem 1.25rem;
-  background: color-mix(in srgb, var(--amber) 8%, var(--paper));
-  border-bottom: 1px solid color-mix(in srgb, var(--amber) 25%, var(--rule));
   flex-wrap: wrap;
+}
+.punch-banner-row:not(:last-child) {
+  border-bottom: 1px solid color-mix(in srgb, var(--amber) 15%, var(--rule));
 }
 .punch-banner-live {
   flex-shrink: 0;
@@ -1031,20 +1036,19 @@ a:hover {
   min-width: 3.5ch;
   flex-shrink: 0;
 }
-.punch-banner-input {
+.punch-banner-label {
   flex: 1;
-  min-width: 140px;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--rule-strong);
-  color: var(--ink);
-  font-family: var(--ui);
   font-size: 0.85rem;
-  padding: 0.15rem 0.25rem;
-  outline: none;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.punch-banner-input::placeholder { color: var(--ink-faint); }
-.punch-banner-input:focus { border-bottom-color: var(--amber); }
+.punch-banner-label em {
+  font-style: italic;
+  color: var(--ink-faint);
+}
 .punch-banner-out {
   flex-shrink: 0;
   background: var(--amber);
