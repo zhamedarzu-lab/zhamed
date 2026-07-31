@@ -376,12 +376,15 @@ export default function Journal() {
   const [nowMin,   setNowMin]   = useState(nowMinutes());
   const [modal,    setModal]    = useState<Entry | null>(null);
   const [dayPopup, setDayPopup] = useState<{ date: Date; entries: Entry[] } | null>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
+  const timelineRef  = useRef<HTMLDivElement>(null);
+  const hdayScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNowMin(nowMinutes()), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  const isToday  = toYMD(focus) === toYMD(new Date());
 
   const fetchEntries = useCallback(async () => {
     const [from, to] = rangeForView(focus, view);
@@ -395,9 +398,11 @@ export default function Journal() {
   useEffect(() => { void fetchEntries(); }, [fetchEntries]);
 
   useEffect(() => {
-    if (view !== "day" || !timelineRef.current) return;
-    timelineRef.current.scrollTop = Math.max(0, (nowMin / 60) * 64 - 160);
-  }, [view, focus]);
+    if (view !== "day" || !hdayScrollRef.current) return;
+    const TW = 1200, ppm = TW / 1440;
+    const targetX = isToday ? Math.max(0, nowMin * ppm - 160) : 0;
+    hdayScrollRef.current.scrollLeft = targetX;
+  }, [view, focus, isToday, nowMin]);
 
   function navigate(dir: 1 | -1) {
     setFocus(f => {
@@ -438,7 +443,6 @@ export default function Journal() {
     const arr = byDate.get(e.entryDate) ?? []; arr.push(e); byDate.set(e.entryDate, arr);
   }
 
-  const isToday  = toYMD(focus) === toYMD(new Date());
   const todayYmd = toYMD(new Date());
 
   const nowLabel = (() => {
@@ -506,68 +510,100 @@ export default function Journal() {
         />
       )}
 
-      {/* ════ DAY VIEW ════ */}
+      {/* ════ DAY VIEW — horizontal timeline ════ */}
       {view === "day" && (() => {
         const dayEntries = [...(byDate.get(toYMD(focus)) ?? [])].sort(
           (a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         );
-        const dayPct = Math.min(100, Math.round((nowMin / 1440) * 100));
+        const TW  = 1200;           // total timeline px
+        const ppm = TW / 1440;      // px per minute
+        const nowX  = nowMin * ppm;
+        const noonX = 720   * ppm;
 
-        // Build interleaved item list: entries + noon marker + now marker
-        type FeedItem =
-          | { kind: "entry"; entry: Entry }
-          | { kind: "noon" }
-          | { kind: "now" };
-        const items: FeedItem[] = [];
-        let noonDone = false;
-        let nowDone  = !isToday;
-        for (const e of dayEntries) {
-          const min = minuteOfDay(e.startTime);
-          if (!noonDone && min >= 720) { items.push({ kind: "noon" }); noonDone = true; }
-          if (!nowDone  && min >  nowMin) { items.push({ kind: "now"  }); nowDone  = true; }
-          items.push({ kind: "entry", entry: e });
-        }
-        if (!noonDone) items.push({ kind: "noon" });
-        if (!nowDone)  items.push({ kind: "now"  });
+        const HOURS = [0,3,6,9,12,15,18,21,24];
+        const fmtH  = (h: number) =>
+          h === 0 || h === 24 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h-12}p`;
+
+        // Simple lane collision: track rightmost x per lane row
+        const lanes: number[] = [];
+        const entryLanes = dayEntries.map(e => {
+          const left  = minuteOfDay(e.startTime) * ppm;
+          const w     = e.endTime && minuteOfDay(e.endTime) > minuteOfDay(e.startTime)
+            ? (minuteOfDay(e.endTime) - minuteOfDay(e.startTime)) * ppm
+            : 90;
+          const right = left + w;
+          let lane = lanes.findIndex(r => r <= left);
+          if (lane === -1) lane = lanes.length;
+          lanes[lane] = right + 4;
+          return { e, left, w, lane };
+        });
+        const laneH   = 72;   // px per lane row
+        const axisH   = 28;
+        const totalH  = axisH + Math.max(1, lanes.length) * laneH + 16;
 
         return (
-          <div className="journal-day-v2">
-            {isToday && (
-              <div className="journal-progress-bar">
-                <div className="journal-progress-fill" style={{ width:`${dayPct}%` }}>
-                  <span className="journal-progress-sun" aria-hidden="true">☀</span>
+          <div className="journal-hday">
+            <div className="journal-hday-scroll" ref={hdayScrollRef}>
+              <div className="journal-hday-inner" style={{ width: TW, height: totalH }}>
+
+                {/* Hour axis */}
+                <div className="journal-hday-axis" style={{ height: axisH }}>
+                  {HOURS.map(h => (
+                    <span key={h}
+                      className={`journal-hday-hour${h === 12 ? " is-noon" : ""}`}
+                      style={{ left: h * 60 * ppm }}>
+                      {h === 12 ? <><IcSun /><em>noon</em></> : fmtH(h)}
+                    </span>
+                  ))}
                 </div>
-                <span className="journal-progress-label">{dayPct}%</span>
+
+                {/* Lane area */}
+                <div className="journal-hday-lane" style={{ top: axisH, height: totalH - axisH }}>
+                  {/* Grid lines */}
+                  {HOURS.map(h => (
+                    <div key={h}
+                      className={`journal-hday-gridline${h === 12 ? " is-noon" : ""}`}
+                      style={{ left: h * 60 * ppm }} />
+                  ))}
+
+                  {/* NOW line */}
+                  {isToday && (
+                    <div className="journal-hday-now" style={{ left: nowX }}>
+                      <span className="journal-hday-now-dot" />
+                      <span className="journal-hday-now-time">{nowLabel}</span>
+                    </div>
+                  )}
+
+                  {/* Entries */}
+                  {entryLanes.map(({ e, left, w, lane }) => {
+                    const isFuture = isToday && minuteOfDay(e.startTime) > nowMin;
+                    return (
+                      <div key={e.id}
+                        className={`journal-hday-entry${isFuture ? " is-future" : ""}`}
+                        style={{
+                          left,
+                          width: w,
+                          top: lane * laneH + 6,
+                          height: laneH - 12,
+                          "--entry-color": e.color,
+                        } as React.CSSProperties}
+                        onClick={() => setModal(e)}
+                        role="button" tabIndex={0}
+                        onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
+                        {e.subject && <p className="journal-hday-entry-subject">{e.subject}</p>}
+                        <p className="journal-hday-entry-time">{fmtRange(e.startTime, e.endTime)}</p>
+                        {e.content && <p className="journal-hday-entry-content">{e.content}</p>}
+                      </div>
+                    );
+                  })}
+
+                  {dayEntries.length === 0 && (
+                    <p className="journal-hday-empty">
+                      {isToday ? "Nothing logged yet — add your first entry above." : "No entries for this day."}
+                    </p>
+                  )}
+                </div>
               </div>
-            )}
-            <div className="journal-feed">
-              {dayEntries.length === 0 && (
-                <p className="journal-feed-empty">
-                  {isToday ? "Nothing logged yet — add your first entry above." : "No entries for this day."}
-                </p>
-              )}
-              {items.map((item, idx) => {
-                if (item.kind === "entry") {
-                  const isFuture = isToday && minuteOfDay(item.entry.startTime) > nowMin;
-                  return (
-                    <EntryCard key={item.entry.id} entry={item.entry} dim={isFuture}
-                      entryDate={toYMD(focus)} onDelete={deleteEntry} onUpdate={updateEntry} />
-                  );
-                }
-                if (item.kind === "noon") return (
-                  <div key={`noon-${idx}`} className="journal-feed-marker journal-feed-noon">
-                    <span className="journal-feed-marker-time">12:00 pm</span>
-                    <span className="journal-feed-marker-node"><IcSun /></span>
-                    <span className="journal-feed-marker-label">Noon</span>
-                  </div>
-                );
-                return (
-                  <div key={`now-${idx}`} className="journal-feed-marker journal-feed-now">
-                    <span className="journal-feed-now-dot" />
-                    <span className="journal-feed-now-label">now · {nowLabel}</span>
-                  </div>
-                );
-              })}
             </div>
           </div>
         );

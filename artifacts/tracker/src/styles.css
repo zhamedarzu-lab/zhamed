@@ -781,6 +781,168 @@ a:hover {
 .journal-delete-btn:hover { color: var(--danger, #e05252); }
 
 /* ── DAY VIEW v2 ── */
+/* ── Horizontal day timeline ── */
+.journal-hday {
+  display: flex;
+  flex-direction: column;
+}
+.journal-hday-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.journal-hday-scroll::-webkit-scrollbar { height: 4px; }
+.journal-hday-scroll::-webkit-scrollbar-track { background: transparent; }
+.journal-hday-scroll::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 2px; }
+
+.journal-hday-inner {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Hour axis */
+.journal-hday-axis {
+  position: relative;
+  border-bottom: 1px solid var(--rule);
+}
+.journal-hday-hour {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0.7;
+}
+.journal-hday-hour.is-noon {
+  color: #f5c842;
+  opacity: 1;
+  font-weight: 600;
+}
+.journal-hday-hour.is-noon em {
+  font-style: normal;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+}
+
+/* Lane area */
+.journal-hday-lane {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+/* Vertical grid lines */
+.journal-hday-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--rule);
+  opacity: 0.4;
+}
+.journal-hday-gridline.is-noon {
+  background: #f5c842;
+  opacity: 0.25;
+  width: 2px;
+}
+
+/* NOW vertical line */
+.journal-hday-now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--amber);
+  border-radius: 1px;
+  z-index: 5;
+}
+.journal-hday-now-dot {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 30%, transparent);
+  animation: now-pulse 2s ease-in-out infinite;
+}
+.journal-hday-now-time {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  font-size: 0.6rem;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Entry blocks */
+.journal-hday-entry {
+  position: absolute;
+  border-radius: 5px;
+  border-left: 3px solid var(--entry-color, var(--amber));
+  background: color-mix(in srgb, var(--entry-color, var(--amber)) 14%, var(--paper-sunk));
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  transition: filter 0.12s;
+  min-width: 0;
+}
+.journal-hday-entry:hover { filter: brightness(1.12); }
+.journal-hday-entry.is-future { opacity: 0.4; }
+.journal-hday-entry-subject {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.journal-hday-entry-time {
+  margin: 0;
+  font-size: 0.6rem;
+  color: var(--entry-color, var(--amber));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.journal-hday-entry-content {
+  margin: 0;
+  font-size: 0.67rem;
+  color: var(--ink-soft);
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.journal-hday-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
 .journal-day-v2 {
   display: flex;
   flex-direction: column;
