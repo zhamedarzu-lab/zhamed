@@ -244,7 +244,7 @@ export default function PaycheckEditor() {
                     aria-label={row.kind === "alloc" ? "Switch to incoming" : "Switch to outgoing"}
                     title={row.kind === "alloc" ? "Outgoing — click to switch to Incoming" : "Incoming — click to switch to Outgoing"}
                   >
-                    {row.kind === "alloc" ? "Outgoing" : "Incoming"}
+                    {row.kind === "alloc" ? "Out" : "In"}
                   </button>
                   <input
                     aria-label={row.kind === "extra" ? "Source" : "Note"}
