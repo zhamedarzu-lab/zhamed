@@ -1716,7 +1716,7 @@ a:hover {
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 9px;
+  font-size: 13px;
   font-family: var(--ui, sans-serif);
   font-variant-numeric: tabular-nums;
   color: rgba(255, 255, 255, 0.55);
