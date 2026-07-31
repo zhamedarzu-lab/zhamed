@@ -112,7 +112,8 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 20;
-  padding-top: 16px; /* clear the fixed progress bar */
+  /* clear the fixed progress bar + iPhone notch/Dynamic Island */
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
 }
 
 .masthead-inner {
@@ -1002,6 +1003,7 @@ a:hover {
 .punch-banner {
   border-top: 1px solid color-mix(in srgb, var(--amber) 25%, var(--rule));
   background: color-mix(in srgb, var(--amber) 6%, var(--paper));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .punch-banner-row {
   display: flex;
@@ -1851,7 +1853,7 @@ main {
   max-width: 1080px;
   width: 100%;
   margin: 0 auto;
-  padding: 1.75rem 1.25rem 4rem;
+  padding: 1.75rem 1.25rem calc(4rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* ---------- Page headers ---------- */
@@ -3017,6 +3019,92 @@ button.btn-icon {
     order: -1;
     flex: 1 1 100%;
     max-width: none;
+  }
+}
+
+/* ─── iPhone / touch optimizations ─────────────────────────────────── */
+
+/* Enlarge tap targets on touch screens */
+@media (pointer: coarse) {
+  .journal-nav-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.4rem;
+  }
+  .journal-add-btn {
+    min-height: 44px;
+    padding: 0.5rem 0.875rem;
+  }
+  .journal-today-btn {
+    min-height: 44px;
+    padding: 0.4rem 0.875rem;
+  }
+  .punch-banner-out {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+  }
+  .punch-banner-cancel {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    opacity: 0.6;
+  }
+  .payday-field-btn {
+    min-height: 44px;
+    justify-content: center;
+  }
+  .segmented button {
+    min-height: 40px;
+  }
+  /* Disable hover states that don't apply to touch */
+  .journal-nav-btn:hover,
+  .journal-add-btn:hover,
+  .journal-today-btn:hover {
+    background: initial;
+    border-color: initial;
+    color: initial;
+  }
+}
+
+/* Compact masthead on narrow phones */
+@media (max-width: 480px) {
+  .masthead-inner {
+    padding: 6px 0.875rem;
+    gap: 0.25rem;
+    min-height: 0;
+  }
+  .payday-strip {
+    gap: 0.5rem;
+  }
+  .payday-timer-cell {
+    padding: 0.12rem 0.22rem;
+  }
+  .payday-timer-num {
+    font-size: 0.875rem;
+  }
+  .payday-timer-label {
+    font-size: 0.45rem;
+  }
+  .payday-today {
+    font-size: 0.8rem;
+  }
+  .payday-clock {
+    font-size: 0.6rem;
+  }
+  .payday-target {
+    font-size: 0.6rem;
+  }
+  /* Side padding tighter on small screens */
+  main {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .punch-banner-row {
+    padding: 0.5rem 0.875rem;
+    gap: 0.5rem;
   }
 }
 
