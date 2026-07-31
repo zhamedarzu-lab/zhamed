@@ -241,10 +241,10 @@ export default function PaycheckEditor() {
                       kind: row.kind === "alloc" ? "extra" : "alloc",
                       debtAccountId: null,
                     })}
-                    aria-label={row.kind === "alloc" ? "Switch to extra income" : "Switch to allocation"}
-                    title={row.kind === "alloc" ? "Allocation — click to switch to Extra income" : "Extra income — click to switch to Allocation"}
+                    aria-label={row.kind === "alloc" ? "Switch to incoming" : "Switch to outgoing"}
+                    title={row.kind === "alloc" ? "Outgoing — click to switch to Incoming" : "Incoming — click to switch to Outgoing"}
                   >
-                    {row.kind === "alloc" ? "Alloc" : "Extra"}
+                    {row.kind === "alloc" ? "Outgoing" : "Incoming"}
                   </button>
                   <input
                     aria-label={row.kind === "extra" ? "Source" : "Note"}
