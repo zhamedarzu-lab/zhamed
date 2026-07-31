@@ -23,7 +23,7 @@ function ChartTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
 
   const income = payload.find((p: any) => p.dataKey === "_income");
-  const bars   = [...payload].filter((p: any) => p.dataKey !== "_income").reverse();
+  const bars   = [...payload].filter((p: any) => p.dataKey !== "_income" && p.value > 0).reverse();
 
   return (
     <div style={{
