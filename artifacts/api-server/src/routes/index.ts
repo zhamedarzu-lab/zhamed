@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import financeRouter from "./finance/index.js";
+import journalRouter from "./journal/index.js";
 
 const router: IRouter = Router();
 
@@ -10,5 +11,6 @@ router.get("/healthz", (_req, res) => {
 
 // Domain routers
 router.use("/finance", financeRouter);
+router.use("/journal", journalRouter);
 
 export default router;

@@ -189,6 +189,405 @@ a:hover {
   font-weight: 700;
 }
 
+/* ═══════════════════════════════════════════════ JOURNAL ══ */
+
+.journal-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem;
+}
+
+/* Top bar */
+.journal-topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.journal-view-toggle {
+  display: flex;
+  background: var(--paper-sunk);
+  border-radius: 6px;
+  padding: 3px;
+  gap: 2px;
+}
+.journal-view-toggle button {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding: 0.3rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.journal-view-toggle button.active {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+.journal-view-toggle button:not(.active):hover {
+  color: var(--ink);
+}
+
+.journal-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+}
+.journal-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.journal-nav-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+.journal-period {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 140px;
+  text-align: center;
+}
+
+.journal-today-btn {
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.journal-today-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+.journal-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.journal-add-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+  background: var(--paper-sunk);
+}
+
+/* Add form */
+.journal-add-form {
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.journal-add-form textarea {
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  padding: 0.65rem 0.75rem;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.journal-add-form textarea:focus { border-color: var(--amber); }
+.journal-add-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.journal-add-hint {
+  font-size: 0.75rem;
+  color: var(--ink-faint, var(--ink-soft));
+  opacity: 0.6;
+}
+
+.journal-loading {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  padding: 1rem 0;
+}
+
+/* Delete button (shared) */
+.journal-delete-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  opacity: 0;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 3px;
+  transition: color 0.12s, opacity 0.12s;
+}
+.journal-day-entry:hover .journal-delete-btn,
+.journal-week-entry:hover .journal-delete-btn {
+  opacity: 1;
+}
+.journal-delete-btn:hover { color: var(--danger, #e05252); }
+
+/* ── DAY VIEW ── */
+.journal-day {
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper-sunk);
+}
+
+.journal-timeline {
+  position: relative;
+  width: 100%;
+}
+
+.journal-hour-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--rule);
+  box-sizing: border-box;
+}
+
+.journal-hour-label {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* Current time marker */
+.journal-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--amber);
+  opacity: 0.85;
+  z-index: 4;
+  pointer-events: none;
+}
+.journal-now-dot {
+  position: absolute;
+  left: 68px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+/* Day entries */
+.journal-day-entry {
+  position: absolute;
+  left: 80px;
+  right: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 0.4rem 0.6rem;
+  z-index: 3;
+  min-height: 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.journal-day-entry-time {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+.journal-day-entry-content {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--ink);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* ── WEEK VIEW ── */
+.journal-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 400px;
+}
+.journal-week-col {
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+}
+.journal-week-col:last-child { border-right: none; }
+.journal-week-col.is-today { background: color-mix(in srgb, var(--amber) 4%, var(--paper-sunk)); }
+
+.journal-week-col-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.6rem 0.4rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-sunk);
+}
+.journal-week-dow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+.journal-week-date {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.journal-week-date.is-today {
+  color: var(--amber);
+}
+
+.journal-week-entries {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0.4rem;
+  overflow-y: auto;
+}
+.journal-week-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.35rem 0.45rem;
+  position: relative;
+}
+.journal-week-entry .journal-delete-btn {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+}
+.journal-week-entry-time {
+  font-size: 0.65rem;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+}
+.journal-week-entry-content {
+  font-size: 0.78rem;
+  color: var(--ink);
+  line-height: 1.4;
+  word-break: break-word;
+  padding-right: 1.2rem;
+}
+
+/* ── MONTH VIEW ── */
+.journal-month {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.journal-month-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--paper-sunk);
+  border-bottom: 1px solid var(--rule);
+}
+.journal-month-header span {
+  text-align: center;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  padding: 0.5rem 0;
+}
+.journal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.journal-month-cell {
+  min-height: 80px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: background 0.12s;
+}
+.journal-month-cell:hover { background: var(--paper-sunk); }
+.journal-month-cell:nth-child(7n) { border-right: none; }
+.journal-month-cell.out-of-month { opacity: 0.3; }
+.journal-month-cell.is-today { background: color-mix(in srgb, var(--amber) 6%, transparent); }
+.journal-month-cell-num {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.journal-month-cell.is-today .journal-month-cell-num {
+  color: var(--amber);
+}
+.journal-month-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  opacity: 0.7;
+}
+.journal-month-more {
+  font-size: 0.65rem;
+  color: var(--ink-soft);
+}
+
 /* ---------- Masthead payday strip + calendar popover ---------- */
 .payday-trigger-wrap {
   position: relative;
