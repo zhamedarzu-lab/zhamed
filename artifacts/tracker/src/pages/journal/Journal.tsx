@@ -477,16 +477,20 @@ export default function Journal() {
                         const top      = (startMin / 1440) * COL_H;
                         const height   = endMin && endMin > startMin
                           ? ((endMin - startMin) / 1440) * COL_H
-                          : undefined;
+                          : 3;
+                        const snippet  = (e.subject || e.content || "").slice(0, 80);
                         return (
-                          <div key={e.id} className={`journal-week-entry${height ? " is-span" : " is-point"}`}
-                            style={{ top, ...(height ? { height } : {}) }}
+                          <div key={e.id} className="journal-week-line"
+                            style={{ top, height }}
                             onClick={() => setModal(e)}
                             role="button" tabIndex={0}
                             onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
-                            <span className="journal-week-entry-time">{fmtRange(e.startTime, e.endTime)}</span>
-                            {e.subject && <p className="journal-week-entry-subject">{e.subject}</p>}
-                            {e.content && <p className="journal-week-entry-content">{e.content}</p>}
+                            <div className="journal-week-line-tip">
+                              <span className="tip-time">{fmtRange(e.startTime, e.endTime)}</span>
+                              {e.subject && <strong className="tip-subject">{e.subject}</strong>}
+                              {e.content && <span className="tip-content">{e.content.slice(0, 80)}{e.content.length > 80 ? "…" : ""}</span>}
+                              {!e.subject && !e.content && <span className="tip-content">No content</span>}
+                            </div>
                           </div>
                         );
                       })}
@@ -526,14 +530,21 @@ export default function Journal() {
                         style={{ width:`${Math.min(100,(nowMin/1440)*100)}%` }} />
                     )}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
-                    {dayEntries.slice(0,3).map(e => (
-                      <div key={e.id} className="journal-month-chip" title={e.subject || e.content}>
-                        {e.subject || e.content}
-                      </div>
-                    ))}
-                    {dayEntries.length > 3 && (
-                      <span className="journal-month-more">+{dayEntries.length - 3}</span>
-                    )}
+                    <div className="journal-month-lines">
+                      {dayEntries.slice(0, 5).map(e => (
+                        <div key={e.id} className="journal-month-line"
+                          onClick={ev => { ev.stopPropagation(); setModal(e); }}>
+                          <div className="journal-month-line-tip">
+                            <span className="tip-time">{fmtRange(e.startTime, e.endTime)}</span>
+                            {e.subject && <strong className="tip-subject">{e.subject}</strong>}
+                            {e.content && <span className="tip-content">{e.content.slice(0, 80)}{e.content.length > 80 ? "…" : ""}</span>}
+                          </div>
+                        </div>
+                      ))}
+                      {dayEntries.length > 5 && (
+                        <span className="journal-month-more">+{dayEntries.length - 5}</span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

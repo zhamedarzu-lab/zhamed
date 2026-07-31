@@ -52,7 +52,7 @@ export default function Biweekly() {
 
       <div className="button-row" style={{ justifyContent: "flex-end", marginBottom: "1.25rem" }}>
         <button className="primary" onClick={() => navigate("/finance/new")}>
-          It's payday
+          Payday
         </button>
       </div>
 
