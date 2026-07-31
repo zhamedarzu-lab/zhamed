@@ -2943,7 +2943,7 @@ button.btn-icon {
   }
   .segmented {
     display: flex;
-    max-width: 100%;
+    width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -2952,10 +2952,12 @@ button.btn-icon {
     display: none;
   }
   .segmented button {
-    flex: 0 0 auto;
+    flex: 1 1 0;
     white-space: nowrap;
-    padding: 0.4rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.8rem;
+    min-height: 40px;
+    text-align: center;
   }
   .nav-scroll {
     -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent 100%);
