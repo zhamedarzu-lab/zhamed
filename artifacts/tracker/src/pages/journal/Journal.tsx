@@ -399,8 +399,9 @@ export default function Journal() {
 
   useEffect(() => {
     if (view !== "day" || !hdayScrollRef.current) return;
-    const TW = 1200, ppm = TW / 1440;
-    const targetX = isToday ? Math.max(0, nowMin * ppm - 160) : 0;
+    const COL_W = 1200 / 24;
+    const currentHour = Math.floor(nowMin / 60);
+    const targetX = isToday ? Math.max(0, currentHour * COL_W - 160) : 0;
     hdayScrollRef.current.scrollLeft = targetX;
   }, [view, focus, isToday, nowMin]);
 
@@ -510,87 +511,118 @@ export default function Journal() {
         />
       )}
 
-      {/* ════ DAY VIEW — horizontal timeline ════ */}
+      {/* ════ DAY VIEW — 2D grid: X=hour, Y=minute within hour ════ */}
       {view === "day" && (() => {
         const dayEntries = [...(byDate.get(toYMD(focus)) ?? [])].sort(
           (a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         );
-        const TW  = 1200;           // total timeline px
-        const ppm = TW / 1440;      // px per minute
-        const nowX  = nowMin * ppm;
-        const noonX = 720   * ppm;
+        const TW     = 1200;
+        const COL_W  = TW / 24;   // 50 px per hour column
+        const GRID_H = 240;       // px — top=:00, bottom=:59
+        const AXIS_H = 28;
 
-        const HOURS = [0,3,6,9,12,15,18,21,24];
-        const fmtH  = (h: number) =>
-          h === 0 || h === 24 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h-12}p`;
+        const fmtH = (h: number) =>
+          h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`;
 
-        // Simple lane collision: track rightmost x per lane row
-        const lanes: number[] = [];
-        const entryLanes = dayEntries.map(e => {
-          const left  = minuteOfDay(e.startTime) * ppm;
-          const w     = e.endTime && minuteOfDay(e.endTime) > minuteOfDay(e.startTime)
-            ? (minuteOfDay(e.endTime) - minuteOfDay(e.startTime)) * ppm
-            : 90;
-          const right = left + w;
-          let lane = lanes.findIndex(r => r <= left);
-          if (lane === -1) lane = lanes.length;
-          lanes[lane] = right + 4;
-          return { e, left, w, lane };
-        });
-        const laneH   = 72;   // px per lane row
-        const axisH   = 28;
-        const totalH  = axisH + Math.max(1, lanes.length) * laneH + 16;
+        const curHour  = Math.floor(nowMin / 60);
+        const curMinIH = nowMin % 60;                     // minute within current hour
+        const nowY     = (curMinIH / 60) * GRID_H;
 
         return (
-          <div className="journal-hday">
+          <div className="journal-hday journal-hday--2d">
+            {/* Fixed minute-axis panel */}
+            <div className="journal-hday-min-axis" style={{ paddingTop: AXIS_H }}>
+              <div style={{ position: "relative", height: GRID_H }}>
+                {[0, 15, 30, 45].map(m => (
+                  <span key={m} className="journal-hday-min-label"
+                    style={{ top: (m / 60) * GRID_H }}>
+                    :{String(m).padStart(2, "0")}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Scrollable 2D grid */}
             <div className="journal-hday-scroll" ref={hdayScrollRef}>
-              <div className="journal-hday-inner" style={{ width: TW, height: totalH }}>
+              <div className="journal-hday-inner" style={{ width: TW, height: AXIS_H + GRID_H }}>
 
                 {/* Hour axis */}
-                <div className="journal-hday-axis" style={{ height: axisH }}>
-                  {HOURS.map(h => (
+                <div className="journal-hday-axis" style={{ height: AXIS_H }}>
+                  {Array.from({ length: 24 }, (_, h) => (
                     <span key={h}
-                      className={`journal-hday-hour${h === 12 ? " is-noon" : ""}`}
-                      style={{ left: h * 60 * ppm }}>
+                      className={`journal-hday-hour${h === 12 ? " is-noon" : ""}${isToday && h === curHour ? " is-current" : ""}`}
+                      style={{ left: h * COL_W + COL_W / 2 }}>
                       {h === 12 ? <><IcSun /><em>noon</em></> : fmtH(h)}
                     </span>
                   ))}
                 </div>
 
-                {/* Lane area */}
-                <div className="journal-hday-lane" style={{ top: axisH, height: totalH - axisH }}>
-                  {/* Grid lines */}
-                  {HOURS.map(h => (
+                {/* Grid area */}
+                <div className="journal-hday-lane" style={{ top: AXIS_H, height: GRID_H }}>
+
+                  {/* Vertical hour separators */}
+                  {Array.from({ length: 25 }, (_, h) => (
                     <div key={h}
                       className={`journal-hday-gridline${h === 12 ? " is-noon" : ""}`}
-                      style={{ left: h * 60 * ppm }} />
+                      style={{ left: h * COL_W }} />
                   ))}
 
-                  {/* NOW line */}
+                  {/* Horizontal minute guides */}
+                  {[0, 15, 30, 45].map(m => (
+                    <div key={m} className={`journal-hday-hguide${m === 0 ? " is-top" : ""}`}
+                      style={{ top: (m / 60) * GRID_H }} />
+                  ))}
+
+                  {/* Current-hour column highlight */}
                   {isToday && (
-                    <div className="journal-hday-now" style={{ left: nowX }}>
-                      <span className="journal-hday-now-dot" />
-                      <span className="journal-hday-now-time">{nowLabel}</span>
+                    <div className="journal-hday-curhour"
+                      style={{ left: curHour * COL_W, width: COL_W }} />
+                  )}
+
+                  {/* NOW — horizontal line + pulsing dot at exact (hour, minute) */}
+                  {isToday && (
+                    <div className="journal-hday-now-row" style={{ top: nowY }}>
+                      <span className="journal-hday-now-dot"
+                        style={{ left: curHour * COL_W + COL_W / 2 }} />
+                      <span className="journal-hday-now-time"
+                        style={{ left: curHour * COL_W + COL_W / 2 + 8 }}>
+                        {nowLabel}
+                      </span>
                     </div>
                   )}
 
-                  {/* Entries */}
-                  {entryLanes.map(({ e, left, w, lane }) => {
-                    const isFuture = isToday && minuteOfDay(e.startTime) > nowMin;
+                  {/* Entries — placed at (startHour col, startMinute row) */}
+                  {dayEntries.map(e => {
+                    const startH   = new Date(e.startTime).getHours();
+                    const startM   = new Date(e.startTime).getMinutes();
+                    const endH     = e.endTime ? new Date(e.endTime).getHours()   : null;
+                    const endM     = e.endTime ? new Date(e.endTime).getMinutes() : null;
+
+                    const top      = (startM / 60) * GRID_H;
+                    const durMin   = endH !== null && endM !== null
+                      ? Math.max(0, (endH - startH) * 60 + (endM - startM)) : 0;
+                    // height: proportional to duration within the starting hour, min 22px
+                    const heightPx = durMin > 0
+                      ? Math.max(22, (Math.min(durMin, 60 - startM) / 60) * GRID_H)
+                      : 22;
+
+                    const isFuture = isToday && (startH * 60 + startM) > nowMin;
                     return (
                       <div key={e.id}
                         className={`journal-hday-entry${isFuture ? " is-future" : ""}`}
                         style={{
-                          left,
-                          width: w,
-                          top: lane * laneH + 6,
-                          height: laneH - 12,
+                          left:   startH * COL_W + 2,
+                          top,
+                          width:  COL_W - 4,
+                          height: heightPx,
                           "--entry-color": e.color,
                         } as React.CSSProperties}
                         onClick={() => setModal(e)}
                         role="button" tabIndex={0}
                         onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
-                        <p className="journal-hday-entry-label">{e.subject || (e.content ? e.content.slice(0,60) : "—")}</p>
+                        <p className="journal-hday-entry-label">
+                          {e.subject || (e.content ? e.content.slice(0, 60) : "—")}
+                        </p>
                         <p className="journal-hday-entry-time">{fmtRange(e.startTime, e.endTime)}</p>
                       </div>
                     );
@@ -598,7 +630,7 @@ export default function Journal() {
 
                   {dayEntries.length === 0 && (
                     <p className="journal-hday-empty">
-                      {isToday ? "Nothing logged yet — add your first entry above." : "No entries for this day."}
+                      {isToday ? "Nothing logged yet." : "No entries for this day."}
                     </p>
                   )}
                 </div>
