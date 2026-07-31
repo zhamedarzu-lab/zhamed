@@ -151,18 +151,20 @@ type EntryFormProps = {
   initial?: Entry;
   onSave: (e: Entry) => void;
   onCancel: () => void;
-  onPunch?: (color: string) => void;
+  onPunch?: (note: string, color: string) => void;
 };
 function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: EntryFormProps) {
-  const [subject,   setSubject]   = useState(initial?.subject ?? "");
-  const [content,   setContent]   = useState(initial?.content ?? "");
-  const [startHHMM, setStartHHMM] = useState(initial ? toHHMM(initial.startTime) : nowHHMM());
-  const [hasEnd,    setHasEnd]    = useState(Boolean(initial?.endTime));
-  const [endHHMM,   setEndHHMM]   = useState(initial?.endTime ? toHHMM(initial.endTime) : "");
-  const [color,     setColor]     = useState(initial?.color ?? ENTRY_COLORS[0].hex);
-  const [date,      setDate]      = useState(initial?.entryDate ?? entryDate);
-  const [timesOpen, setTimesOpen] = useState(false);
-  const [saving,    setSaving]    = useState(false);
+  const [subject,    setSubject]    = useState(initial?.subject ?? "");
+  const [content,    setContent]    = useState(initial?.content ?? "");
+  const [startHHMM,  setStartHHMM]  = useState(initial ? toHHMM(initial.startTime) : nowHHMM());
+  const [hasEnd,     setHasEnd]     = useState(Boolean(initial?.endTime));
+  const [endHHMM,    setEndHHMM]    = useState(initial?.endTime ? toHHMM(initial.endTime) : "");
+  const [color,      setColor]      = useState(initial?.color ?? ENTRY_COLORS[0].hex);
+  const [date,       setDate]       = useState(initial?.entryDate ?? entryDate);
+  const [timesOpen,  setTimesOpen]  = useState(false);
+  const [saving,     setSaving]     = useState(false);
+  const [punchMode,  setPunchMode]  = useState(false);
+  const [punchNote,  setPunchNote]  = useState("");
 
   const showSubject = content.trim().length >= 100 || Boolean(initial?.subject);
 
@@ -187,6 +189,35 @@ function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: EntryFormP
       setSaving(false);
     }
   }
+
+  /* Punch-prep mode — type first, then confirm to start the clock */
+  if (punchMode) return (
+    <div className="entry-form entry-form--punch">
+      <input
+        className="entry-form-content punch-prep-input"
+        placeholder="What are you about to do?"
+        value={punchNote}
+        autoFocus
+        onChange={e => setPunchNote(e.target.value)}
+        onKeyDown={e => { if (e.key === "Enter" && punchNote.trim()) onPunch?.(punchNote.trim(), color); }}
+      />
+      <div className="entry-form-actions">
+        <div className="entry-form-colors">
+          {ENTRY_COLORS.map(c => (
+            <button key={c.hex} className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+              style={{ background: c.hex }} aria-label={c.label} onClick={() => setColor(c.hex)} />
+          ))}
+        </div>
+        <div className="entry-form-action-right">
+          <button onClick={() => setPunchMode(false)}>Cancel</button>
+          <button className="primary" disabled={!punchNote.trim()}
+            onClick={() => onPunch?.(punchNote.trim(), color)}>
+            Punch in
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="entry-form">
@@ -248,14 +279,12 @@ function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: EntryFormP
           ))}
         </div>
         <div className="entry-form-action-right">
-          {onPunch && (
+          {onPunch && !punchMode && (
             <button
               className="entry-form-punch-btn"
-              onClick={() => onPunch(color)}
-              aria-label="Punch in"
-              title="Punch in — starts a timed entry now"
+              onClick={() => setPunchMode(true)}
               type="button"
-            >⏱</button>
+            >Punch</button>
           )}
           <button
             className={`entry-form-time-toggle${timesOpen ? " active" : ""}`}
@@ -449,9 +478,9 @@ export default function Journal() {
 
   function setPunch(p: PunchState | null) { savePunch(p); setPunchRaw(p); }
 
-  function punchIn(color: string) {
+  function punchIn(note: string, color: string) {
     const now = new Date();
-    setPunch({ startTime: now.toISOString(), entryDate: toYMD(now), content: "", color });
+    setPunch({ startTime: now.toISOString(), entryDate: toYMD(now), content: note, color });
     setAdding(false);
   }
 
