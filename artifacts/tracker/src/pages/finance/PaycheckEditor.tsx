@@ -168,7 +168,6 @@ export default function PaycheckEditor() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">Finance</span>
           <h1>{editing ? "Edit paycheck" : "Record a paycheck"}</h1>
         </div>
         <div className="button-row">

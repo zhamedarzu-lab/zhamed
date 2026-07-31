@@ -45,7 +45,6 @@ export default function Biweekly() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">Finance</span>
           <h1>Paycheck log</h1>
         </div>
         <FinanceNav />

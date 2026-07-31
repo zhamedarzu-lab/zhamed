@@ -69,7 +69,6 @@ export default function Subscriptions() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">Finance</span>
           <h1>Subscriptions</h1>
         </div>
         <div className="button-row">

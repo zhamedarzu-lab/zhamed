@@ -65,7 +65,6 @@ export default function Bills() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">Finance</span>
           <h1>Bills</h1>
         </div>
         <div className="button-row">

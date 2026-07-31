@@ -76,7 +76,6 @@ export default function Cash() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">Finance</span>
           <h1>Cash</h1>
         </div>
         <FinanceNav />

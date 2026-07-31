@@ -113,7 +113,6 @@ export default function Debt() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">Finance</span>
           <h1>Debt</h1>
         </div>
         <FinanceNav />

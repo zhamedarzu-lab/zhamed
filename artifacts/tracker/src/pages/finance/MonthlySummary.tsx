@@ -88,7 +88,6 @@ export default function MonthlySummary() {
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">Finance</span>
           <h1>Monthly summary</h1>
         </div>
         <div className="button-row">
