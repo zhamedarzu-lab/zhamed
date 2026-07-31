@@ -191,6 +191,7 @@ a:hover {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--ink);
+  white-space: nowrap;
   transition: color 0.15s;
 }
 
