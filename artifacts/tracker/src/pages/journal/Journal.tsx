@@ -112,8 +112,9 @@ type PunchRowProps = {
   punch: PunchState;
   onUpdate: (p: PunchState) => void;
   onPunchOut: (id: string) => void;
+  onCancel: (id: string) => void;
 };
-function PunchRow({ punch, onUpdate, onPunchOut }: PunchRowProps) {
+function PunchRow({ punch, onUpdate, onPunchOut, onCancel }: PunchRowProps) {
   const [elapsed, setElapsed] = useState(() => fmtElapsed(punch.startTime));
   useEffect(() => {
     const id = setInterval(() => setElapsed(fmtElapsed(punch.startTime)), 1000);
@@ -131,6 +132,7 @@ function PunchRow({ punch, onUpdate, onPunchOut }: PunchRowProps) {
       <span className="punch-banner-elapsed">{elapsed}</span>
       <span className="punch-banner-label">{punch.content || <em>no note</em>}</span>
       <button className="punch-banner-out" onClick={() => onPunchOut(punch.id)}>Punch out</button>
+      <button className="punch-banner-cancel" onClick={() => onCancel(punch.id)} aria-label="Cancel punch" title="Discard without saving">✕</button>
     </div>
   );
 }
@@ -498,6 +500,10 @@ export default function Journal() {
   function updatePunch(updated: PunchState) {
     const next = punches.map(p => p.id === updated.id ? updated : p);
     setPunches(next);
+  }
+
+  function cancelPunch(id: string) {
+    setPunches(punches.filter(p => p.id !== id));
   }
 
   useEffect(() => {
@@ -927,7 +933,7 @@ export default function Journal() {
       {punches.length > 0 && (
         <div className="punch-banner">
           {punches.map(p => (
-            <PunchRow key={p.id} punch={p} onUpdate={updatePunch} onPunchOut={punchOut} />
+            <PunchRow key={p.id} punch={p} onUpdate={updatePunch} onPunchOut={punchOut} onCancel={cancelPunch} />
           ))}
         </div>
       )}
