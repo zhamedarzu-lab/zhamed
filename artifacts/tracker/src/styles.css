@@ -590,6 +590,28 @@ a:hover {
   top: 0.25rem;
   right: 0.25rem;
 }
+.journal-week-now {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.4rem;
+}
+.journal-week-now-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 25%, transparent);
+}
+.journal-week-now::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--amber);
+  opacity: 0.5;
+}
+
 .journal-week-entry-time {
   font-size: 0.65rem;
   color: var(--amber);

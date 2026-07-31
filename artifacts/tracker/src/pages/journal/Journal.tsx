@@ -314,8 +314,23 @@ export default function Journal() {
           {Array.from({ length: 7 }, (_, i) => {
             const day = addDays(startOfWeek(focus), i);
             const ymd = toYMD(day);
-            const dayEntries = byDate.get(ymd) ?? [];
             const isT = ymd === toYMD(new Date());
+            const sorted = [...(byDate.get(ymd) ?? [])].sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+            const past   = isT ? sorted.filter(e => minuteOfDay(e.createdAt) <= nowMin) : sorted;
+            const future = isT ? sorted.filter(e => minuteOfDay(e.createdAt) >  nowMin) : [];
+
+            const WeekEntry = ({ e }: { e: Entry }) => (
+              <div key={e.id} className="journal-week-entry">
+                <span className="journal-week-entry-time">{fmtTime(e.createdAt)}</span>
+                <span className="journal-week-entry-content">{e.content}</span>
+                <button className="journal-delete-btn" onClick={() => deleteEntry(e.id)} aria-label="Delete entry">
+                  <IcTrash />
+                </button>
+              </div>
+            );
+
             return (
               <div key={ymd} className={`journal-week-col${isT ? " is-today" : ""}`}>
                 <div className="journal-week-col-head">
@@ -323,19 +338,13 @@ export default function Journal() {
                   <span className={`journal-week-date${isT ? " is-today" : ""}`}>{day.getDate()}</span>
                 </div>
                 <div className="journal-week-entries">
-                  {dayEntries.map((e) => (
-                    <div key={e.id} className="journal-week-entry">
-                      <span className="journal-week-entry-time">{fmtTime(e.createdAt)}</span>
-                      <span className="journal-week-entry-content">{e.content}</span>
-                      <button
-                        className="journal-delete-btn"
-                        onClick={() => deleteEntry(e.id)}
-                        aria-label="Delete entry"
-                      >
-                        <IcTrash />
-                      </button>
+                  {past.map(e => <WeekEntry key={e.id} e={e} />)}
+                  {isT && (
+                    <div className="journal-week-now">
+                      <span className="journal-week-now-dot" aria-hidden="true" />
                     </div>
-                  ))}
+                  )}
+                  {future.map(e => <WeekEntry key={e.id} e={e} />)}
                 </div>
               </div>
             );
