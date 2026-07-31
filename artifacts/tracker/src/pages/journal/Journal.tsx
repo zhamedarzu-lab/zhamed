@@ -309,48 +309,103 @@ export default function Journal() {
       })()}
 
       {/* ════════════════════════════════════════════ WEEK VIEW */}
-      {view === "week" && (
-        <div className="journal-week">
-          {Array.from({ length: 7 }, (_, i) => {
-            const day = addDays(startOfWeek(focus), i);
-            const ymd = toYMD(day);
-            const isT = ymd === toYMD(new Date());
-            const sorted = [...(byDate.get(ymd) ?? [])].sort(
-              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-            );
-            const past   = isT ? sorted.filter(e => minuteOfDay(e.createdAt) <= nowMin) : sorted;
-            const future = isT ? sorted.filter(e => minuteOfDay(e.createdAt) >  nowMin) : [];
+      {view === "week" && (() => {
+        const COL_H = 720; // px — 30px per hour
+        const todayYmd = toYMD(new Date());
+        const weekStart = startOfWeek(focus);
 
-            const WeekEntry = ({ e }: { e: Entry }) => (
-              <div key={e.id} className="journal-week-entry">
-                <span className="journal-week-entry-time">{fmtTime(e.createdAt)}</span>
-                <span className="journal-week-entry-content">{e.content}</span>
-                <button className="journal-delete-btn" onClick={() => deleteEntry(e.id)} aria-label="Delete entry">
-                  <IcTrash />
-                </button>
+        return (
+          <div className="journal-week-outer">
+            {/* Day headers */}
+            <div className="journal-week-head-row">
+              <div className="journal-week-axis-spacer" />
+              {Array.from({ length: 7 }, (_, i) => {
+                const day = addDays(weekStart, i);
+                const ymd = toYMD(day);
+                const isT = ymd === todayYmd;
+                return (
+                  <div key={ymd} className={`journal-week-col-head${isT ? " is-today" : ""}`}>
+                    <span className="journal-week-dow">{WEEKDAYS[day.getDay()]}</span>
+                    <span className={`journal-week-date${isT ? " is-today" : ""}`}>{day.getDate()}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Scrollable body */}
+            <div className="journal-week-body">
+              {/* Time axis */}
+              <div className="journal-week-axis" style={{ height: COL_H }}>
+                {Array.from({ length: 9 }, (_, i) => {
+                  const h = i * 3;
+                  return (
+                    <span key={h} className="journal-week-axis-label" style={{ top: (h / 24) * COL_H }}>
+                      {h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`}
+                    </span>
+                  );
+                })}
               </div>
-            );
 
-            return (
-              <div key={ymd} className={`journal-week-col${isT ? " is-today" : ""}`}>
-                <div className="journal-week-col-head">
-                  <span className="journal-week-dow">{WEEKDAYS[day.getDay()]}</span>
-                  <span className={`journal-week-date${isT ? " is-today" : ""}`}>{day.getDate()}</span>
-                </div>
-                <div className="journal-week-entries">
-                  {past.map(e => <WeekEntry key={e.id} e={e} />)}
-                  {isT && (
-                    <div className="journal-week-now">
-                      <span className="journal-week-now-dot" aria-hidden="true" />
+              {/* Day columns */}
+              <div className="journal-week-cols">
+                {Array.from({ length: 7 }, (_, i) => {
+                  const day = addDays(weekStart, i);
+                  const ymd = toYMD(day);
+                  const isT = ymd === todayYmd;
+                  const dayEntries = byDate.get(ymd) ?? [];
+
+                  return (
+                    <div
+                      key={ymd}
+                      className={`journal-week-col${isT ? " is-today" : ""}`}
+                      style={{ height: COL_H }}
+                    >
+                      {/* Hour grid lines every 3h */}
+                      {Array.from({ length: 9 }, (_, h) => (
+                        <div
+                          key={h}
+                          className="journal-week-hour-line"
+                          style={{ top: (h * 3 / 24) * COL_H }}
+                        />
+                      ))}
+
+                      {/* NOW line — today's column only */}
+                      {isT && (
+                        <div
+                          className="journal-week-now-line"
+                          style={{ top: (nowMin / 1440) * COL_H }}
+                        >
+                          <span className="journal-week-now-dot" aria-hidden="true" />
+                        </div>
+                      )}
+
+                      {/* Entries */}
+                      {dayEntries.map(e => {
+                        const min = minuteOfDay(e.createdAt);
+                        return (
+                          <div
+                            key={e.id}
+                            className="journal-week-entry"
+                            style={{ top: (min / 1440) * COL_H }}
+                          >
+                            <span className="journal-week-entry-time">{fmtTime(e.createdAt)}</span>
+                            <p className="journal-week-entry-content">{e.content}</p>
+                            <button
+                              className="journal-delete-btn"
+                              onClick={() => deleteEntry(e.id)}
+                              aria-label="Delete entry"
+                            ><IcTrash /></button>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
-                  {future.map(e => <WeekEntry key={e.id} e={e} />)}
-                </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ════════════════════════════════════════════ MONTH VIEW */}
       {view === "month" && (() => {

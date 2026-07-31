@@ -526,103 +526,157 @@ a:hover {
 }
 
 /* ── WEEK VIEW ── */
-.journal-week {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0;
+.journal-week-outer {
   border: 1px solid var(--rule);
   border-radius: 8px;
   overflow: hidden;
-  min-height: 400px;
-}
-.journal-week-col {
-  border-right: 1px solid var(--rule);
   display: flex;
   flex-direction: column;
 }
-.journal-week-col:last-child { border-right: none; }
-.journal-week-col.is-today { background: color-mix(in srgb, var(--amber) 4%, var(--paper-sunk)); }
 
+/* Header row: spacer + 7 day heads */
+.journal-week-head-row {
+  display: flex;
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--paper-sunk);
+  flex-shrink: 0;
+}
+.journal-week-axis-spacer {
+  width: 44px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--rule);
+}
 .journal-week-col-head {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.6rem 0.4rem;
-  border-bottom: 1px solid var(--rule);
-  background: var(--paper-sunk);
+  gap: 0.15rem;
+  padding: 0.5rem 0.25rem;
+  border-right: 1px solid var(--rule);
 }
+.journal-week-col-head:last-child { border-right: none; }
+.journal-week-col-head.is-today { background: color-mix(in srgb, var(--amber) 6%, var(--paper-sunk)); }
+
 .journal-week-dow {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ink-soft);
 }
 .journal-week-date {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ink);
 }
-.journal-week-date.is-today {
-  color: var(--amber);
+.journal-week-date.is-today { color: var(--amber); }
+
+/* Scrollable body */
+.journal-week-body {
+  display: flex;
+  overflow-y: auto;
+  max-height: calc(100vh - 260px);
 }
 
-.journal-week-entries {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.5rem 0.4rem;
-  overflow-y: auto;
-}
-.journal-week-entry {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  padding: 0.35rem 0.45rem;
+/* Time axis */
+.journal-week-axis {
+  width: 44px;
+  flex-shrink: 0;
   position: relative;
+  border-right: 1px solid var(--rule);
 }
-.journal-week-entry .journal-delete-btn {
+.journal-week-axis-label {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
+  right: 5px;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  color: var(--ink-soft);
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }
-.journal-week-now {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.4rem;
+
+/* Columns */
+.journal-week-cols {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex: 1;
+}
+.journal-week-col {
+  position: relative;
+  border-right: 1px solid var(--rule);
+}
+.journal-week-col:last-child { border-right: none; }
+.journal-week-col.is-today {
+  background: color-mix(in srgb, var(--amber) 3%, transparent);
+}
+
+.journal-week-hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--rule);
+  pointer-events: none;
+}
+
+/* NOW line */
+.journal-week-now-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--amber);
+  opacity: 0.9;
+  z-index: 4;
+  pointer-events: none;
 }
 .journal-week-now-dot {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  flex-shrink: 0;
   background: var(--amber);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 25%, transparent);
-}
-.journal-week-now::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--amber);
-  opacity: 0.5;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 30%, transparent);
 }
 
+/* Entries */
+.journal-week-entry {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
+  padding: 0.2rem 0.35rem;
+  z-index: 3;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.journal-week-entry:hover { border-color: var(--amber); }
+.journal-week-entry .journal-delete-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+}
 .journal-week-entry-time {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--amber);
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 .journal-week-entry-content {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--ink);
-  line-height: 1.4;
+  line-height: 1.3;
   word-break: break-word;
-  padding-right: 1.2rem;
+  margin: 0;
+  padding-right: 1rem;
 }
 
 /* ── MONTH VIEW ── */
