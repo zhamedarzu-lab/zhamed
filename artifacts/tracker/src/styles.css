@@ -142,12 +142,36 @@ a:hover {
   border-bottom: 2px solid var(--stamp);
 }
 
-/* ---------- Masthead payday strip ---------- */
+/* ---------- Masthead payday strip + calendar popover ---------- */
+.payday-trigger-wrap {
+  position: relative;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
 .payday-strip {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  margin-left: auto;
+  border: none;
+  background: none;
+  padding: 0.25rem;
+  margin: -0.25rem;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--r);
+}
+
+.payday-strip:hover .payday-today,
+.payday-strip:hover .payday-count {
+  color: var(--carbon);
+}
+
+.payday-strip:focus-visible {
+  outline: 1px solid var(--carbon);
+  outline-offset: 2px;
 }
 
 .payday-field {
@@ -160,18 +184,159 @@ a:hover {
 .payday-today {
   font-size: 0.9rem;
   color: var(--ink-soft);
+  transition: color 0.15s;
 }
 
 .payday-count {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--ink);
+  transition: color 0.15s;
 }
 
 .payday-target {
   font-family: var(--fig);
   font-size: 0.6875rem;
   color: var(--ink-faint);
+}
+
+.payday-bar {
+  display: block;
+  width: 84px;
+  height: 4px;
+  margin-top: 0.3rem;
+  background: var(--paper-sunk);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.payday-bar-fill {
+  display: block;
+  height: 100%;
+  background: #e0b04e;
+  border-radius: inherit;
+  transition: width 1s linear;
+}
+
+/* Popover calendar */
+.payday-cal {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 272px;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+  padding: 0.85rem;
+  z-index: 30;
+}
+
+.payday-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.payday-cal-month {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.payday-cal-nav {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 1px solid var(--rule-strong);
+  background: none;
+  color: var(--ink-soft);
+  border-radius: var(--r);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.payday-cal-nav:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+
+.payday-cal-jump {
+  display: block;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--carbon);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.payday-cal-jump:hover {
+  text-decoration: underline;
+}
+
+.payday-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-top: 0.65rem;
+}
+
+.payday-cal-weekday {
+  text-align: center;
+  font-family: var(--fig);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-bottom: 0.35rem;
+}
+
+.payday-cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fig);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  border-radius: 999px;
+}
+
+.payday-cal-day.is-blank {
+  visibility: hidden;
+}
+
+.payday-cal-day[data-payday="true"] {
+  background: rgba(224, 176, 78, 0.22);
+  color: #e0b04e;
+  font-weight: 600;
+}
+
+.payday-cal-day[data-today="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.payday-cal-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.6875rem;
+  color: var(--ink-faint);
+}
+
+.payday-cal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e0b04e;
+  display: inline-block;
 }
 
 main {
