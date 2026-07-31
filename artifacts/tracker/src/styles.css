@@ -18,6 +18,7 @@
   --rule-strong: #6a8a73;
   --stamp: #d44e44;
   --carbon: #7aa8e8;
+  --amber: #e0b04e;
 
   --ui: "Archivo", system-ui, -apple-system, sans-serif;
   --fig: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
@@ -247,16 +248,20 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: none;
-  color: var(--ink-soft);
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 5px;
+  background: var(--paper-sunk);
+  color: var(--ink);
   cursor: pointer;
-  transition: color 0.12s, border-color 0.12s;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
-.journal-nav-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+.journal-nav-btn:hover {
+  background: var(--rule);
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
 
 .journal-period {
   font-size: 0.9375rem;
@@ -264,6 +269,9 @@ a:hover {
   color: var(--ink);
   min-width: 140px;
   text-align: center;
+}
+.journal-period[data-today="true"] {
+  color: var(--amber);
 }
 
 .journal-today-btn {
