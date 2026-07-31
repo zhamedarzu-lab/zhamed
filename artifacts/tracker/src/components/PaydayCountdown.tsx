@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { nextPayday, formatCountdown, cycleProgress } from "../lib/payday";
 import PaydayCalendar from "./PaydayCalendar";
 
@@ -48,11 +49,19 @@ function getModes(totalSeconds: number): Cell[][] {
   ];
 }
 
+function dayProgressPct(now: Date): number {
+  return Math.round(((now.getHours() * 60 + now.getMinutes()) / 1440) * 100);
+}
+
 export default function PaydayCountdown() {
+  const { pathname } = useLocation();
+  const isJournal = pathname.startsWith("/journal");
   const now = useNow(1000);
   const payday = nextPayday(now);
   const msLeft = payday.getTime() - now.getTime();
-  const progressPct = Math.round(cycleProgress(now) * 100);
+  const progressPct = isJournal
+    ? dayProgressPct(now)
+    : Math.round(cycleProgress(now) * 100);
 
   const totalSeconds = Math.max(0, Math.round(msLeft / 1000));
 
@@ -86,14 +95,14 @@ export default function PaydayCountdown() {
           top edge regardless of scroll — independent of the masthead's own
           (narrower, positioned) layout below it. */}
       <div
-        className="payday-top-bar"
+        className={isJournal ? "day-top-bar" : "payday-top-bar"}
         role="progressbar"
-        aria-label="Progress through the current pay cycle"
+        aria-label={isJournal ? "Progress through the current day" : "Progress through the current pay cycle"}
         aria-valuenow={progressPct}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="payday-top-bar-fill" style={{ width: `${progressPct}%` }} />
+        <div className={isJournal ? "day-top-bar-fill" : "payday-top-bar-fill"} style={{ width: `${progressPct}%` }} />
       </div>
 
       <div className="payday-trigger-wrap" ref={wrapRef}>

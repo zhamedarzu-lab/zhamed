@@ -1704,6 +1704,22 @@ a:hover {
   transition: width 1s linear;
 }
 
+.day-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: var(--paper-sunk);
+  z-index: 40;
+  pointer-events: none;
+}
+.day-top-bar-fill {
+  height: 100%;
+  background: color-mix(in srgb, var(--accent) 70%, #fff);
+  transition: width 60s linear;
+}
+
 /* Popover calendar */
 .payday-cal {
   position: absolute;
