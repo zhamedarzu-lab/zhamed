@@ -249,7 +249,7 @@ export default function PaycheckEditor() {
                   <input
                     aria-label={row.kind === "extra" ? "Source" : "Note"}
                     list={row.kind === "extra" ? "extra-tags" : "alloc-tags"}
-                    placeholder={row.kind === "extra" ? "Where'd it come from?" : "What's it for?"}
+                    placeholder={row.kind === "extra" ? "Incoming" : "Outgoing"}
                     value={row.note}
                     onChange={(e) => updateRow(row.key, { note: e.target.value })}
                   />
