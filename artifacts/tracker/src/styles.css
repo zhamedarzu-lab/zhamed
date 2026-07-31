@@ -152,15 +152,21 @@ a:hover {
   display: none;
   flex-direction: column;
   position: absolute;
-  top: calc(100% + 10px);
+  top: 100%;
   left: -0.75rem;
+  padding-top: 10px;
+  min-width: 130px;
+  z-index: 100;
+}
+.wordmark-nav::after {
+  content: "";
+  position: absolute;
+  inset: 10px 0 0 0;
   background: var(--paper);
   border: 1px solid var(--rule-strong);
   border-radius: 6px;
-  padding: 0.35rem 0;
-  min-width: 130px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-  z-index: 100;
+  z-index: -1;
 }
 .wordmark-wrap:hover .wordmark-nav {
   display: flex;
