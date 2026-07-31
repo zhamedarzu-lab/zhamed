@@ -17,15 +17,30 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 const weekdayDate = (d: Date) =>
   d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 
-// Each mode is a list of [value, label] pairs to display as cells.
-// Index 0 = default (all four units); each tap advances by one, wraps back.
-function getModes(days: number, hours: number, minutes: number, seconds: number) {
+// Each cell: [value, label, pad] — pad=true uses 2-digit zero-padding (for
+// remainder units 0-59). The leading "total" unit in collapsed modes is never
+// padded since it can be 3+ digits.
+type Cell = [number, string, boolean];
+
+function getModes(totalSeconds: number): Cell[][] {
+  const days    = Math.floor(totalSeconds / 86400);
+  const hours   = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const totalHours   = Math.floor(totalSeconds / 3600);
+  const totalMinutes = Math.floor(totalSeconds / 60);
+
   return [
-    [[days, "days"], [hours, "hrs"], [minutes, "min"], [seconds, "sec"]],
-    [[hours, "hrs"], [minutes, "min"], [seconds, "sec"]],
-    [[minutes, "min"], [seconds, "sec"]],
-    [[seconds, "sec"]],
-  ] as [number, string][][];
+    // Mode 0: d h m s  (all components, each padded to 2 digits)
+    [[days, "days", true], [hours, "hrs", true], [minutes, "min", true], [seconds, "sec", true]],
+    // Mode 1: translate days → total hours, keep m s remainders
+    [[totalHours, "hrs", false], [minutes, "min", true], [seconds, "sec", true]],
+    // Mode 2: translate hours → total minutes, keep s remainder
+    [[totalMinutes, "min", false], [seconds, "sec", true]],
+    // Mode 3: total seconds only
+    [[totalSeconds, "sec", false]],
+  ];
 }
 
 export default function PaydayCountdown() {
@@ -35,16 +50,12 @@ export default function PaydayCountdown() {
   const progressPct = Math.round(cycleProgress(now) * 100);
 
   const totalSeconds = Math.max(0, Math.round(msLeft / 1000));
-  const days    = Math.floor(totalSeconds / 86400);
-  const hours   = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
 
   const [displayMode, setDisplayMode] = useState(0);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const modes = getModes(days, hours, minutes, seconds);
+  const modes = getModes(totalSeconds);
   const cells = modes[displayMode];
 
   // Click-away and Escape both close the popover; only wired up while open.
@@ -104,9 +115,9 @@ export default function PaydayCountdown() {
           >
             <span className="eyebrow">Next payday</span>
             <span className="payday-timer">
-              {cells.map(([val, label]) => (
+              {cells.map(([val, label, pad]) => (
                 <span key={label} className="payday-timer-cell">
-                  <span className="payday-timer-num fig">{pad2(val)}</span>
+                  <span className="payday-timer-num fig">{pad ? pad2(val) : val}</span>
                   <span className="payday-timer-label">{label}</span>
                 </span>
               ))}

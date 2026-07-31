@@ -214,8 +214,7 @@ a:hover {
   align-items: center;
   background: var(--paper-sunk);
   border-radius: 3px;
-  padding: 0.2rem 0.3rem;
-  min-width: 2rem;
+  padding: 0.2rem 0.35rem;
 }
 
 .payday-timer-num {
