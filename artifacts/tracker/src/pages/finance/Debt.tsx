@@ -20,6 +20,9 @@ type Snapshot = {
   debtAccountId: number;
   snapshotDate: string;
   balance: number;
+  paycheckId: number | null;
+  paycheckMonth: string | null;
+  paycheckSeq: number | null;
 };
 
 type Payment = {
@@ -32,6 +35,11 @@ type Payment = {
   month: string;
   seq: number;
 };
+
+type PaycheckOption = { id: number; month: string; seq: number };
+
+/** "Jul 2/2" — the same style already used for the paycheck payment history. */
+const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seq}/2`;
 
 /** Shared empty array so cards without history keep a stable prop identity. */
 const EMPTY: never[] = [];
@@ -60,8 +68,18 @@ export default function Debt() {
   const accounts  = useApi<Account[]>("/api/finance/debt-accounts");
   const snapshots = useApi<Snapshot[]>("/api/finance/debt-snapshots");
   const payments  = useApi<Payment[]>("/api/finance/debt-payments");
+  const paychecks = useApi<PaycheckOption[]>("/api/finance/paychecks");
 
   const refreshAll = () => Promise.all([accounts.reload(), snapshots.reload(), payments.reload()]);
+
+  // Most recent first, for the payday picker.
+  const paycheckOptions = useMemo(
+    () =>
+      [...(paychecks.data ?? [])].sort(
+        (a, b) => b.month.localeCompare(a.month) || b.seq - a.seq,
+      ),
+    [paychecks.data],
+  );
 
   const guard = (fn: () => Promise<unknown>) => async () => {
     setError(null);
@@ -143,6 +161,7 @@ export default function Debt() {
               account={account}
               snapshots={snapshotsByAccount.get(account.id) ?? EMPTY}
               payments={paymentsByAccount.get(account.id) ?? EMPTY}
+              paycheckOptions={paycheckOptions}
               onChanged={refreshAll}
               onError={setError}
             />
@@ -173,28 +192,44 @@ function CardPanel({
   account,
   snapshots,
   payments,
+  paycheckOptions,
   onChanged,
   onError,
 }: {
   account: Account;
   snapshots: Snapshot[];
   payments: Payment[];
+  paycheckOptions: PaycheckOption[];
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
   const [balInput,   setBalInput]   = useState("");
+  const [payday,     setPayday]     = useState(""); // paycheck id, or "" for none
   const [editLimit,  setEditLimit]  = useState(false);
   const [limitInput, setLimitInput] = useState("");
   const [busy,       setBusy]       = useState(false);
   const [applied,    setApplied]    = useState(0);
 
   const sorted = [...snapshots].sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
-  const points: Point[] = sorted.map((s) => ({ date: s.snapshotDate, value: s.balance }));
+  const points: Point[] = sorted.map((s) => ({
+    date: s.snapshotDate,
+    value: s.balance,
+    label: s.paycheckMonth != null && s.paycheckSeq != null
+      ? paydayLabel(s.paycheckMonth, s.paycheckSeq)
+      : undefined,
+  }));
+  // Latest first, for the log list.
+  const log = [...sorted].reverse();
 
   const balance = account.currentBalance ?? 0;
   const limit   = account.creditLimit ?? 0;
   const ratio   = limit > 0 ? balance / limit : 0;
   const pending = account.pendingPayment;
+
+  const latest = sorted[sorted.length - 1];
+  const asOfLabel = latest && latest.paycheckMonth != null && latest.paycheckSeq != null
+    ? paydayLabel(latest.paycheckMonth, latest.paycheckSeq)
+    : account.lastUpdated ? shortDate(account.lastUpdated) : null;
 
   function applyPending() {
     const suggested = Math.max(0, balance - pending);
@@ -213,9 +248,11 @@ function CardPanel({
         snapshotDate:  todayIso(),
         balance:       v,
         amountPaid:    applied,
+        paycheckId:    payday ? Number(payday) : null,
       });
       setBalInput("");
       setApplied(0);
+      setPayday("");
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not update balance.");
@@ -272,8 +309,8 @@ function CardPanel({
           <span className="debt-balance-fig" style={{ color: balance > 0 ? "var(--stamp)" : "#5fc97a" }}>
             {dollars(balance)}
           </span>
-          {account.lastUpdated && (
-            <span className="debt-balance-date">as of {shortDate(account.lastUpdated)}</span>
+          {asOfLabel && (
+            <span className="debt-balance-date">as of {asOfLabel}</span>
           )}
         </div>
 
@@ -340,6 +377,28 @@ function CardPanel({
           </p>
         ) : null}
 
+        {/* Balance log — every snapshot, latest first, tagged by payday when set */}
+        {log.length > 0 && (
+          <div className="debt-history">
+            <span className="eyebrow">Balance log</span>
+            <ul className="debt-history-list">
+              {log.map((s) => (
+                <li key={s.id}>
+                  {s.paycheckId != null && s.paycheckMonth != null && s.paycheckSeq != null ? (
+                    <Link to={`/finance/paycheck/${s.paycheckId}`} className="debt-history-when">
+                      {paydayLabel(s.paycheckMonth, s.paycheckSeq)}
+                    </Link>
+                  ) : (
+                    <span className="debt-history-when">{shortDate(s.snapshotDate)}</span>
+                  )}
+                  <span className="debt-history-note" />
+                  <span className="debt-history-amt">{dollars(s.balance)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Payment history — paycheck money ever sent toward this card */}
         {payments.length > 0 && (
           <div className="debt-history">
@@ -363,6 +422,19 @@ function CardPanel({
 
       {/* Update balance */}
       <div className="debt-card-footer">
+        <select
+          className="debt-payday-select"
+          aria-label="Tag this balance to a payday"
+          value={payday}
+          onChange={(e) => setPayday(e.target.value)}
+        >
+          <option value="">No payday</option>
+          {paycheckOptions.map((p) => (
+            <option key={p.id} value={p.id}>
+              {paydayLabel(p.month, p.seq)}
+            </option>
+          ))}
+        </select>
         <input
           className="debt-bal-input"
           inputMode="decimal"

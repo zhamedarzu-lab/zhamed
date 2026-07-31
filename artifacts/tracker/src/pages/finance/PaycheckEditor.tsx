@@ -273,9 +273,11 @@ export default function PaycheckEditor() {
                         onChange={(e) => {
                           const val = e.target.value ? Number(e.target.value) : null;
                           const card = cards.find((c) => c.id === val);
+                          // Attaching a card is the naming — no reason to type
+                          // a note too, so the note always follows the card.
                           update(row.key, {
                             debtAccountId: val,
-                            note: !row.note.trim() && card ? card.name : row.note,
+                            note: card ? card.name : row.note,
                           });
                         }}
                       >

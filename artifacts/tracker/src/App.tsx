@@ -4,6 +4,7 @@ import PaycheckEditor from "./pages/finance/PaycheckEditor";
 import Bills from "./pages/finance/Bills";
 import Subscriptions from "./pages/finance/Subscriptions";
 import Debt from "./pages/finance/Debt";
+import Cash from "./pages/finance/Cash";
 import MonthlySummary from "./pages/finance/MonthlySummary";
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/finance/bills" element={<Bills />} />
           <Route path="/finance/subscriptions" element={<Subscriptions />} />
           <Route path="/finance/debt" element={<Debt />} />
+          <Route path="/finance/cash" element={<Cash />} />
           <Route path="/finance/monthly" element={<MonthlySummary />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

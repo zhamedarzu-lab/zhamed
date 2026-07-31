@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { monthlyBillItemsTable, monthlySubscriptionItemsTable } from "@workspace/db";
 import paychecksRouter from "./paychecks.js";
 import debtRouter from "./debt.js";
+import cashRouter from "./cash.js";
 import summaryRouter from "./summary.js";
 import { createMonthlyItemsRouter } from "./monthly-items.js";
 
@@ -32,6 +33,7 @@ router.use(
 );
 
 router.use(debtRouter);
+router.use(cashRouter);
 router.use(summaryRouter);
 
 export default router;

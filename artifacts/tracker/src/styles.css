@@ -1005,6 +1005,11 @@ button.btn-icon {
   flex: 1;
 }
 
+.debt-payday-select {
+  flex: 0 0 auto;
+  max-width: 108px;
+}
+
 .col-swatch {
   width: 32px;
 }
@@ -1289,6 +1294,14 @@ button.btn-icon {
     border-right: none;
     border-bottom: 1px solid var(--rule);
     padding: 0.6rem 0.75rem;
+  }
+  .debt-card-footer {
+    flex-wrap: wrap;
+  }
+  .debt-payday-select {
+    order: -1;
+    flex: 1 1 100%;
+    max-width: none;
   }
 }
 

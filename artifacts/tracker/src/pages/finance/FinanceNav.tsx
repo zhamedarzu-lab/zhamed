@@ -6,6 +6,7 @@ const views = [
   { to: "/finance/bills", label: "Bills", short: "Bills" },
   { to: "/finance/subscriptions", label: "Subscriptions", short: "Subs" },
   { to: "/finance/debt", label: "Debt", short: "Debt" },
+  { to: "/finance/cash", label: "Cash", short: "Cash" },
 ];
 
 export default function FinanceNav() {

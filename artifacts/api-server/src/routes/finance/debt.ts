@@ -159,14 +159,24 @@ router.get("/debt-payments", async (req, res): Promise<void> => {
 router.get("/debt-snapshots", async (req, res): Promise<void> => {
   const accountId = optionalIdQuery(req.query.accountId);
 
-  const snapshots = await db
-    .select()
+  const rows = await db
+    .select({
+      id: debtSnapshotsTable.id,
+      debtAccountId: debtSnapshotsTable.debtAccountId,
+      snapshotDate: debtSnapshotsTable.snapshotDate,
+      balance: debtSnapshotsTable.balance,
+      amountPaid: debtSnapshotsTable.amountPaid,
+      paycheckId: debtSnapshotsTable.paycheckId,
+      paycheckMonth: paychecksTable.month,
+      paycheckSeq: paychecksTable.seq,
+    })
     .from(debtSnapshotsTable)
+    .leftJoin(paychecksTable, eq(debtSnapshotsTable.paycheckId, paychecksTable.id))
     .where(accountId !== undefined ? eq(debtSnapshotsTable.debtAccountId, accountId) : undefined)
     .orderBy(debtSnapshotsTable.snapshotDate);
 
   res.json(
-    snapshots.map((s) => ({
+    rows.map((s) => ({
       ...s,
       balance: Number(s.balance),
       amountPaid: Number(s.amountPaid),
@@ -181,6 +191,8 @@ router.post("/debt-snapshots", async (req, res): Promise<void> => {
       snapshotDate: z.string().regex(DATE_RE),
       balance: z.number().min(0),
       amountPaid: z.number().min(0).optional(),
+      // Optional "this is as of payday X" tag instead of just the date.
+      paycheckId: z.number().int().nullable().optional(),
     }),
     req.body,
     res,
@@ -196,6 +208,17 @@ router.post("/debt-snapshots", async (req, res): Promise<void> => {
     return;
   }
 
+  if (data.paycheckId != null) {
+    const [paycheck] = await db
+      .select({ id: paychecksTable.id })
+      .from(paychecksTable)
+      .where(eq(paychecksTable.id, data.paycheckId));
+    if (!paycheck) {
+      res.status(404).json({ error: "Paycheck not found" });
+      return;
+    }
+  }
+
   // Recording the balance and clearing the pending payments that it accounts
   // for must happen together, or the Debt page double-counts them.
   const snap = await db.transaction(async (tx) => {
@@ -206,6 +229,7 @@ router.post("/debt-snapshots", async (req, res): Promise<void> => {
         snapshotDate: data.snapshotDate,
         balance: money(data.balance),
         amountPaid: money(data.amountPaid ?? 0),
+        paycheckId: data.paycheckId ?? null,
       })
       .returning();
 

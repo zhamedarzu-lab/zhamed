@@ -18,16 +18,6 @@ export const debtAccountsTable = pgTable("debt_accounts", {
   creditLimit: numeric("credit_limit", { precision: 10, scale: 2 }),
 });
 
-export const debtSnapshotsTable = pgTable("debt_snapshots", {
-  id: serial("id").primaryKey(),
-  debtAccountId: integer("debt_account_id")
-    .notNull()
-    .references(() => debtAccountsTable.id, { onDelete: "cascade" }),
-  snapshotDate: date("snapshot_date", { mode: "string" }).notNull(),
-  balance: numeric("balance", { precision: 10, scale: 2 }).notNull(),
-  amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull().default("0"),
-});
-
 /**
  * A paycheck is identified by its month and its position within that month —
  * the 1st, 2nd, or 3rd deposit. No calendar date is kept: which day it landed
@@ -43,6 +33,45 @@ export const paychecksTable = pgTable(
   },
   (t) => [uniqueIndex("paychecks_month_seq_idx").on(t.month, t.seq)],
 );
+
+export const debtSnapshotsTable = pgTable("debt_snapshots", {
+  id: serial("id").primaryKey(),
+  debtAccountId: integer("debt_account_id")
+    .notNull()
+    .references(() => debtAccountsTable.id, { onDelete: "cascade" }),
+  snapshotDate: date("snapshot_date", { mode: "string" }).notNull(),
+  balance: numeric("balance", { precision: 10, scale: 2 }).notNull(),
+  amountPaid: numeric("amount_paid", { precision: 10, scale: 2 }).notNull().default("0"),
+  // Optional tag to "this balance is as of payday X" instead of just a
+  // calendar date. Purely a label — nulled out if the paycheck is deleted,
+  // the balance history still stands.
+  paycheckId: integer("paycheck_id").references(() => paychecksTable.id, {
+    onDelete: "set null",
+  }),
+});
+
+/**
+ * A cash account is a spendable balance you top up (borrow, deposit, transfer
+ * in) and then draw down day to day — the opposite shape of a debt account,
+ * which you draw up and pay down. Deliberately its own table rather than a
+ * `debt_accounts` row: "total owed" must never include spendable cash, and
+ * there is no credit limit, utilization, or paycheck-payment framing here.
+ */
+export const cashAccountsTable = pgTable("cash_accounts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const cashSnapshotsTable = pgTable("cash_snapshots", {
+  id: serial("id").primaryKey(),
+  cashAccountId: integer("cash_account_id")
+    .notNull()
+    .references(() => cashAccountsTable.id, { onDelete: "cascade" }),
+  snapshotDate: date("snapshot_date", { mode: "string" }).notNull(),
+  balance: numeric("balance", { precision: 10, scale: 2 }).notNull(),
+});
 
 /**
  * An allocation is an amount and a note. The note doubles as the tag the money
@@ -105,9 +134,12 @@ export const monthlyBillItemsTable = pgTable("monthly_bill_items", {
 export type MonthlyBillItem = typeof monthlyBillItemsTable.$inferSelect;
 export type DebtAccount = typeof debtAccountsTable.$inferSelect;
 export type DebtSnapshot = typeof debtSnapshotsTable.$inferSelect;
+export type CashAccount = typeof cashAccountsTable.$inferSelect;
+export type CashSnapshot = typeof cashSnapshotsTable.$inferSelect;
 export type Paycheck = typeof paychecksTable.$inferSelect;
 export type Allocation = typeof allocationsTable.$inferSelect;
 export type ExtraIncome = typeof extraIncomeTable.$inferSelect;
 
 export type InsertDebtAccount = typeof debtAccountsTable.$inferInsert;
+export type InsertCashAccount = typeof cashAccountsTable.$inferInsert;
 export type InsertPaycheck = typeof paychecksTable.$inferInsert;

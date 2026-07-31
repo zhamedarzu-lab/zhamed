@@ -1,7 +1,8 @@
 import { useMemo, type CSSProperties, type ReactNode } from "react";
 import { currentMonth, shiftMonth, monthName } from "../lib/format";
 
-export type Point = { date: string; value: number };
+/** `label`, when set, overrides the axis tick text (e.g. "Jul 2/2" for a payday-tagged point). */
+export type Point = { date: string; value: number; label?: string };
 
 // ---------------------------------------------------------------------------
 // AllocBar — multi-colour segmented allocation bar
@@ -281,8 +282,9 @@ export function BalanceChart({
 
   // Three horizontal guide lines
   const gridVals = [minV, minV + range / 2, maxV].map((v) => Math.round(v));
-  // Label ticks at first, middle, last
-  const labelTicks = [0, Math.floor((points.length - 1) / 2), points.length - 1];
+  // Label ticks at first, middle, last — deduped since short series (e.g. 2
+  // points) can collapse first/middle/last onto the same index.
+  const labelTicks = [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])];
 
   function fmtVal(v: number) {
     return v >= 10000 ? `${(v / 1000).toFixed(0)}k`
@@ -298,7 +300,7 @@ export function BalanceChart({
       aria-hidden="true"
     >
       {gridVals.map((v, i) => (
-        <g key={i}>
+        <g key={`grid-${i}`}>
           <line
             className="grid-line"
             x1={PAD.left}
@@ -316,7 +318,7 @@ export function BalanceChart({
       <path d={linePath} className="line" stroke={color} />
 
       {labelTicks.map((i) => (
-        <g key={i}>
+        <g key={`tick-${i}`}>
           <circle
             className="dot"
             cx={toX(i)}
@@ -325,7 +327,7 @@ export function BalanceChart({
             fill={color}
           />
           <text x={toX(i)} y={H - PAD.bottom + 14} textAnchor="middle">
-            {points[i].date.slice(5)}
+            {points[i].label ?? points[i].date.slice(5)}
           </text>
         </g>
       ))}

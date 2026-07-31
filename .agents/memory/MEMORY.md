@@ -4,3 +4,5 @@
 - [Bills schema: per-month items](bills-schema.md) — bills replaced with monthly_bill_items table; old bills+bill_payments tables have been dropped (migration 0009)
 - [Monthly items route factory](monthly-items-factory.md) — bills reuse the subscriptions router via a cast; safe only while bills keep `supportsActive: false`
 - [Paycheck-to-debt-card linking](paycheck-debt-linking.md) — allocations can link to a card; it's attribution + balance-prefill only, never auto-applies
+- [Debt snapshot payday tagging](debt-snapshot-payday-tagging.md) — a balance snapshot can optionally be labeled by payday (month+seq) instead of just a date; separate from the allocation link
+- [Cash accounts](cash-accounts.md) — spendable balances (Cash App etc.) are a separate table/page from debt_accounts; sign is inverted, no limit/pending framing
