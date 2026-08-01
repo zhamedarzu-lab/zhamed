@@ -13,14 +13,15 @@ type Entry = {
 };
 
 const ENTRY_COLORS: { hex: string; label: string }[] = [
-  { hex: "#e0b04e", label: "Amber"  },
   { hex: "#e05555", label: "Red"    },
   { hex: "#e08c3a", label: "Orange" },
+  { hex: "#e0b04e", label: "Yellow" },
   { hex: "#4ecb71", label: "Green"  },
   { hex: "#4e90e0", label: "Blue"   },
-  { hex: "#9b4ee0", label: "Purple" },
-  { hex: "#e04ea3", label: "Pink"   },
-  { hex: "#8a9aaa", label: "Muted"  },
+  { hex: "#4b5ee0", label: "Indigo" },
+  { hex: "#9b4ee0", label: "Violet" },
+  { hex: "#f5f5f5", label: "White"  },
+  { hex: "#8a9aaa", label: "Gray"   },
 ];
 
 type View = "day" | "week" | "month";
