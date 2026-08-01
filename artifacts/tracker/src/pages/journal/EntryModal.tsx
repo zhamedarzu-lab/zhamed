@@ -159,7 +159,7 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
       {showSubject && (
         <input
           className="entry-form-subject"
-          placeholder="Short label shown in lists…"
+          placeholder="Subject"
           value={subject}
           autoFocus={!initial?.subject}
           onChange={e => setSubject(e.target.value)}
