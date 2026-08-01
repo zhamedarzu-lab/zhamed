@@ -431,13 +431,6 @@ function CardPanel({
           </p>
         ) : null}
 
-        {/* Balance log — opens in a popup */}
-        {log.length > 0 && (
-          <button className="quiet bal-log-trigger" onClick={() => setShowLog(true)}>
-            Balance log
-            <span className="bal-log-count">{log.length}</span>
-          </button>
-        )}
         {showLog && (
           <BalanceLogModal
             log={log}
@@ -473,6 +466,11 @@ function CardPanel({
 
       {/* Update balance */}
       <div className="debt-card-footer">
+        {log.length > 0 && (
+          <button className="quiet bal-log-trigger" onClick={() => setShowLog(true)}>
+            Log <span className="bal-log-count">{log.length}</span>
+          </button>
+        )}
         <select
           className="debt-payday-select"
           aria-label="Tag this balance to a payday"
@@ -490,12 +488,12 @@ function CardPanel({
           className="debt-bal-input"
           inputMode="decimal"
           value={balInput}
-          placeholder="New balance…"
+          placeholder="Balance…"
           onChange={(e) => { setBalInput(e.target.value); setApplied(0); }}
           onKeyDown={(e) => e.key === "Enter" && updateBalance()}
         />
         <button onClick={updateBalance} disabled={busy || !balInput.trim()}>
-          Update
+          Save
         </button>
       </div>
     </Panel>
