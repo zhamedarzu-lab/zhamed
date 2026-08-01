@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { dollars, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
@@ -23,6 +23,7 @@ type Snapshot = {
   paycheckId: number | null;
   paycheckMonth: string | null;
   paycheckSeq: number | null;
+  loggedAt: string | null;
 };
 
 type Payment = {
@@ -40,6 +41,59 @@ type PaycheckOption = { id: number; month: string; seq: number };
 
 /** "Jul 2/2" — the same style already used for the paycheck payment history. */
 const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seq}/2`;
+
+/** Morning / Noon / Evening / Night based on the hour a snapshot was saved. */
+function timeOfDay(iso: string | null): string {
+  if (!iso) return "";
+  const h = new Date(iso).getHours();
+  if (h >= 5  && h < 12) return "Morning";
+  if (h >= 12 && h < 14) return "Noon";
+  if (h >= 14 && h < 21) return "Evening";
+  return "Night";
+}
+
+function BalanceLogModal({
+  log,
+  paydayLabel: pdLabel,
+  onClose,
+}: {
+  log: Snapshot[];
+  paydayLabel: (s: Snapshot) => string | null;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="bal-log-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bal-log-modal" ref={ref} role="dialog" aria-modal="true" aria-label="Balance log">
+        <div className="bal-log-header">
+          <span className="eyebrow">Balance log</span>
+          <button className="quiet btn-icon" onClick={onClose} aria-label="Close">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <ul className="bal-log-list">
+          {log.map((s) => {
+            const when = pdLabel(s);
+            return (
+              <li key={s.id} className="bal-log-row">
+                <span className="bal-log-when">
+                  {when ?? shortDate(s.snapshotDate)}
+                  {s.loggedAt && <span className="bal-log-tod">{timeOfDay(s.loggedAt)}</span>}
+                </span>
+                <span className="bal-log-amt">{dollars(s.balance)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 /** Shared empty array so cards without history keep a stable prop identity. */
 const EMPTY: never[] = [];
@@ -208,6 +262,7 @@ function CardPanel({
   const [limitInput, setLimitInput] = useState("");
   const [busy,       setBusy]       = useState(false);
   const [applied,    setApplied]    = useState(0);
+  const [showLog,    setShowLog]    = useState(false);
 
   const sorted = [...snapshots].sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
   const points: Point[] = sorted.map((s) => ({
@@ -376,26 +431,23 @@ function CardPanel({
           </p>
         ) : null}
 
-        {/* Balance log — every snapshot, latest first, tagged by payday when set */}
+        {/* Balance log — opens in a popup */}
         {log.length > 0 && (
-          <div className="debt-history">
-            <span className="eyebrow">Balance log</span>
-            <ul className="debt-history-list">
-              {log.map((s) => (
-                <li key={s.id}>
-                  {s.paycheckId != null && s.paycheckMonth != null && s.paycheckSeq != null ? (
-                    <Link to={`/finance/paycheck/${s.paycheckId}`} className="debt-history-when">
-                      {paydayLabel(s.paycheckMonth, s.paycheckSeq)}
-                    </Link>
-                  ) : (
-                    <span className="debt-history-when">{shortDate(s.snapshotDate)}</span>
-                  )}
-                  <span className="debt-history-note" />
-                  <span className="debt-history-amt">{dollars(s.balance)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <button className="quiet bal-log-trigger" onClick={() => setShowLog(true)}>
+            Balance log
+            <span className="bal-log-count">{log.length}</span>
+          </button>
+        )}
+        {showLog && (
+          <BalanceLogModal
+            log={log}
+            paydayLabel={(s) =>
+              s.paycheckId != null && s.paycheckMonth != null && s.paycheckSeq != null
+                ? paydayLabel(s.paycheckMonth, s.paycheckSeq)
+                : null
+            }
+            onClose={() => setShowLog(false)}
+          />
         )}
 
         {/* Payment history — paycheck money ever sent toward this card */}

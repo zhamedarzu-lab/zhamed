@@ -169,6 +169,7 @@ router.get("/debt-snapshots", async (req, res): Promise<void> => {
       paycheckId: debtSnapshotsTable.paycheckId,
       paycheckMonth: paychecksTable.month,
       paycheckSeq: paychecksTable.seq,
+      loggedAt: debtSnapshotsTable.loggedAt,
     })
     .from(debtSnapshotsTable)
     .leftJoin(paychecksTable, eq(debtSnapshotsTable.paycheckId, paychecksTable.id))
@@ -180,6 +181,7 @@ router.get("/debt-snapshots", async (req, res): Promise<void> => {
       ...s,
       balance: Number(s.balance),
       amountPaid: Number(s.amountPaid),
+      loggedAt: s.loggedAt ? s.loggedAt.toISOString() : null,
     })),
   );
 });
@@ -230,6 +232,7 @@ router.post("/debt-snapshots", async (req, res): Promise<void> => {
         balance: money(data.balance),
         amountPaid: money(data.amountPaid ?? 0),
         paycheckId: data.paycheckId ?? null,
+        loggedAt: new Date(),
       })
       .returning();
 

@@ -6,6 +6,7 @@ import {
   integer,
   boolean,
   date,
+  timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
@@ -48,6 +49,7 @@ export const debtSnapshotsTable = pgTable("debt_snapshots", {
   paycheckId: integer("paycheck_id").references(() => paychecksTable.id, {
     onDelete: "set null",
   }),
+  loggedAt: timestamp("logged_at", { withTimezone: true }),
 });
 
 /**
@@ -71,6 +73,7 @@ export const cashSnapshotsTable = pgTable("cash_snapshots", {
     .references(() => cashAccountsTable.id, { onDelete: "cascade" }),
   snapshotDate: date("snapshot_date", { mode: "string" }).notNull(),
   balance: numeric("balance", { precision: 10, scale: 2 }).notNull(),
+  loggedAt: timestamp("logged_at", { withTimezone: true }),
 });
 
 /**

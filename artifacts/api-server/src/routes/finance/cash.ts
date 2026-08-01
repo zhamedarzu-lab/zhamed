@@ -86,7 +86,7 @@ router.get("/cash-snapshots", async (req, res): Promise<void> => {
     .where(accountId !== undefined ? eq(cashSnapshotsTable.cashAccountId, accountId) : undefined)
     .orderBy(cashSnapshotsTable.snapshotDate);
 
-  res.json(rows.map((s) => ({ ...s, balance: Number(s.balance) })));
+  res.json(rows.map((s) => ({ ...s, balance: Number(s.balance), loggedAt: s.loggedAt ? s.loggedAt.toISOString() : null })));
 });
 
 router.post("/cash-snapshots", async (req, res): Promise<void> => {
@@ -116,10 +116,11 @@ router.post("/cash-snapshots", async (req, res): Promise<void> => {
       cashAccountId: data.cashAccountId,
       snapshotDate: data.snapshotDate,
       balance: money(data.balance),
+      loggedAt: new Date(),
     })
     .returning();
 
-  res.status(201).json({ ...snap, balance: Number(snap.balance) });
+  res.status(201).json({ ...snap, balance: Number(snap.balance), loggedAt: snap.loggedAt ? snap.loggedAt.toISOString() : null });
 });
 
 export default router;

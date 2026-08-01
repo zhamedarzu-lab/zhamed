@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { api, useApi } from "../../lib/api";
 import { dollars, shortDate, todayIso, toAmount } from "../../lib/format";
 import {
@@ -25,10 +25,53 @@ type Snapshot = {
   cashAccountId: number;
   snapshotDate: string;
   balance: number;
+  loggedAt: string | null;
 };
 
 /** Shared empty array so cards without history keep a stable prop identity. */
 const EMPTY: never[] = [];
+
+/** Morning / Noon / Evening / Night based on the hour a snapshot was saved. */
+function timeOfDay(iso: string | null): string {
+  if (!iso) return "";
+  const h = new Date(iso).getHours();
+  if (h >= 5  && h < 12) return "Morning";
+  if (h >= 12 && h < 14) return "Noon";
+  if (h >= 14 && h < 21) return "Evening";
+  return "Night";
+}
+
+function BalanceLogModal({ log, onClose }: { log: Snapshot[]; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="bal-log-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bal-log-modal" ref={ref} role="dialog" aria-modal="true" aria-label="Balance log">
+        <div className="bal-log-header">
+          <span className="eyebrow">Balance log</span>
+          <button className="quiet btn-icon" onClick={onClose} aria-label="Close">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <ul className="bal-log-list">
+          {log.map((s) => (
+            <li key={s.id} className="bal-log-row">
+              <span className="bal-log-when">
+                {shortDate(s.snapshotDate)}
+                {s.loggedAt && <span className="bal-log-tod">{timeOfDay(s.loggedAt)}</span>}
+              </span>
+              <span className="bal-log-amt">{dollars(s.balance)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 function groupBy<T>(rows: T[], key: (row: T) => number): Map<number, T[]> {
   const out = new Map<number, T[]>();
@@ -147,6 +190,7 @@ function AccountPanel({
 }) {
   const [balInput, setBalInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showLog, setShowLog] = useState(false);
 
   const sorted = [...snapshots].sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
   const points: Point[] = sorted.map((s) => ({ date: s.snapshotDate, value: s.balance }));
@@ -231,20 +275,15 @@ function AccountPanel({
           </p>
         ) : null}
 
-        {/* Balance log — every snapshot, latest first */}
+        {/* Balance log — opens in a popup */}
         {log.length > 0 && (
-          <div className="debt-history">
-            <span className="eyebrow">Balance log</span>
-            <ul className="debt-history-list">
-              {log.map((s) => (
-                <li key={s.id}>
-                  <span className="debt-history-when">{shortDate(s.snapshotDate)}</span>
-                  <span className="debt-history-note" />
-                  <span className="debt-history-amt">{dollars(s.balance)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <button className="quiet bal-log-trigger" onClick={() => setShowLog(true)}>
+            Balance log
+            <span className="bal-log-count">{log.length}</span>
+          </button>
+        )}
+        {showLog && (
+          <BalanceLogModal log={log} onClose={() => setShowLog(false)} />
         )}
 
       </div>
