@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
-import { type Entry, ENTRY_COLORS, fmtTime, fmtFullDate, EntryModal } from "./EntryModal";
+import { type Entry, ENTRY_COLORS, fmtTime, fmtRange, fmtFullDate, EntryModal } from "./EntryModal";
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -173,7 +173,7 @@ export default function JournalSearch() {
               <button key={e.id} className="jsearch-card" onClick={() => setSelected(e)}>
                 <div className="jsearch-card-accent" style={{ background: e.color }} />
                 <div className="jsearch-card-body">
-                  <p className="jsearch-card-time">{fmtTime(e.startTime)}</p>
+                  <p className="jsearch-card-time">{fmtRange(e.startTime, e.endTime)}</p>
                   {e.subject && (
                     <p className="jsearch-card-subject">
                       <Highlight text={e.subject} query={q} />
