@@ -771,7 +771,13 @@ export default function Journal() {
                     )}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
                     <div className="journal-month-lines">
-                      {dayEntries.map(e => (
+                      {[...dayEntries]
+                        .sort((a, b) => {
+                          const ai = ENTRY_COLORS.findIndex(c => c.hex === a.color);
+                          const bi = ENTRY_COLORS.findIndex(c => c.hex === b.color);
+                          return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                        })
+                        .map(e => (
                         <div key={e.id} className="journal-month-line"
                           style={{ background: e.color === BLACK ? undefined : e.color, ...(e.color === BLACK ? { background: "rgba(255,255,255,0.5)" } : {}) }} />
                       ))}
