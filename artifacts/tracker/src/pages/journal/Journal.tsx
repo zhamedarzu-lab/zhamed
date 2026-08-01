@@ -726,9 +726,10 @@ export default function Journal() {
                   {dayEntries.filter(e => e.endTime).map(e => {
                     const sH = new Date(e.startTime).getHours();
                     const sM = new Date(e.startTime).getMinutes();
-                    const eH = new Date(e.endTime!).getHours();
-                    const eM = new Date(e.endTime!).getMinutes();
-                    if (eH * 60 + eM <= sH * 60 + sM) return null;
+                    let eH = new Date(e.endTime!).getHours();
+                    let eM = new Date(e.endTime!).getMinutes();
+                    // Cross-midnight: cap the span at end of day
+                    if (eH * 60 + eM <= sH * 60 + sM) { eH = 23; eM = 59; }
                     const slices = [];
                     for (let h = sH; h <= eH; h++) {
                       const sliceTop    = h === sH ? (sM / 60) * GRID_H : 0;
@@ -866,8 +867,12 @@ export default function Journal() {
                         const startMin = minuteOfDay(e.startTime);
                         const endMin   = e.endTime ? minuteOfDay(e.endTime) : null;
                         const topPct   = `${(startMin / 1440) * 100}%`;
-                        const heightVal = endMin && endMin > startMin
-                          ? `${((endMin - startMin) / 1440) * 100}%`
+                        // If endMin < startMin the entry crossed midnight — run it to end of day
+                        const durMin   = endMin !== null
+                          ? endMin > startMin ? endMin - startMin : 1440 - startMin
+                          : null;
+                        const heightVal = durMin !== null && durMin > 0
+                          ? `${(durMin / 1440) * 100}%`
                           : 3;
                         return (
                           <div key={e.id} className="journal-week-line"
