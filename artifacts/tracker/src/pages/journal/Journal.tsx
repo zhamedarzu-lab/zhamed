@@ -40,9 +40,21 @@ function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 
 function endOfMonth(d: Date)   { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
 
 function rangeForView(focus: Date, view: View): [string, string] {
-  if (view === "day") return [toYMD(focus), toYMD(focus)];
-  if (view === "week") { const s = startOfWeek(focus); return [toYMD(s), toYMD(addDays(s, 6))]; }
+  // Fetch one extra day back so cross-midnight entries (started yesterday,
+  // ended today) are included in the result set.
+  if (view === "day") return [toYMD(addDays(focus, -1)), toYMD(focus)];
+  if (view === "week") { const s = startOfWeek(focus); return [toYMD(addDays(s, -1)), toYMD(addDays(s, 6))]; }
   return [toYMD(startOfMonth(focus)), toYMD(endOfMonth(focus))];
+}
+
+/** Entries that started the day before `ymd` but ended on `ymd` (cross-midnight). */
+function carryoversForDate(ymd: string, allEntries: Entry[]): Entry[] {
+  const prevYmd = toYMD(addDays(new Date(ymd + "T00:00:00"), -1));
+  return allEntries.filter(e =>
+    e.entryDate === prevYmd &&
+    !!e.endTime &&
+    toYMD(new Date(e.endTime)) >= ymd
+  );
 }
 
 const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -643,7 +655,9 @@ export default function Journal() {
 
       {/* ════ DAY VIEW — 2D grid: X=hour, Y=minute within hour ════ */}
       {view === "day" && (() => {
-        const dayEntries = [...(byDate.get(toYMD(focus)) ?? [])].sort(
+        const focusYmd  = toYMD(focus);
+        const carryovers = carryoversForDate(focusYmd, entries);
+        const dayEntries = [...(byDate.get(focusYmd) ?? []), ...carryovers].sort(
           (a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         );
         const TW     = 1200;
@@ -724,12 +738,14 @@ export default function Journal() {
 
                   {/* Span overlays — low-opacity fill for timed entries */}
                   {dayEntries.filter(e => e.endTime).map(e => {
-                    const sH = new Date(e.startTime).getHours();
-                    const sM = new Date(e.startTime).getMinutes();
+                    const isCarryover = e.entryDate !== focusYmd;
+                    // Carryovers started yesterday — pin to midnight on today's grid
+                    const sH = isCarryover ? 0 : new Date(e.startTime).getHours();
+                    const sM = isCarryover ? 0 : new Date(e.startTime).getMinutes();
                     let eH = new Date(e.endTime!).getHours();
                     let eM = new Date(e.endTime!).getMinutes();
-                    // Cross-midnight: cap the span at end of day
-                    if (eH * 60 + eM <= sH * 60 + sM) { eH = 23; eM = 59; }
+                    // Same-day cross-midnight: cap the span at end of day
+                    if (!isCarryover && eH * 60 + eM <= sH * 60 + sM) { eH = 23; eM = 59; }
                     const slices = [];
                     for (let h = sH; h <= eH; h++) {
                       const sliceTop    = h === sH ? (sM / 60) * GRID_H : 0;
@@ -745,8 +761,10 @@ export default function Journal() {
 
                   {/* Entries — placed at (startHour col, startMinute row) */}
                   {dayEntries.map(e => {
-                    const startH   = new Date(e.startTime).getHours();
-                    const startM   = new Date(e.startTime).getMinutes();
+                    const isCarryover = e.entryDate !== focusYmd;
+                    // Pin carryovers to midnight column on today's grid
+                    const startH   = isCarryover ? 0 : new Date(e.startTime).getHours();
+                    const startM   = isCarryover ? 0 : new Date(e.startTime).getMinutes();
                     const endH     = e.endTime ? new Date(e.endTime).getHours()   : null;
                     const endM     = e.endTime ? new Date(e.endTime).getMinutes() : null;
 
@@ -846,7 +864,10 @@ export default function Journal() {
                   const day = addDays(weekStart, i);
                   const ymd = toYMD(day);
                   const isT = ymd === todayYmd;
-                  const dayEntries = byDate.get(ymd) ?? [];
+                  const dayEntries = [
+                    ...(byDate.get(ymd) ?? []),
+                    ...carryoversForDate(ymd, entries),
+                  ];
                   return (
                     <div key={ymd} className={`journal-week-col${isT?" is-today":""}`}>
                       {Array.from({ length: 9 }, (_, h) => {
@@ -864,7 +885,9 @@ export default function Journal() {
                         </div>
                       )}
                       {dayEntries.map(e => {
-                        const startMin = minuteOfDay(e.startTime);
+                        const isCarryover = e.entryDate !== ymd;
+                        // Carryovers started yesterday — pin to top of this column
+                        const startMin = isCarryover ? 0 : minuteOfDay(e.startTime);
                         const endMin   = e.endTime ? minuteOfDay(e.endTime) : null;
                         const topPct   = `${(startMin / 1440) * 100}%`;
                         // If endMin < startMin the entry crossed midnight — run it to end of day
