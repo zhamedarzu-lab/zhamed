@@ -34,7 +34,9 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- The home page stays minimal: the zh monogram, the payday countdown, and the
+  three section links — nothing else. No debt figures, no journal previews, no
+  stats. "As simple as possible, real animated like, sleek."
 
 ## Gotchas
 

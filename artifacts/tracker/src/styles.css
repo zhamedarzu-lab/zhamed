@@ -196,16 +196,26 @@ a:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100dvh - 140px);
+  min-height: calc(100dvh - 160px);
   padding: 2rem 1.25rem 3rem;
-  gap: 1.75rem;
+  gap: 2.25rem;
 }
 
-.home-mast {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
+/* Everything on this page enters with the same rise; --rise staggers it. */
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.home-rise {
+  animation: home-rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--rise, 0) * 90ms);
 }
 
 .home-title {
@@ -217,149 +227,92 @@ a:hover {
   letter-spacing: -0.02em;
 }
 
-.home-date {
-  font-family: var(--fig);
-  font-size: 0.8125rem;
-  color: var(--ink-faint);
-}
-
-/* Finance spans the full row; Journal and Fitness split the second. */
-.home-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.85rem;
-  width: 100%;
-  max-width: 720px;
-}
-
-.home-panel {
+.home-countdown {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-left: 4px solid var(--card-accent, var(--amber));
-  border-radius: var(--r);
-  padding: 1.1rem 1.25rem 1.2rem;
-  color: var(--ink);
-  text-decoration: none;
-  transition: background 0.12s, border-color 0.12s, transform 0.1s;
-}
-.home-panel:hover {
-  text-decoration: none;
-  background: color-mix(in srgb, var(--card-accent, var(--amber)) 6%, var(--paper));
-  border-color: var(--card-accent, var(--amber));
-  transform: translateY(-1px);
-}
-.home-panel:active {
-  transform: translateY(0);
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.home-panel-wide {
-  grid-column: 1 / -1;
-}
-
-.home-panel-head {
+.home-timer {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1.1rem;
 }
 
-.home-panel-label {
-  font-size: 1.05rem;
-  font-weight: 700;
-}
-
-.home-panel-hint {
-  font-family: var(--fig);
-  font-size: 0.71875rem;
-  color: var(--ink-faint);
-  white-space: nowrap;
-}
-
-.home-finance-row {
-  display: flex;
-  gap: 2.5rem;
-  flex-wrap: wrap;
-}
-
-.home-stat {
+.home-timer-cell {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.2rem;
 }
 
-.home-stat-num {
-  font-size: 1.6rem;
+.home-timer-num {
+  font-size: clamp(2.4rem, 9vw, 3.6rem);
   font-weight: 600;
-  line-height: 1.1;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
-.home-spark {
-  width: 120px;
-  height: 32px;
-  margin-top: 0.25rem;
-}
-
-.home-month-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.home-month-bar-note {
+.home-timer-label {
   font-family: var(--fig);
-  font-size: 0.71875rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--ink-faint);
 }
 
-.home-panel-empty {
-  margin: 0;
+.home-payday-date {
   font-size: 0.8125rem;
   color: var(--ink-soft);
 }
 
-.home-entry-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.home-cards {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 360px;
 }
 
-.home-entry-list li {
+.home-card {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--card-accent, var(--amber));
+  border-radius: var(--r);
+  padding: 1.05rem 1.35rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.home-card:hover,
+.home-card:focus-visible {
+  text-decoration: none;
+  background: color-mix(in srgb, var(--card-accent, var(--amber)) 7%, var(--paper));
+  border-color: var(--card-accent, var(--amber));
+  transform: translateY(-2px);
+}
+.home-card:active {
+  transform: translateY(0);
 }
 
-.home-entry-subject {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.home-card-label {
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
-.home-entry-time {
-  font-size: 0.71875rem;
+.home-card-arrow {
   color: var(--ink-faint);
+  transition: transform 0.15s, color 0.15s;
 }
-
-.home-entry-more {
-  color: var(--ink-faint);
-  font-size: 0.71875rem;
-}
-
-@media (max-width: 620px) {
-  .home-grid {
-    grid-template-columns: 1fr;
-  }
-  .home-finance-row {
-    gap: 1.5rem;
-  }
+.home-card:hover .home-card-arrow,
+.home-card:focus-visible .home-card-arrow {
+  transform: translateX(5px);
+  color: var(--card-accent, var(--amber));
 }
 
 /* ═══════════════════════════════════════════════ JOURNAL ══ */
