@@ -676,6 +676,51 @@ a:hover {
   font-style: normal;
 }
 
+/* Color filter strip */
+.jsearch-colors {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.jsearch-color-chip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--chip-color);
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  outline: none;
+}
+.jsearch-color-chip:hover {
+  transform: scale(1.15);
+}
+.jsearch-color-chip.active {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--chip-color);
+  transform: scale(1.15);
+}
+
+.jsearch-color-clear {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+  margin-left: 0.25rem;
+}
+.jsearch-color-clear:hover {
+  color: var(--ink-soft);
+  border-color: var(--ink-faint);
+}
+
 .jsearch-hits {
   font-size: 0.8125rem;
   color: var(--ink-faint);

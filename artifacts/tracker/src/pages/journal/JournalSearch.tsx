@@ -53,9 +53,10 @@ const IcBack = () => (
 export default function JournalSearch() {
   const navigate  = useNavigate();
   const inputRef  = useRef<HTMLInputElement>(null);
-  const [query,   setQuery]   = useState("");
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [query,        setQuery]        = useState("");
+  const [entries,      setEntries]      = useState<Entry[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [activeColors, setActiveColors] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     api.get<Entry[]>("/api/journal/entries")
@@ -64,16 +65,41 @@ export default function JournalSearch() {
     setTimeout(() => inputRef.current?.focus(), 80);
   }, []);
 
+  // Colors ordered by frequency of use (most-used first)
+  const colorPalette = useMemo(() => {
+    const freq = new Map<string, number>();
+    for (const e of entries) freq.set(e.color, (freq.get(e.color) ?? 0) + 1);
+    return Array.from(freq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([color]) => color);
+  }, [entries]);
+
+  function toggleColor(color: string) {
+    setActiveColors(prev => {
+      const next = new Set(prev);
+      next.has(color) ? next.delete(color) : next.add(color);
+      return next;
+    });
+  }
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
+    const hasText   = q.length > 0;
+    const hasColors = activeColors.size > 0;
+
+    // Need at least one active filter to show anything
+    if (!hasText && !hasColors) return [];
+
     return entries
-      .filter(e =>
-        e.content.toLowerCase().includes(q) ||
-        (e.subject ?? "").toLowerCase().includes(q)
-      )
+      .filter(e => {
+        const colorOk = !hasColors || activeColors.has(e.color);
+        const textOk  = !hasText  ||
+          e.content.toLowerCase().includes(q) ||
+          (e.subject ?? "").toLowerCase().includes(q);
+        return colorOk && textOk;
+      })
       .sort((a, b) => b.startTime.localeCompare(a.startTime));
-  }, [query, entries]);
+  }, [query, entries, activeColors]);
 
   // Group results by date
   const groups = useMemo(() => {
@@ -87,6 +113,7 @@ export default function JournalSearch() {
   }, [results]);
 
   const q = query.trim();
+  const hasFilter = q.length > 0 || activeColors.size > 0;
 
   return (
     <div className="jsearch-shell">
@@ -114,19 +141,43 @@ export default function JournalSearch() {
         </div>
       </div>
 
+      {/* Color filter strip */}
+      {!loading && colorPalette.length > 0 && (
+        <div className="jsearch-colors">
+          {colorPalette.map(color => (
+            <button
+              key={color}
+              className={`jsearch-color-chip${activeColors.has(color) ? " active" : ""}`}
+              style={{ "--chip-color": color } as React.CSSProperties}
+              onClick={() => toggleColor(color)}
+              aria-label={`Filter by color ${color}`}
+              aria-pressed={activeColors.has(color)}
+            />
+          ))}
+          {activeColors.size > 0 && (
+            <button
+              className="jsearch-color-clear"
+              onClick={() => setActiveColors(new Set())}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Body */}
       <div className="jsearch-body">
         {loading && <p className="jsearch-status">Loading entries…</p>}
 
-        {!loading && !q && (
-          <p className="jsearch-status">Type to search all entries.</p>
+        {!loading && !hasFilter && (
+          <p className="jsearch-status">Search by keyword, or tap a color to filter.</p>
         )}
 
-        {!loading && q && results.length === 0 && (
-          <p className="jsearch-status">No entries match <strong>"{q}"</strong>.</p>
+        {!loading && hasFilter && results.length === 0 && (
+          <p className="jsearch-status">No entries match{q ? <> "<strong>{q}</strong>"</> : null}{activeColors.size > 0 ? " with the selected color" + (activeColors.size > 1 ? "s" : "") : ""}.</p>
         )}
 
-        {!loading && q && results.length > 0 && (
+        {!loading && hasFilter && results.length > 0 && (
           <p className="jsearch-hits">
             <strong>{results.length}</strong> {results.length === 1 ? "entry" : "entries"}
             {" across "}
