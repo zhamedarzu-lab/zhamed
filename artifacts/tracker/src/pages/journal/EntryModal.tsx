@@ -20,7 +20,7 @@ export type Entry = {
 export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
   { hex: "#e05555", label: "Red",    hint: "Bad habits"    },
   { hex: "#e08c3a", label: "Orange", hint: "Food & drink"  },
-  { hex: "#e0b04e", label: "Yellow", hint: "Yellow"        },
+  { hex: "#e0b04e", label: "Yellow", hint: "Fitness"       },
   { hex: "#4ecb71", label: "Green",  hint: "Green"         },
   { hex: "#4eaaee", label: "Blue",   hint: "Social"        },
   { hex: "#e04e8a", label: "Pink",   hint: "Pink"          },
