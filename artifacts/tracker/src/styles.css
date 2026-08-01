@@ -645,6 +645,16 @@ a:hover {
   border-radius: 10px;
   overflow: hidden;
   background: var(--paper);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.jsearch-card:hover {
+  background: color-mix(in srgb, var(--paper) 60%, var(--rule));
+  border-color: var(--rule-strong);
 }
 
 .jsearch-card-accent {

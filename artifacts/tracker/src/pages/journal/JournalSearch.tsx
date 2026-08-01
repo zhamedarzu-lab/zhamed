@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 
 type Entry = {
@@ -50,6 +50,31 @@ const IcBack = () => (
   </svg>
 );
 
+function EntryDetailModal({ entry, onClose }: { entry: Entry; onClose: () => void }) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  return (
+    <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="entry-modal" role="dialog" aria-modal="true">
+        <div className="entry-modal-header">
+          <span className="entry-modal-date">{fmtFullDate(entry.entryDate)}</span>
+          <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <div className="entry-modal-body">
+          <p className="entry-modal-time">{fmtTime(entry.startTime)}{entry.endTime ? ` – ${fmtTime(entry.endTime)}` : ""}</p>
+          {entry.subject && <h2 className="entry-modal-subject">{entry.subject}</h2>}
+          {entry.content && <p className="entry-modal-content">{entry.content}</p>}
+          {!entry.subject && !entry.content && <p className="entry-modal-empty">No content.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function JournalSearch() {
   const navigate  = useNavigate();
   const inputRef  = useRef<HTMLInputElement>(null);
@@ -57,6 +82,7 @@ export default function JournalSearch() {
   const [entries,      setEntries]      = useState<Entry[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [activeColors, setActiveColors] = useState<Set<string>>(new Set());
+  const [selected,     setSelected]     = useState<Entry | null>(null);
 
   useEffect(() => {
     api.get<Entry[]>("/api/journal/entries")
@@ -187,17 +213,9 @@ export default function JournalSearch() {
 
         {groups.map(([date, group]) => (
           <div key={date} className="jsearch-group">
-            <div className="jsearch-group-header">
-              <p className="jsearch-group-date">{fmtFullDate(date)}</p>
-              <Link
-                to={`/journal?date=${date}&view=day`}
-                className="jsearch-group-daylink"
-              >
-                View day →
-              </Link>
-            </div>
+            <p className="jsearch-group-date">{fmtFullDate(date)}</p>
             {group.map(e => (
-              <div key={e.id} className="jsearch-card">
+              <button key={e.id} className="jsearch-card" onClick={() => setSelected(e)}>
                 <div className="jsearch-card-accent" style={{ background: e.color }} />
                 <div className="jsearch-card-body">
                   <p className="jsearch-card-time">{fmtTime(e.startTime)}</p>
@@ -212,10 +230,12 @@ export default function JournalSearch() {
                     </p>
                   )}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         ))}
+
+        {selected && <EntryDetailModal entry={selected} onClose={() => setSelected(null)} />}
 
       </div>
     </div>
