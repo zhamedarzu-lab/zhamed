@@ -14,7 +14,7 @@ type View = "day" | "week" | "month";
 
 /* ── black color visibility helper ────────────────────────────────── */
 const BLACK = "#1c1c1e";
-const BLACK_STRIPE = "repeating-linear-gradient(45deg, #1c1c1e, #1c1c1e 5px, rgba(255,255,255,0.38) 5px, rgba(255,255,255,0.38) 6px)";
+const BLACK_STRIPE = "repeating-linear-gradient(45deg, #1c1c1e, #1c1c1e 4px, rgba(255,255,255,0.6) 4px, rgba(255,255,255,0.6) 5px)";
 const blackRing: React.CSSProperties = { boxShadow: "0 0 0 2px #ffffff" };
 function br(color: string): React.CSSProperties { return color === BLACK ? blackRing : {}; }
 
