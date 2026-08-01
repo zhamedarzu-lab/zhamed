@@ -566,13 +566,19 @@ export default function Journal() {
           {/* Entry list below grid */}
           {dayEntries.length > 0 && (
             <div className="journal-hday-list">
-              {dayEntries.map(e => (
-                <button key={e.id} className="journal-hday-list-row" onClick={() => setModal(e)}>
-                  <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
-                  <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                  <span className="journal-hday-list-label">{e.subject || e.content || "—"}</span>
-                </button>
-              ))}
+              {dayEntries.map(e => {
+                const isCarryover = e.entryDate !== focusYmd;
+                return (
+                  <button key={e.id} className={`journal-hday-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
+                    <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
+                    {isCarryover
+                      ? <span className="journal-hday-list-time">— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                      : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                    }
+                    <span className="journal-hday-list-label">{e.subject || e.content || "—"}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
           </>
