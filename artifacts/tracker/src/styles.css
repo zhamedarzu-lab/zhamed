@@ -1760,6 +1760,59 @@ a:hover {
 /* Week entry cursor */
 .journal-week-entry { cursor: pointer; }
 
+/* ── WEEK ENTRY LIST ── */
+.journal-week-list {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.journal-week-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--paper-sunk);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+  width: 100%;
+  transition: background 0.1s;
+}
+.journal-week-list-row:not(:last-child) { border-bottom: 1px solid var(--rule); }
+.journal-week-list-row:hover { background: var(--paper); }
+.journal-week-list-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.journal-week-list-day {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  min-width: 80px;
+}
+.journal-week-list-time {
+  flex-shrink: 0;
+  font-family: var(--fig);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  min-width: 90px;
+}
+.journal-week-list-label {
+  font-size: 0.85rem;
+  color: var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 /* ── MONTH VIEW ── */
 .journal-month {
   border: 1px solid var(--rule);

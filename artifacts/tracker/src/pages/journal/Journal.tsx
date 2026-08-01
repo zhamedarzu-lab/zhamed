@@ -810,6 +810,7 @@ export default function Journal() {
         const MAJOR_HOURS = new Set([6, 12, 18]);
         const weekStart = startOfWeek(focus);
         return (
+          <>
           <div className="journal-week-outer">
             <div className="journal-week-head-row">
               <div className="journal-week-axis-spacer" />
@@ -892,6 +893,32 @@ export default function Journal() {
               </div>
             </div>
           </div>
+
+          {/* Entry list for the week */}
+          {entries.length > 0 && (() => {
+            const sorted = [...entries].sort(
+              (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+            );
+            return (
+              <div className="journal-week-list">
+                {sorted.map(e => {
+                  const day = new Date(e.entryDate + "T00:00:00");
+                  const dayLabel = e.entryDate === todayYmd
+                    ? "Today"
+                    : day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                  return (
+                    <button key={e.id} className="journal-week-list-row" onClick={() => setModal(e)}>
+                      <span className="journal-week-list-dot" style={{ background: e.color } as React.CSSProperties} />
+                      <span className="journal-week-list-day">{dayLabel}</span>
+                      <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                      <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
+          </>
         );
       })()}
 
