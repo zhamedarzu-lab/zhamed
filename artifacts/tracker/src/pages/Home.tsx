@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { nextPayday } from "../lib/payday";
-
-const SECTIONS = [
-  { label: "Finance", path: "/finance", accent: "var(--amber)" },
-  { label: "Journal", path: "/journal", accent: "var(--carbon)" },
-  { label: "Fitness", path: "/fitness", accent: "#4ecb71" },
-];
+import { nextPayday, cycleProgress } from "../lib/payday";
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
@@ -19,49 +13,91 @@ function useNow(intervalMs: number): Date {
   return now;
 }
 
+const fmtClock = (d: Date) => {
+  const h = d.getHours();
+  return `${h % 12 || 12}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())} ${h >= 12 ? "pm" : "am"}`;
+};
+
+/** Same day arithmetic as the journal top bar: minutes elapsed of 1440. */
+const dayPct = (d: Date) => ((d.getHours() * 60 + d.getMinutes()) / 1440) * 100;
+
 export default function Home() {
   const now = useNow(1000);
   const payday = nextPayday(now);
-  const totalSeconds = Math.max(0, Math.round((payday.getTime() - now.getTime()) / 1000));
+  const cyclePct = cycleProgress(now) * 100;
+  const todayPct = dayPct(now);
 
-  const cells: Array<[string, string]> = [
-    [String(Math.floor(totalSeconds / 86400)), "days"],
-    [pad2(Math.floor((totalSeconds % 86400) / 3600)), "hrs"],
-    [pad2(Math.floor((totalSeconds % 3600) / 60)), "min"],
-    [pad2(totalSeconds % 60), "sec"],
+  const panes = [
+    {
+      label: "Finance",
+      path: "/finance",
+      accent: "#e0b04e",
+      pct: cyclePct,
+      caption: `payday · ${payday.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      })}`,
+    },
+    {
+      label: "Journal",
+      path: "/journal",
+      accent: "#6b9fd4",
+      pct: todayPct,
+      caption: "today",
+    },
+    {
+      label: "Fitness",
+      path: "/fitness",
+      accent: "#4ecb71",
+      pct: null,
+      caption: null,
+    },
   ];
 
   return (
     <div className="home-shell">
-      <h1 className="home-title home-rise">zh</h1>
-
-      <div className="home-countdown home-rise" style={{ ["--rise" as string]: 1 }}>
-        <span className="eyebrow">Next payday</span>
-        <div className="home-timer" role="timer" aria-label={`Next payday in ${cells[0][0]} days`}>
-          {cells.map(([val, label]) => (
-            <span key={label} className="home-timer-cell">
-              <span className="home-timer-num fig">{val}</span>
-              <span className="home-timer-label">{label}</span>
-            </span>
-          ))}
-        </div>
-        <span className="home-payday-date fig">
-          {payday.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+      <div className="home-mast home-rise">
+        <h1 className="home-title">zh</h1>
+        <span className="home-clock fig">{fmtClock(now)}</span>
+        <span className="home-date fig">
+          {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
         </span>
       </div>
 
-      <nav className="home-cards" aria-label="Sections">
-        {SECTIONS.map((s, i) => (
+      <nav className="home-panes" aria-label="Sections">
+        {panes.map((pane, i) => (
           <Link
-            key={s.path}
-            to={s.path}
-            className="home-card home-rise"
-            style={{ ["--card-accent" as string]: s.accent, ["--rise" as string]: i + 2 }}
+            key={pane.path}
+            to={pane.path}
+            className="home-pane home-rise"
+            style={{ ["--pane-accent" as string]: pane.accent, ["--rise" as string]: i + 1 }}
           >
-            <span className="home-card-label">{s.label}</span>
-            <span className="home-card-arrow" aria-hidden="true">
-              →
-            </span>
+            <div className="home-pane-head">
+              <span className="home-pane-label">{pane.label}</span>
+              {pane.pct !== null && (
+                <span className="home-pane-pct fig">
+                  {Math.round(pane.pct)}%
+                  {pane.caption && <span className="home-pane-caption"> · {pane.caption}</span>}
+                </span>
+              )}
+            </div>
+            {pane.pct !== null && (
+              <div
+                className="home-pane-bar"
+                role="progressbar"
+                aria-valuenow={Math.round(pane.pct)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={
+                  pane.label === "Finance"
+                    ? "Progress through the current pay cycle"
+                    : "Progress through the current day"
+                }
+              >
+                <div className="home-pane-bar-fill" style={{ width: `${pane.pct}%` }} />
+              </div>
+            )}
           </Link>
         ))}
       </nav>

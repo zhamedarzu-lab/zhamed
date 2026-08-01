@@ -58,14 +58,19 @@ function WordmarkNav() {
 }
 
 export default function App() {
+  // Home carries its own monogram, clock, and progress bars — the masthead
+  // (and the fixed top bar PaydayCountdown renders) would double all of it.
+  const isHome = useLocation().pathname === "/";
   return (
     <div className="shell">
-      <header className="masthead">
-        <div className="masthead-inner">
-          <WordmarkNav />
-          <PaydayCountdown />
-        </div>
-      </header>
+      {!isHome && (
+        <header className="masthead">
+          <div className="masthead-inner">
+            <WordmarkNav />
+            <PaydayCountdown />
+          </div>
+        </header>
+      )}
 
       <main>
         <Routes>

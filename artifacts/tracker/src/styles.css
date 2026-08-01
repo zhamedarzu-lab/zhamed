@@ -196,9 +196,9 @@ a:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100dvh - 160px);
+  min-height: 100dvh;
   padding: 2rem 1.25rem 3rem;
-  gap: 2.25rem;
+  gap: 2.5rem;
 }
 
 /* Everything on this page enters with the same rise; --rise staggers it. */
@@ -218,6 +218,13 @@ a:hover {
   animation-delay: calc(var(--rise, 0) * 90ms);
 }
 
+.home-mast {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .home-title {
   font-family: var(--fig);
   font-size: 3rem;
@@ -227,92 +234,93 @@ a:hover {
   letter-spacing: -0.02em;
 }
 
-.home-countdown {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.home-timer {
-  display: flex;
-  align-items: baseline;
-  gap: 1.1rem;
-}
-
-.home-timer-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-}
-
-.home-timer-num {
-  font-size: clamp(2.4rem, 9vw, 3.6rem);
-  font-weight: 600;
-  line-height: 1;
+.home-clock {
+  font-size: 1.05rem;
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
-.home-timer-label {
-  font-family: var(--fig);
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.home-date {
+  font-size: 0.8125rem;
   color: var(--ink-faint);
 }
 
-.home-payday-date {
-  font-size: 0.8125rem;
-  color: var(--ink-soft);
+.home-panes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 460px;
 }
 
-.home-cards {
+.home-pane {
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
-  width: 100%;
-  max-width: 360px;
-}
-
-.home-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
   background: var(--paper);
   border: 1px solid var(--rule);
-  border-left: 4px solid var(--card-accent, var(--amber));
+  border-left: 4px solid var(--pane-accent, var(--amber));
   border-radius: var(--r);
-  padding: 1.05rem 1.35rem;
+  padding: 1.15rem 1.35rem 1.25rem;
   color: var(--ink);
   text-decoration: none;
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
-.home-card:hover,
-.home-card:focus-visible {
+.home-pane:hover,
+.home-pane:focus-visible {
   text-decoration: none;
-  background: color-mix(in srgb, var(--card-accent, var(--amber)) 7%, var(--paper));
-  border-color: var(--card-accent, var(--amber));
+  background: color-mix(in srgb, var(--pane-accent, var(--amber)) 7%, var(--paper));
+  border-color: var(--pane-accent, var(--amber));
   transform: translateY(-2px);
 }
-.home-card:active {
+.home-pane:active {
   transform: translateY(0);
 }
 
-.home-card-label {
+.home-pane-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.home-pane-label {
   font-size: 1.05rem;
   font-weight: 700;
 }
 
-.home-card-arrow {
-  color: var(--ink-faint);
-  transition: transform 0.15s, color 0.15s;
+.home-pane-pct {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
 }
-.home-card:hover .home-card-arrow,
-.home-card:focus-visible .home-card-arrow {
-  transform: translateX(5px);
-  color: var(--card-accent, var(--amber));
+
+.home-pane-caption {
+  color: var(--ink-faint);
+  font-size: 0.71875rem;
+}
+
+/* Same bar language as the fixed top bars, shrunk into a pane. The fill
+   animates from zero via home-pane-fill on load, then tracks time. */
+.home-pane-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--paper-sunk);
+  overflow: hidden;
+}
+
+@keyframes home-pane-fill {
+  from {
+    width: 0;
+  }
+}
+
+.home-pane-bar-fill {
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: var(--pane-accent, var(--amber));
+  animation: home-pane-fill 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: 250ms;
+  transition: width 1s linear;
 }
 
 /* ═══════════════════════════════════════════════ JOURNAL ══ */

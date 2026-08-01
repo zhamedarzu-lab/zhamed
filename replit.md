@@ -34,9 +34,11 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-- The home page stays minimal: the zh monogram, the payday countdown, and the
-  three section links — nothing else. No debt figures, no journal previews, no
-  stats. "As simple as possible, real animated like, sleek."
+- The home page stays minimal: the zh monogram with the live clock and date,
+  then three panes — Finance with the pay-cycle progress bar, Journal with the
+  end-of-day progress bar, Fitness blank for now. No masthead / top banner on
+  home. No debt figures, no journal previews, no stats. "As simple as
+  possible, real animated like, sleek."
 
 ## Gotchas
 
