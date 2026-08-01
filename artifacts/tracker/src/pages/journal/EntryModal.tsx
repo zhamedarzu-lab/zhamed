@@ -96,7 +96,11 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
     setSaving(true);
     try {
       const startIso = toISOWithDate(date, startHHMM);
-      const endIso   = hasEnd && endHHMM ? toISOWithDate(date, endHHMM) : null;
+      // Cross-midnight: if end time is earlier in the day than start, end is on the next day
+      const endDate  = hasEnd && endHHMM && endHHMM <= startHHMM
+        ? toYMD(new Date(new Date(`${date}T${startHHMM}:00`).getTime() + 24 * 60 * 60 * 1000))
+        : date;
+      const endIso   = hasEnd && endHHMM ? toISOWithDate(endDate, endHHMM) : null;
       const payload  = {
         subject:   subject.trim() || null,
         content:   content.trim(),
