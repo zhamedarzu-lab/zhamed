@@ -735,9 +735,6 @@ a:hover {
   background: color-mix(in srgb, var(--chip-color) 15%, transparent);
   box-shadow: 0 0 0 1px var(--chip-color);
 }
-.jsearch-color-chip.unused {
-  opacity: 0.45;
-}
 .jsearch-chip-dot {
   width: 14px;
   height: 14px;
