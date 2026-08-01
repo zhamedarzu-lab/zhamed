@@ -88,6 +88,8 @@ const HighlightInput = z.object({
   label:         z.string().default(""),
   color:         z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#4eaaee"),
   showCountdown: z.boolean().default(false),
+  startTime:     z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  endTime:       z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
 });
 
 // GET /api/journal/highlights
@@ -136,6 +138,8 @@ router.patch("/highlights/:id", async (req, res) => {
   if (parsed.data.label         !== undefined) patch.label         = parsed.data.label;
   if (parsed.data.color         !== undefined) patch.color         = parsed.data.color;
   if (parsed.data.showCountdown !== undefined) patch.showCountdown = parsed.data.showCountdown;
+  if (parsed.data.startTime     !== undefined) patch.startTime     = parsed.data.startTime ?? null;
+  if (parsed.data.endTime       !== undefined) patch.endTime       = parsed.data.endTime   ?? null;
   if (!Object.keys(patch).length) { res.status(400).json({ error: "Nothing to update" }); return; }
   const [row] = await db
     .update(dayHighlightsTable)

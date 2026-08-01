@@ -1,0 +1,3 @@
+ALTER TABLE day_highlights
+  ADD COLUMN IF NOT EXISTS start_time TEXT,
+  ADD COLUMN IF NOT EXISTS end_time   TEXT;

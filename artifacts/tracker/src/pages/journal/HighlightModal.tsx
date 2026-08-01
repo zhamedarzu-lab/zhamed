@@ -1,6 +1,6 @@
 /**
  * HighlightModal — create / edit / delete a day highlight.
- * Opened from the DayPopup footer ("✦ Highlight" button).
+ * Supports whole-day, single time, or block time.
  */
 import React, { useEffect, useState } from "react";
 import { api } from "../../lib/api";
@@ -12,8 +12,12 @@ export type DayHighlight = {
   label: string;
   color: string;
   showCountdown: boolean;
+  startTime: string | null;
+  endTime:   string | null;
   createdAt: string;
 };
+
+type TimeType = "allday" | "time" | "block";
 
 type Props = {
   date: string; // YYYY-MM-DD
@@ -23,10 +27,19 @@ type Props = {
   onDelete: (id: number) => void;
 };
 
+function inferTimeType(h: DayHighlight | null): TimeType {
+  if (!h || !h.startTime) return "allday";
+  if (h.endTime) return "block";
+  return "time";
+}
+
 export default function HighlightModal({ date, existing, onClose, onSave, onDelete }: Props) {
   const [label,         setLabel]         = useState(existing?.label         ?? "");
   const [color,         setColor]         = useState(existing?.color         ?? "#4eaaee");
   const [showCountdown, setShowCountdown] = useState(existing?.showCountdown ?? false);
+  const [timeType,      setTimeType]      = useState<TimeType>(() => inferTimeType(existing));
+  const [startTime,     setStartTime]     = useState(existing?.startTime ?? "");
+  const [endTime,       setEndTime]       = useState(existing?.endTime   ?? "");
   const [saving,        setSaving]        = useState(false);
   const [deleting,      setDeleting]      = useState(false);
 
@@ -39,7 +52,14 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
   async function save() {
     setSaving(true);
     try {
-      const payload = { date, label: label.trim(), color, showCountdown };
+      const payload = {
+        date,
+        label:         label.trim(),
+        color,
+        showCountdown,
+        startTime: timeType !== "allday" && startTime ? startTime : null,
+        endTime:   timeType === "block"  && endTime   ? endTime   : null,
+      };
       const row: DayHighlight = existing
         ? await api.patch<DayHighlight>(`/api/journal/highlights/${existing.id}`, payload)
         : await api.post<DayHighlight>("/api/journal/highlights", payload);
@@ -73,6 +93,7 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
         </div>
         <div className="entry-modal-body">
           <div className="highlight-form">
+
             <label className="highlight-form-row">
               <span className="highlight-form-label">Label</span>
               <input
@@ -101,6 +122,46 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
               </div>
             </div>
 
+            {/* Time type selector */}
+            <div className="highlight-form-row">
+              <span className="highlight-form-label">Time</span>
+              <div className="highlight-time-tabs">
+                {(["allday", "time", "block"] as TimeType[]).map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={`highlight-time-tab${timeType === t ? " active" : ""}`}
+                    onClick={() => setTimeType(t)}
+                  >
+                    {t === "allday" ? "All day" : t === "time" ? "Time" : "Block"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {timeType !== "allday" && (
+              <div className="highlight-form-row">
+                <span className="highlight-form-label">{timeType === "block" ? "From" : "At"}</span>
+                <input
+                  className="highlight-form-input highlight-time-input"
+                  type="time"
+                  value={startTime}
+                  onChange={e => setStartTime(e.target.value)}
+                />
+                {timeType === "block" && (
+                  <>
+                    <span className="highlight-form-label" style={{ marginLeft: "0.5rem" }}>To</span>
+                    <input
+                      className="highlight-form-input highlight-time-input"
+                      type="time"
+                      value={endTime}
+                      onChange={e => setEndTime(e.target.value)}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
             <label className="highlight-form-row highlight-form-toggle-row">
               <span className="highlight-form-label">Countdown</span>
               <button
@@ -111,10 +172,8 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
               >
                 {showCountdown ? "On" : "Off"}
               </button>
-              {showCountdown && (
-                <span className="highlight-toggle-hint">Shows in masthead when date is upcoming</span>
-              )}
             </label>
+
           </div>
         </div>
 

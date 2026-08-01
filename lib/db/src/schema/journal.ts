@@ -20,6 +20,8 @@ export const dayHighlightsTable = pgTable("day_highlights", {
   label:         text("label").notNull().default(""),
   color:         text("color").notNull().default("#4eaaee"),
   showCountdown: boolean("show_countdown").notNull().default(false),
+  startTime:     text("start_time"),
+  endTime:       text("end_time"),
   createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

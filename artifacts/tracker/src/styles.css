@@ -980,11 +980,30 @@ a:hover {
   border-color: var(--amber);
   font-weight: 700;
 }
-.highlight-toggle-hint {
-  font-size: 0.7rem;
+.highlight-time-tabs {
+  display: flex;
+  gap: 4px;
+}
+.highlight-time-tab {
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--paper-sunk);
   color: var(--ink-soft);
-  flex-basis: 100%;
-  padding-left: 52px;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.highlight-time-tab.active {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--ink-soft);
+  font-weight: 600;
+}
+.highlight-time-input {
+  width: auto;
+  flex: 0 0 auto;
 }
 
 /* ── Highlight countdown button (in journal topbar) ── */
