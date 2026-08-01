@@ -1250,6 +1250,12 @@ a:hover {
   max-height: 320px;
   overflow-y: auto;
 }
+.day-popup-empty {
+  padding: 1rem 1.25rem;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-style: italic;
+}
 .day-popup-row {
   display: flex;
   align-items: center;

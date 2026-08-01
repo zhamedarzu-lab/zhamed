@@ -203,19 +203,22 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHi
           <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className="day-popup-list">
-          {sorted.map(e => {
-            const isCarryover = e.entryDate !== toYMD(date);
-            return (
-              <button key={e.id} className={`day-popup-row${isCarryover ? " is-carryover" : ""}`} onClick={() => { onClose(); onSelect(e); }}>
-                <span className="day-popup-dot" style={{ background: e.color, ...br(e.color) }} />
-                {isCarryover
-                  ? <span className="day-popup-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
-                  : <span className="day-popup-time">{fmtRange(e.startTime, e.endTime)}</span>
-                }
-                <span className="day-popup-label">{e.subject || e.content.slice(0, 60) || "—"}</span>
-              </button>
-            );
-          })}
+          {sorted.length === 0
+            ? <p className="day-popup-empty">No entries yet.</p>
+            : sorted.map(e => {
+                const isCarryover = e.entryDate !== toYMD(date);
+                return (
+                  <button key={e.id} className={`day-popup-row${isCarryover ? " is-carryover" : ""}`} onClick={() => { onClose(); onSelect(e); }}>
+                    <span className="day-popup-dot" style={{ background: e.color, ...br(e.color) }} />
+                    {isCarryover
+                      ? <span className="day-popup-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                      : <span className="day-popup-time">{fmtRange(e.startTime, e.endTime)}</span>
+                    }
+                    <span className="day-popup-label">{e.subject || e.content.slice(0, 60) || "—"}</span>
+                  </button>
+                );
+              })
+          }
         </div>
         <div className="day-popup-footer">
           <button className="day-popup-highlight-btn" onClick={() => { onClose(); onHighlight(); }}>
@@ -390,7 +393,7 @@ export default function Journal() {
             <button className="journal-today-btn" onClick={() => setFocus(new Date())}>Today</button>
           )}
         </div>
-        <HighlightCountdown highlights={highlights} />
+        {view === "month" && <HighlightCountdown highlights={highlights} />}
         <Link to="/journal/search" className="journal-search-link" aria-label="Search entries">
           Search
         </Link>
@@ -816,11 +819,7 @@ export default function Journal() {
                   <div key={ymd}
                     className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}${hl?" has-highlight":""}`}
                     style={hl ? { "--hl-color": hl.color } as React.CSSProperties : undefined}
-                    onClick={() => {
-                      if (allDayEntries.length > 0) setDayPopup({ date: day, entries: allDayEntries });
-                      else if (hl) setHlModal({ date: ymd, existing: hl });
-                      else { setFocus(day); setView("day"); }
-                    }}>
+                    onClick={() => setDayPopup({ date: day, entries: allDayEntries })}>
                     {isT && (
                       <div className="journal-month-now-bar"
                         style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
