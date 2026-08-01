@@ -1,0 +1,13 @@
+1. Protect the data — this is the real gap. Everything else is cosmetic next to this. Your finances and journal live in one Replit Postgres with no export and no backup. If that database is ever lost or reset, there is no recovery path. A GET /api/export that dumps every table to a single JSON file (and a matching import) is an afternoon of work and turns disaster into inconvenience. I’d build this before any feature.
+
+2. Put a lock on the door. There’s no auth at all. If the Replit deployment URL is reachable, anyone who has it can read your journal and your balances — arguably the two most private things you track. Even a single shared password gate (one env var, one cookie) would close that. Worth deciding deliberately rather than by default.
+
+3. A tiny CI check. Replit’s agent pushes to main many times a day, and I’ve caught it breaking things once already (the five type errors). A GitHub Actions workflow that runs pnpm run typecheck and the existing tests on every push — with the PORT/BASE_PATH env vars set — would email you when something lands broken instead of you discovering it in the app.
+
+4. Make the payday schedule yours to change. The anchor payday (Thu Jul 23, 4:00 AM, every 14 days) is hardcoded in lib/payday.ts. The comment says “edit this constant if the cadence changes” — fine until the day your employer changes payroll and the countdown, the home bar, and the calendar all go quietly wrong. A one-row settings table makes it editable in the app.
+
+5. Small warts, five minutes each: the third-paycheck label renders as “3/2”; the paycheck autocomplete refetches every paycheck on each editor open; the bundle has a chunk-size warning.
+
+6. The fun ones, when you’re ready: the Fitness section is an empty pane waiting for a plan, and a web-app manifest would let the app install to your phone’s home screen like a native app — which, given the countdown-checking habit this app is built around, might be the highest-delight-per-hour item on the list.
+
+My order would be 1, 2, 3, then whatever you feel like. Say the word on any of them and I’ll build it.
