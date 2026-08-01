@@ -3439,6 +3439,14 @@ button.btn-icon {
     row-gap: 0.5rem;
   }
 
+  /* Color strip takes its own full row so swatches aren't squeezed next to buttons */
+  .entry-form-colors {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    order: -1; /* colors on top, buttons below */
+  }
+
   /* Buttons: taller tap targets */
   .entry-form-action-right {
     width: 100%;
