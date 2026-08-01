@@ -1,0 +1,144 @@
+/**
+ * HighlightModal — create / edit / delete a day highlight.
+ * Opened from the DayPopup footer ("✦ Highlight" button).
+ */
+import React, { useEffect, useState } from "react";
+import { api } from "../../lib/api";
+import { ENTRY_COLORS } from "./EntryModal";
+
+export type DayHighlight = {
+  id: number;
+  date: string;
+  label: string;
+  color: string;
+  showCountdown: boolean;
+  createdAt: string;
+};
+
+type Props = {
+  date: string; // YYYY-MM-DD
+  existing: DayHighlight | null;
+  onClose: () => void;
+  onSave: (h: DayHighlight) => void;
+  onDelete: (id: number) => void;
+};
+
+export default function HighlightModal({ date, existing, onClose, onSave, onDelete }: Props) {
+  const [label,         setLabel]         = useState(existing?.label         ?? "");
+  const [color,         setColor]         = useState(existing?.color         ?? "#4eaaee");
+  const [showCountdown, setShowCountdown] = useState(existing?.showCountdown ?? false);
+  const [saving,        setSaving]        = useState(false);
+  const [deleting,      setDeleting]      = useState(false);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const payload = { date, label: label.trim(), color, showCountdown };
+      const row: DayHighlight = existing
+        ? await api.patch<DayHighlight>(`/api/journal/highlights/${existing.id}`, payload)
+        : await api.post<DayHighlight>("/api/journal/highlights", payload);
+      onSave(row);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (!existing) return;
+    setDeleting(true);
+    try {
+      await api.del(`/api/journal/highlights/${existing.id}`);
+      onDelete(existing.id);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const displayDate = new Date(date + "T00:00:00").toLocaleDateString("en-US", {
+    weekday: "long", month: "long", day: "numeric",
+  });
+
+  return (
+    <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="entry-modal highlight-modal" role="dialog" aria-modal="true">
+        <div className="entry-modal-header">
+          <span className="entry-modal-date">✦ Highlight · {displayDate}</span>
+          <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <div className="entry-modal-body">
+          <div className="highlight-form">
+            <label className="highlight-form-row">
+              <span className="highlight-form-label">Label</span>
+              <input
+                className="highlight-form-input"
+                type="text"
+                placeholder="e.g. dentist, concert…"
+                value={label}
+                autoFocus
+                onChange={e => setLabel(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && label.trim()) void save(); }}
+              />
+            </label>
+
+            <div className="highlight-form-row">
+              <span className="highlight-form-label">Color</span>
+              <div className="entry-form-colors">
+                {ENTRY_COLORS.map(c => (
+                  <button
+                    key={c.hex}
+                    className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+                    style={{ background: c.hex }}
+                    aria-label={c.label}
+                    onClick={() => setColor(c.hex)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <label className="highlight-form-row highlight-form-toggle-row">
+              <span className="highlight-form-label">Countdown</span>
+              <button
+                type="button"
+                className={`highlight-toggle${showCountdown ? " on" : ""}`}
+                onClick={() => setShowCountdown(v => !v)}
+                aria-pressed={showCountdown}
+              >
+                {showCountdown ? "On" : "Off"}
+              </button>
+              {showCountdown && (
+                <span className="highlight-toggle-hint">Shows in masthead when date is upcoming</span>
+              )}
+            </label>
+          </div>
+        </div>
+
+        <div className="entry-modal-footer">
+          {existing && (
+            <button
+              className="journal-action-btn danger"
+              onClick={remove}
+              disabled={deleting}
+              aria-label="Remove highlight"
+            >
+              {deleting ? "Removing…" : "Remove"}
+            </button>
+          )}
+          <button onClick={onClose}>Cancel</button>
+          <button
+            className="primary"
+            onClick={save}
+            disabled={saving || !label.trim()}
+          >
+            {saving ? "Saving…" : existing ? "Save" : "Add"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -9,6 +9,8 @@ import {
   IcTrash, IcEdit,
   EntryForm, EntryModal,
 } from "./EntryModal";
+import HighlightModal, { type DayHighlight } from "./HighlightModal";
+import HighlightCountdown from "../../components/HighlightCountdown";
 
 type View = "day" | "week" | "month";
 
@@ -169,11 +171,13 @@ function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps
 type DayPopupProps = {
   date: Date;
   entries: Entry[];
+  highlight: DayHighlight | null;
   onClose: () => void;
   onSelect: (e: Entry) => void;
   onGoToDay: () => void;
+  onHighlight: () => void;
 };
-function DayPopup({ date, entries, onClose, onSelect, onGoToDay }: DayPopupProps) {
+function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHighlight }: DayPopupProps) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -191,6 +195,11 @@ function DayPopup({ date, entries, onClose, onSelect, onGoToDay }: DayPopupProps
           <span className="day-popup-title">
             {date.toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}
           </span>
+          {highlight && (
+            <span className="day-popup-highlight-badge" style={{ background: highlight.color }}>
+              {highlight.label}
+            </span>
+          )}
           <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className="day-popup-list">
@@ -209,6 +218,9 @@ function DayPopup({ date, entries, onClose, onSelect, onGoToDay }: DayPopupProps
           })}
         </div>
         <div className="day-popup-footer">
+          <button className="day-popup-highlight-btn" onClick={() => { onClose(); onHighlight(); }}>
+            ✦ {highlight ? "Edit highlight" : "Highlight day"}
+          </button>
           <button onClick={() => { onClose(); onGoToDay(); }}>Open day view</button>
         </div>
       </div>
@@ -228,12 +240,14 @@ export default function Journal() {
     if (d) { const p = new Date(d + "T00:00:00"); if (!isNaN(p.getTime())) return p; }
     return new Date();
   });
-  const [entries,  setEntries]  = useState<Entry[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [adding,   setAdding]   = useState(false);
-  const [nowMin,   setNowMin]   = useState(nowMinutes());
-  const [modal,    setModal]    = useState<Entry | null>(null);
-  const [dayPopup, setDayPopup] = useState<{ date: Date; entries: Entry[] } | null>(null);
+  const [entries,    setEntries]    = useState<Entry[]>([]);
+  const [highlights, setHighlights] = useState<DayHighlight[]>([]);
+  const [loading,    setLoading]    = useState(false);
+  const [adding,     setAdding]     = useState(false);
+  const [nowMin,     setNowMin]     = useState(nowMinutes());
+  const [modal,      setModal]      = useState<Entry | null>(null);
+  const [dayPopup,   setDayPopup]   = useState<{ date: Date; entries: Entry[] } | null>(null);
+  const [hlModal,    setHlModal]    = useState<{ date: string; existing: DayHighlight | null } | null>(null);
   const [punches,  setPunchesRaw] = useState<PunchState[]>(loadPunches);
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const timelineRef  = useRef<HTMLDivElement>(null);
@@ -293,7 +307,13 @@ export default function Journal() {
     } finally { setLoading(false); }
   }, [focus, view]);
 
+  const fetchHighlights = useCallback(async () => {
+    const data = await api.get<DayHighlight[]>("/api/journal/highlights");
+    setHighlights(data);
+  }, []);
+
   useEffect(() => { void fetchEntries(); }, [fetchEntries]);
+  useEffect(() => { void fetchHighlights(); }, [fetchHighlights]);
 
   useEffect(() => {
     if (view !== "day" || !hdayScrollRef.current) return;
@@ -370,6 +390,7 @@ export default function Journal() {
             <button className="journal-today-btn" onClick={() => setFocus(new Date())}>Today</button>
           )}
         </div>
+        <HighlightCountdown highlights={highlights} />
         <Link to="/journal/search" className="journal-search-link" aria-label="Search entries">
           Search
         </Link>
@@ -397,9 +418,34 @@ export default function Journal() {
         <DayPopup
           date={dayPopup.date}
           entries={dayPopup.entries}
+          highlight={highlights.find(h => h.date === toYMD(dayPopup.date)) ?? null}
           onClose={() => setDayPopup(null)}
           onSelect={e => setModal(e)}
           onGoToDay={() => { setFocus(dayPopup.date); setView("day"); }}
+          onHighlight={() => {
+            const ymd = toYMD(dayPopup.date);
+            setHlModal({ date: ymd, existing: highlights.find(h => h.date === ymd) ?? null });
+          }}
+        />
+      )}
+
+      {/* Highlight form modal */}
+      {hlModal && (
+        <HighlightModal
+          date={hlModal.date}
+          existing={hlModal.existing}
+          onClose={() => setHlModal(null)}
+          onSave={row => {
+            setHighlights(prev => {
+              const exists = prev.some(h => h.id === row.id);
+              return exists ? prev.map(h => h.id === row.id ? row : h) : [...prev, row];
+            });
+            setHlModal(null);
+          }}
+          onDelete={id => {
+            setHighlights(prev => prev.filter(h => h.id !== id));
+            setHlModal(null);
+          }}
         />
       )}
 
@@ -765,17 +811,21 @@ export default function Journal() {
                 const dayEntries = byDate.get(ymd) ?? [];
                 const allDayEntries = [...carryoversForDate(ymd, entries), ...dayEntries];
                 const isT = ymd === todayYmd;
+                const hl  = highlights.find(h => h.date === ymd) ?? null;
                 return (
                   <div key={ymd}
-                    className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}`}
+                    className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}${hl?" has-highlight":""}`}
+                    style={hl ? { "--hl-color": hl.color } as React.CSSProperties : undefined}
                     onClick={() => {
                       if (allDayEntries.length > 0) setDayPopup({ date: day, entries: allDayEntries });
+                      else if (hl) setHlModal({ date: ymd, existing: hl });
                       else { setFocus(day); setView("day"); }
                     }}>
                     {isT && (
                       <div className="journal-month-now-bar"
                         style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
                     )}
+                    {hl && <span className="journal-month-cell-hlabel" style={{ color: hl.color }}>{hl.label}</span>}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
                     <div className="journal-month-lines">
                       {[...dayEntries]

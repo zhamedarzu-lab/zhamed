@@ -1,4 +1,4 @@
-import { pgTable, serial, text, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, date, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export const journalEntriesTable = pgTable("journal_entries", {
   id:        serial("id").primaryKey(),
@@ -13,3 +13,15 @@ export const journalEntriesTable = pgTable("journal_entries", {
 
 export type JournalEntry = typeof journalEntriesTable.$inferSelect;
 export type InsertJournalEntry = typeof journalEntriesTable.$inferInsert;
+
+export const dayHighlightsTable = pgTable("day_highlights", {
+  id:            serial("id").primaryKey(),
+  date:          text("date").notNull(),
+  label:         text("label").notNull().default(""),
+  color:         text("color").notNull().default("#4eaaee"),
+  showCountdown: boolean("show_countdown").notNull().default(false),
+  createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type DayHighlight = typeof dayHighlightsTable.$inferSelect;
+export type InsertDayHighlight = typeof dayHighlightsTable.$inferInsert;

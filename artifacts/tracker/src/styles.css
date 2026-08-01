@@ -933,6 +933,98 @@ a:hover {
 /* Week entry: pointer cursor since it's clickable */
 .journal-week-entry { cursor: pointer; }
 
+/* ── Highlight modal ── */
+.highlight-modal { max-width: 420px; }
+.highlight-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.highlight-form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.highlight-form-toggle-row { flex-wrap: wrap; }
+.highlight-form-label {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  min-width: 52px;
+}
+.highlight-form-input {
+  flex: 1;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  padding: 0.4rem 0.6rem;
+  outline: none;
+}
+.highlight-form-input:focus { border-color: var(--amber); }
+.highlight-toggle {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--paper-sunk);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.highlight-toggle.on {
+  background: var(--amber);
+  color: #000;
+  border-color: var(--amber);
+  font-weight: 700;
+}
+.highlight-toggle-hint {
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  flex-basis: 100%;
+  padding-left: 52px;
+}
+
+/* ── Highlight countdown button (in journal topbar) ── */
+.highlight-countdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--hc-color, #4eaaee) 40%, transparent);
+  border-radius: 20px;
+  padding: 0.25rem 0.65rem;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+  font-size: 0.78rem;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.highlight-countdown-btn:hover {
+  background: color-mix(in srgb, var(--hc-color, #4eaaee) 12%, transparent);
+}
+.hc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hc-color, #4eaaee);
+  flex-shrink: 0;
+}
+.hc-label {
+  font-weight: 600;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hc-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
 /* ── Entry form (add / edit) ── */
 .entry-form {
   display: flex;
@@ -1202,6 +1294,32 @@ a:hover {
   border-top: 1px solid var(--rule);
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
+  align-items: center;
+}
+.day-popup-highlight-btn {
+  margin-right: auto;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.day-popup-highlight-btn:hover {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+.day-popup-highlight-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  color: #fff;
+  mix-blend-mode: luminosity;
+  opacity: 0.9;
 }
 
 /* Month entry lines */
@@ -2173,6 +2291,24 @@ a:hover {
   pointer-events: none;
   opacity: 0.55;
 }
+/* Highlight ring on month cells */
+.journal-month-cell.has-highlight {
+  box-shadow: inset 0 0 0 2px var(--hl-color, #4eaaee);
+}
+.journal-month-cell-hlabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
+  margin-bottom: 1px;
+}
+
 .journal-month-cell-num {
   font-size: 0.8125rem;
   font-weight: 600;

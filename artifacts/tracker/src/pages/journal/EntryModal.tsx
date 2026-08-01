@@ -30,7 +30,9 @@ export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
   { hex: "#1c1c1e", label: "Black",  hint: "Black"         },
 ];
 
-/* ── time helpers ───────────────────────────────────────────────────── */
+export function toYMD(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 export function toISOWithDate(dateIso: string, timeHHMM: string): string {
   return new Date(`${dateIso}T${timeHHMM}:00`).toISOString();
 }
