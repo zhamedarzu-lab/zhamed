@@ -773,6 +773,9 @@ export default function Journal() {
                     <div className="journal-month-lines">
                       {[...dayEntries]
                         .sort((a, b) => {
+                          const WHITE = "#f5f5f5";
+                          if (a.color === WHITE && b.color !== WHITE) return -1;
+                          if (b.color === WHITE && a.color !== WHITE) return 1;
                           const ai = ENTRY_COLORS.findIndex(c => c.hex === a.color);
                           const bi = ENTRY_COLORS.findIndex(c => c.hex === b.color);
                           return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
