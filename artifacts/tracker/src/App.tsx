@@ -1,5 +1,5 @@
 import { Link, Route, Routes, useLocation } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Biweekly from "./pages/finance/Biweekly";
 import PaycheckEditor from "./pages/finance/PaycheckEditor";
 import Bills from "./pages/finance/Bills";
@@ -10,6 +10,7 @@ import MonthlySummary from "./pages/finance/MonthlySummary";
 import Journal from "./pages/journal/Journal";
 import Fitness from "./pages/fitness/Fitness";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
 import PaydayCountdown from "./components/PaydayCountdown";
 
 function WordmarkNav() {
@@ -57,7 +58,24 @@ function WordmarkNav() {
   );
 }
 
+type AuthState = "loading" | "authed" | "unauthed";
+
 export default function App() {
+  const [auth, setAuth] = useState<AuthState>("loading");
+
+  useEffect(() => {
+    fetch("/api/auth/check")
+      .then((r) => setAuth(r.ok ? "authed" : "unauthed"))
+      .catch(() => setAuth("unauthed"));
+  }, []);
+
+  if (auth === "loading") return <div className="login-shell" />;
+  if (auth === "unauthed") return <Login onLogin={() => setAuth("authed")} />;
+
+  return <AuthedApp />;
+}
+
+function AuthedApp() {
   // Home carries its own monogram, clock, and progress bars — the masthead
   // (and the fixed top bar PaydayCountdown renders) would double all of it.
   const isHome = useLocation().pathname === "/";
