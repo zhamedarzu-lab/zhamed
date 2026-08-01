@@ -1055,6 +1055,7 @@ a:hover {
   align-items: center;
   gap: 0.5rem;
 }
+.entry-form-subject-toggle,
 .entry-form-time-toggle {
   background: none;
   border: 1px solid var(--rule);
@@ -1065,6 +1066,13 @@ a:hover {
   cursor: pointer;
   color: var(--ink-soft);
   transition: border-color 0.12s, background 0.12s;
+}
+.entry-form-subject-toggle { font-weight: 700; letter-spacing: 0.01em; }
+.entry-form-subject-toggle:hover,
+.entry-form-subject-toggle.active {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink-soft) 10%, transparent);
 }
 .entry-form-time-toggle:hover,
 .entry-form-time-toggle.active {

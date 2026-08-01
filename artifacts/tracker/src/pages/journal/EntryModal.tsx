@@ -85,12 +85,11 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
   const [endHHMM,   setEndHHMM]   = useState(initial?.endTime ? toHHMM(initial.endTime) : "");
   const [color,     setColor]     = useState(initial?.color ?? ENTRY_COLORS[0].hex);
   const [date,      setDate]      = useState(initial?.entryDate ?? entryDate);
-  const [timesOpen, setTimesOpen] = useState(false);
-  const [saving,    setSaving]    = useState(false);
-  const [punchMode, setPunchMode] = useState(false);
-  const [punchNote, setPunchNote] = useState("");
-
-  const showSubject = content.trim().length >= 100 || Boolean(initial?.subject);
+  const [timesOpen,    setTimesOpen]    = useState(false);
+  const [showSubject,  setShowSubject]  = useState(Boolean(initial?.subject));
+  const [saving,       setSaving]       = useState(false);
+  const [punchMode,    setPunchMode]    = useState(false);
+  const [punchNote,    setPunchNote]    = useState("");
 
   async function submit() {
     setSaving(true);
@@ -160,8 +159,9 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
       {showSubject && (
         <input
           className="entry-form-subject"
-          placeholder="Subject (shown in previews)"
+          placeholder="Short label shown in lists…"
           value={subject}
+          autoFocus={!initial?.subject}
           onChange={e => setSubject(e.target.value)}
         />
       )}
@@ -200,6 +200,13 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
               Punch
             </button>
           )}
+          <button
+            className={`entry-form-subject-toggle${showSubject ? " active" : ""}`}
+            onClick={() => setShowSubject(o => !o)}
+            aria-label="Add subject"
+            title="Subject (shown in lists)"
+            type="button"
+          >S</button>
           <button
             className={`entry-form-time-toggle${timesOpen ? " active" : ""}`}
             onClick={() => setTimesOpen(o => !o)}
