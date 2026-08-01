@@ -480,6 +480,7 @@ export default function Journal() {
   const [modal,    setModal]    = useState<Entry | null>(null);
   const [dayPopup, setDayPopup] = useState<{ date: Date; entries: Entry[] } | null>(null);
   const [punches,  setPunchesRaw] = useState<PunchState[]>(loadPunches);
+  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
   const timelineRef  = useRef<HTMLDivElement>(null);
   const hdayScrollRef = useRef<HTMLDivElement>(null);
 
@@ -926,25 +927,48 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* Entry list for the week */}
+          {/* Entry list for the week — grouped by day */}
           {entries.length > 0 && (() => {
             const sorted = [...entries].sort(
               (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
             );
+            // Build ordered groups
+            const groupMap = new Map<string, Entry[]>();
+            for (const e of sorted) {
+              const arr = groupMap.get(e.entryDate) ?? [];
+              arr.push(e);
+              groupMap.set(e.entryDate, arr);
+            }
+            const groups = Array.from(groupMap.entries()); // already sorted by date
+
             return (
               <div className="journal-week-list">
-                {sorted.map(e => {
-                  const day = new Date(e.entryDate + "T00:00:00");
-                  const dayLabel = e.entryDate === todayYmd
+                {groups.map(([ymd, group], gi) => {
+                  const collapsed = collapsedDays.has(ymd);
+                  const day = new Date(ymd + "T00:00:00");
+                  const dayLabel = ymd === todayYmd
                     ? "Today"
                     : day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                  const toggleCollapse = () => setCollapsedDays(prev => {
+                    const next = new Set(prev);
+                    next.has(ymd) ? next.delete(ymd) : next.add(ymd);
+                    return next;
+                  });
                   return (
-                    <button key={e.id} className="journal-week-list-row" onClick={() => setModal(e)}>
-                      <span className="journal-week-list-dot" style={{ background: e.color } as React.CSSProperties} />
-                      <span className="journal-week-list-day">{dayLabel}</span>
-                      <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                      <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
-                    </button>
+                    <div key={ymd} className={`journal-week-group${gi > 0 ? " journal-week-group--sep" : ""}`}>
+                      <button className="journal-week-group-hd" onClick={toggleCollapse}>
+                        <span className="journal-week-group-day">{dayLabel}</span>
+                        <span className="journal-week-group-count">{group.length} {group.length === 1 ? "entry" : "entries"}</span>
+                        <span className={`journal-week-group-chevron${collapsed ? " collapsed" : ""}`}>›</span>
+                      </button>
+                      {!collapsed && group.map(e => (
+                        <button key={e.id} className="journal-week-list-row" onClick={() => setModal(e)}>
+                          <span className="journal-week-list-dot" style={{ background: e.color } as React.CSSProperties} />
+                          <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                          <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
+                        </button>
+                      ))}
+                    </div>
                   );
                 })}
               </div>

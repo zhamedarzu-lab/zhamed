@@ -1928,37 +1928,75 @@ a:hover {
   margin-top: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 1px;
   border: 1px solid var(--rule);
   border-radius: 12px;
   overflow: hidden;
 }
+
+/* group separator */
+.journal-week-group--sep { border-top: 1px solid var(--rule); }
+
+/* group header / toggle button */
+.journal-week-group-hd {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.75rem;
+  background: var(--paper-sunk);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+  transition: background 0.1s;
+}
+.journal-week-group-hd:hover { background: var(--paper); }
+
+.journal-week-group-day {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+.journal-week-group-count {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  flex: 1;
+}
+
+.journal-week-group-chevron {
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  display: inline-block;
+  transform: rotate(90deg);
+  transition: transform 0.18s;
+  line-height: 1;
+}
+.journal-week-group-chevron.collapsed { transform: rotate(0deg); }
+
+/* entry rows */
 .journal-week-list-row {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--paper-sunk);
+  padding: 0.45rem 0.75rem 0.45rem 1rem;
+  background: var(--paper);
   border: none;
+  border-top: 1px solid var(--rule);
   cursor: pointer;
   text-align: left;
   color: var(--ink);
   width: 100%;
   transition: background 0.1s;
 }
-.journal-week-list-row:not(:last-child) { border-bottom: 1px solid var(--rule); }
-.journal-week-list-row:hover { background: var(--paper); }
+.journal-week-list-row:hover { background: color-mix(in srgb, var(--paper) 60%, var(--rule)); }
 .journal-week-list-dot {
   flex-shrink: 0;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-}
-.journal-week-list-day {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  color: var(--ink-soft);
-  min-width: 80px;
 }
 .journal-week-list-time {
   flex-shrink: 0;
