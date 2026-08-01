@@ -1171,24 +1171,31 @@ a:hover {
 
 /* Month chips (replace plain dots) */
 /* Month entry lines */
-.journal-month-lines {
+.journal-month-colors {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-content: flex-start;
 }
-.journal-month-line {
-  height: 3px;
-  background: var(--amber);
-  border-radius: 2px;
-  opacity: 0.55;
-  cursor: pointer;
-  position: relative;
-  transition: opacity 0.12s;
-  z-index: 1;
+.journal-month-color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
-.journal-month-line:hover { opacity: 0.85; }
+.journal-month-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+.journal-month-color-count {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Shared tooltip text styles */
 .tip-time {
@@ -2132,12 +2139,13 @@ a:hover {
 
 .journal-month-now-bar {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 3px;
+  top: 0;
+  width: 2px;
+  height: 100%;
   background: var(--amber);
-  border-radius: 0 2px 2px 0;
+  border-radius: 1px;
   pointer-events: none;
+  opacity: 0.55;
 }
 .journal-month-cell-num {
   font-size: 0.8125rem;
