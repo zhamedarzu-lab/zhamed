@@ -680,9 +680,9 @@ export default function Journal() {
                 <div className="journal-hday-axis" style={{ height: AXIS_H }}>
                   {Array.from({ length: 24 }, (_, h) => (
                     <span key={h}
-                      className={`journal-hday-hour${h === 12 ? " is-noon" : ""}${isToday && h === curHour ? " is-current" : ""}`}
+                      className={`journal-hday-hour${h === 6 ? " is-dawn" : ""}${h === 12 ? " is-noon" : ""}${h === 18 ? " is-dusk" : ""}${isToday && h === curHour ? " is-current" : ""}`}
                       style={{ left: h * COL_W + COL_W / 2 }}>
-                      {h === 12 ? <><IcSun /><em>noon</em></> : fmtH(h)}
+                      {h === 6 ? <><span className="journal-hday-hour-mark">☽</span><em>6am</em></> : h === 12 ? <><IcSun /><em>noon</em></> : h === 18 ? <><span className="journal-hday-hour-mark">◐</span><em>6pm</em></> : fmtH(h)}
                     </span>
                   ))}
                 </div>
@@ -693,7 +693,7 @@ export default function Journal() {
                   {/* Vertical hour separators */}
                   {Array.from({ length: 25 }, (_, h) => (
                     <div key={h}
-                      className={`journal-hday-gridline${h === 12 ? " is-noon" : ""}`}
+                      className={`journal-hday-gridline${h === 6 ? " is-dawn" : ""}${h === 12 ? " is-noon" : ""}${h === 18 ? " is-dusk" : ""}`}
                       style={{ left: h * COL_W }} />
                   ))}
 
@@ -873,6 +873,9 @@ export default function Journal() {
                             onClick={() => setModal(e)}
                             role="button" tabIndex={0}
                             onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
+                            <span className="journal-week-line-label">
+                              {e.subject || e.content || ""}
+                            </span>
                             <div className="journal-week-line-tip">
                               <span className="tip-time">{fmtRange(e.startTime, e.endTime)}</span>
                               {e.subject && <strong className="tip-subject">{e.subject}</strong>}
