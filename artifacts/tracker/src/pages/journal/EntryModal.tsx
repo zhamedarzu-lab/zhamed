@@ -23,10 +23,11 @@ export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
   { hex: "#e0b04e", label: "Yellow", hint: "Yellow"        },
   { hex: "#4ecb71", label: "Green",  hint: "Green"         },
   { hex: "#4eaaee", label: "Blue",   hint: "Social"        },
-  { hex: "#6e4ee0", label: "Indigo", hint: "Thoughts"      },
-  { hex: "#9b4ee0", label: "Violet", hint: "Dreams"        },
+  { hex: "#e04e8a", label: "Pink",   hint: "Pink"          },
+  { hex: "#9b4ee0", label: "Purple", hint: "Purple"        },
   { hex: "#f5f5f5", label: "White",  hint: "Work"          },
   { hex: "#8a9aaa", label: "Gray",   hint: "Sleep"         },
+  { hex: "#1c1c1e", label: "Black",  hint: "Black"         },
 ];
 
 /* ── time helpers ───────────────────────────────────────────────────── */
