@@ -480,7 +480,7 @@ export default function Journal() {
   const [modal,    setModal]    = useState<Entry | null>(null);
   const [dayPopup, setDayPopup] = useState<{ date: Date; entries: Entry[] } | null>(null);
   const [punches,  setPunchesRaw] = useState<PunchState[]>(loadPunches);
-  const [collapsedDays, setCollapsedDays] = useState<Set<string>>(new Set());
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const timelineRef  = useRef<HTMLDivElement>(null);
   const hdayScrollRef = useRef<HTMLDivElement>(null);
 
@@ -944,12 +944,12 @@ export default function Journal() {
             return (
               <div className="journal-week-list">
                 {groups.map(([ymd, group], gi) => {
-                  const collapsed = collapsedDays.has(ymd);
+                  const expanded = expandedDays.has(ymd);
                   const day = new Date(ymd + "T00:00:00");
                   const dayLabel = ymd === todayYmd
                     ? "Today"
                     : day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-                  const toggleCollapse = () => setCollapsedDays(prev => {
+                  const toggleCollapse = () => setExpandedDays(prev => {
                     const next = new Set(prev);
                     next.has(ymd) ? next.delete(ymd) : next.add(ymd);
                     return next;
@@ -959,9 +959,9 @@ export default function Journal() {
                       <button className="journal-week-group-hd" onClick={toggleCollapse}>
                         <span className="journal-week-group-day">{dayLabel}</span>
                         <span className="journal-week-group-count">{group.length} {group.length === 1 ? "entry" : "entries"}</span>
-                        <span className={`journal-week-group-chevron${collapsed ? " collapsed" : ""}`}>›</span>
+                        <span className={`journal-week-group-chevron${!expanded ? " collapsed" : ""}`}>›</span>
                       </button>
-                      {!collapsed && group.map(e => (
+                      {expanded && group.map(e => (
                         <button key={e.id} className="journal-week-list-row" onClick={() => setModal(e)}>
                           <span className="journal-week-list-dot" style={{ background: e.color } as React.CSSProperties} />
                           <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
