@@ -171,7 +171,7 @@ export default function JournalSearch() {
             <p className="jsearch-group-date">{fmtFullDate(date)}</p>
             {group.map(e => (
               <button key={e.id} className="jsearch-card" onClick={() => setSelected(e)}>
-                <div className="jsearch-card-accent" style={{ background: e.color }} />
+                <div className="jsearch-card-accent" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)" } : {}) }} />
                 <div className="jsearch-card-body">
                   <p className="jsearch-card-time">{fmtRange(e.startTime, e.endTime)}</p>
                   {e.subject && (
