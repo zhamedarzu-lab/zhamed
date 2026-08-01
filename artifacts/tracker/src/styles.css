@@ -3290,8 +3290,8 @@ button.btn-icon {
 
   /* Bigger color swatches — easier to tap */
   .entry-color-swatch {
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
   }
 
   /* Action row: wrap so buttons don't overflow */
