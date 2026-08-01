@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
 
 type Entry = {
@@ -85,11 +86,9 @@ function toHHMM(iso: string): string {
 function nowHHMM(): string { return toHHMM(new Date().toISOString()); }
 
 /* ── icons ─────────────────────────────────────────────────────────── */
-const IcPlus   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>;
-const IcTrash  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>;
-const IcEdit   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
-const IcSearch = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>;
-const IcClose  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>;
+const IcPlus  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>;
+const IcTrash = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>;
+const IcEdit  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const IcSun   = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
     <circle cx="12" cy="12" r="4.5"/>
@@ -472,60 +471,19 @@ function DayPopup({ date, entries, onClose, onSelect, onGoToDay }: DayPopupProps
 
 /* ═══════════════════════════════════════════════════════════════════ */
 export default function Journal() {
-  const [view,        setView]       = useState<View>("month");
-  const [focus,       setFocus]      = useState(() => new Date());
-  const [entries,     setEntries]    = useState<Entry[]>([]);
-  const [loading,     setLoading]    = useState(false);
-  const [adding,      setAdding]     = useState(false);
-  const [nowMin,      setNowMin]     = useState(nowMinutes());
-  const [modal,       setModal]      = useState<Entry | null>(null);
-  const [dayPopup,    setDayPopup]   = useState<{ date: Date; entries: Entry[] } | null>(null);
-  const [punches,     setPunchesRaw] = useState<PunchState[]>(loadPunches);
-  const [searchOpen,  setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [allEntries,  setAllEntries] = useState<Entry[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const timelineRef   = useRef<HTMLDivElement>(null);
+  const [view,     setView]     = useState<View>("month");
+  const [focus,    setFocus]    = useState(() => new Date());
+  const [entries,  setEntries]  = useState<Entry[]>([]);
+  const [loading,  setLoading]  = useState(false);
+  const [adding,   setAdding]   = useState(false);
+  const [nowMin,   setNowMin]   = useState(nowMinutes());
+  const [modal,    setModal]    = useState<Entry | null>(null);
+  const [dayPopup, setDayPopup] = useState<{ date: Date; entries: Entry[] } | null>(null);
+  const [punches,  setPunchesRaw] = useState<PunchState[]>(loadPunches);
+  const timelineRef  = useRef<HTMLDivElement>(null);
   const hdayScrollRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
-
-  // ── search ──────────────────────────────────────────────────────────
-  async function openSearch() {
-    setSearchOpen(true);
-    setSearchQuery("");
-    if (allEntries.length === 0) {
-      setSearchLoading(true);
-      try {
-        const data = await api.get<Entry[]>("/api/journal/entries");
-        setAllEntries(data);
-      } finally { setSearchLoading(false); }
-    }
-    setTimeout(() => searchInputRef.current?.focus(), 50);
-  }
-
-  function closeSearch() {
-    setSearchOpen(false);
-    setSearchQuery("");
-  }
-
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
-    return allEntries.filter(e =>
-      e.content.toLowerCase().includes(q) ||
-      (e.subject ?? "").toLowerCase().includes(q)
-    ).sort((a, b) => b.startTime.localeCompare(a.startTime));
-  }, [searchQuery, allEntries]);
-
-  // Keep allEntries in sync when a new entry is saved while search is open
-  function syncSearchEntry(e: Entry) {
-    setAllEntries(prev => {
-      const idx = prev.findIndex(x => x.id === e.id);
-      return idx >= 0 ? prev.map(x => x.id === e.id ? e : x) : [e, ...prev];
-    });
-  }
 
   function punchIn(note: string, color: string) {
     if (punches.length >= PUNCH_MAX) return;
@@ -602,13 +560,11 @@ export default function Journal() {
   async function deleteEntry(id: number) {
     await api.del(`/api/journal/entries/${id}`);
     setEntries(prev => prev.filter(e => e.id !== id));
-    setAllEntries(prev => prev.filter(e => e.id !== id));
     setModal(prev => prev?.id === id ? null : prev);
   }
   function updateEntry(updated: Entry) {
     setEntries(prev => prev.map(e => e.id === updated.id ? updated : e));
     setModal(prev => prev?.id === updated.id ? updated : prev);
-    syncSearchEntry(updated);
   }
 
   function periodLabel() {
@@ -641,97 +597,30 @@ export default function Journal() {
     <div className="journal-shell">
       {/* Top bar */}
       <div className="journal-topbar">
-        {searchOpen ? (
-          <div className="journal-search-bar">
-            <IcSearch />
-            <input
-              ref={searchInputRef}
-              className="journal-search-input"
-              placeholder="Search entries…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onKeyDown={e => { if (e.key === "Escape") closeSearch(); }}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <button className="quiet btn-icon" onClick={closeSearch} aria-label="Close search">
-              <IcClose />
+        <div className="journal-view-toggle">
+          {(["day","week","month"] as View[]).map(v => (
+            <button key={v} className={view === v ? "active" : ""} onClick={() => setView(v)}>
+              {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
-          </div>
-        ) : (
-          <>
-            <div className="journal-view-toggle">
-              {(["day","week","month"] as View[]).map(v => (
-                <button key={v} className={view === v ? "active" : ""} onClick={() => setView(v)}>
-                  {v.charAt(0).toUpperCase() + v.slice(1)}
-                </button>
-              ))}
-            </div>
-            <div className="journal-nav">
-              <button className="journal-nav-btn" onClick={() => navigate(-1)} aria-label="Previous">‹</button>
-              <span className="journal-period" data-today={view === "day" && isToday ? "true" : "false"}>
-                {periodLabel()}
-              </span>
-              <button className="journal-nav-btn" onClick={() => navigate(1)} aria-label="Next">›</button>
-              {!isToday && view === "day" && (
-                <button className="journal-today-btn" onClick={() => setFocus(new Date())}>Today</button>
-              )}
-            </div>
-            <button className="journal-search-btn" onClick={openSearch} aria-label="Search entries">
-              <IcSearch />
-            </button>
-            <button className="journal-add-btn" onClick={() => setAdding(a => !a)} aria-label="Add entry">
-              <IcPlus /> New entry
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Search results */}
-      {searchOpen && (
-        <div className="journal-search-results">
-          {searchLoading && <p className="journal-search-status">Loading…</p>}
-          {!searchLoading && searchQuery.trim() === "" && (
-            <p className="journal-search-status">Start typing to search all entries.</p>
-          )}
-          {!searchLoading && searchQuery.trim() !== "" && searchResults.length === 0 && (
-            <p className="journal-search-status">No entries match "{searchQuery.trim()}".</p>
-          )}
-          {searchResults.length > 0 && (() => {
-            // Group by entryDate
-            const groups = new Map<string, Entry[]>();
-            for (const e of searchResults) {
-              const arr = groups.get(e.entryDate) ?? [];
-              arr.push(e);
-              groups.set(e.entryDate, arr);
-            }
-            return Array.from(groups.entries()).map(([date, group]) => (
-              <div key={date} className="journal-search-group">
-                <p className="journal-search-date">
-                  {new Date(date + "T00:00:00").toLocaleDateString("en-US", {
-                    weekday: "short", month: "short", day: "numeric", year: "numeric"
-                  })}
-                </p>
-                {group.map(e => (
-                  <button
-                    key={e.id}
-                    className="journal-search-row"
-                    onClick={() => setModal(e)}
-                  >
-                    <span className="journal-search-dot" style={{ background: e.color }} />
-                    <span className="journal-search-time">{fmtTime(e.startTime)}</span>
-                    <span className="journal-search-text">
-                      {e.subject && <strong>{e.subject}</strong>}
-                      {e.subject && e.content && " — "}
-                      {e.content && <span>{e.content.slice(0, 120)}{e.content.length > 120 ? "…" : ""}</span>}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ));
-          })()}
+          ))}
         </div>
-      )}
+        <div className="journal-nav">
+          <button className="journal-nav-btn" onClick={() => navigate(-1)} aria-label="Previous">‹</button>
+          <span className="journal-period" data-today={view === "day" && isToday ? "true" : "false"}>
+            {periodLabel()}
+          </span>
+          <button className="journal-nav-btn" onClick={() => navigate(1)} aria-label="Next">›</button>
+          {!isToday && view === "day" && (
+            <button className="journal-today-btn" onClick={() => setFocus(new Date())}>Today</button>
+          )}
+        </div>
+        <Link to="/journal/search" className="journal-search-link" aria-label="Search entries">
+          Search
+        </Link>
+        <button className="journal-add-btn" onClick={() => setAdding(a => !a)} aria-label="Add entry">
+          <IcPlus /> New entry
+        </button>
+      </div>
 
       {/* Add form */}
       {adding && (

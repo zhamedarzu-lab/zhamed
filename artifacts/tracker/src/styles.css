@@ -502,121 +502,186 @@ a:hover {
   background: var(--paper-sunk);
 }
 
-/* Search */
-.journal-search-btn {
+/* Journal → Search link in topbar */
+.journal-search-link {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
   border: 1px solid var(--rule-strong);
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--paper-sunk);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--ink-soft);
+  padding: 0.3rem 0.75rem;
   cursor: pointer;
+  text-decoration: none;
   transition: color 0.12s, border-color 0.12s, background 0.12s;
   flex-shrink: 0;
 }
-.journal-search-btn:hover {
-  background: var(--rule);
-  border-color: var(--ink-soft);
+.journal-search-link:hover {
   color: var(--ink);
+  border-color: var(--ink-soft);
+  background: var(--rule);
 }
 
-.journal-search-bar {
+/* ── Dedicated search page ──────────────────────────────────────────── */
+.jsearch-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 60px);
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 3rem;
+}
+
+.jsearch-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  background: var(--paper-sunk);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.jsearch-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--rule-strong);
   border-radius: 10px;
-  padding: 0.35rem 0.75rem;
+  background: var(--paper-sunk);
   color: var(--ink-soft);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s;
 }
-.journal-search-input {
+.jsearch-back:hover { color: var(--ink); background: var(--rule); }
+
+.jsearch-input-wrap {
   flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.jsearch-input {
+  width: 100%;
+  font: inherit;
+  font-size: 1.125rem;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  color: var(--ink);
+  padding: 0.6rem 2.5rem 0.6rem 1rem;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.jsearch-input:focus { border-color: var(--ink-soft); }
+.jsearch-input::placeholder { color: var(--ink-faint); }
+
+.jsearch-clear {
+  position: absolute;
+  right: 0.75rem;
   background: none;
   border: none;
-  outline: none;
-  font: inherit;
-  font-size: 0.9375rem;
-  color: var(--ink);
-  padding: 0;
-}
-.journal-search-input::placeholder { color: var(--ink-faint); }
-
-.journal-search-results {
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 1.25rem;
-}
-
-.journal-search-status {
-  padding: 1rem 1.25rem;
-  font-size: 0.875rem;
+  font-size: 1.25rem;
+  line-height: 1;
   color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.1s;
+}
+.jsearch-clear:hover { color: var(--ink-soft); }
+
+.jsearch-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.jsearch-status {
+  color: var(--ink-faint);
+  font-size: 0.9375rem;
   margin: 0;
+  padding: 0.5rem 0;
 }
 
-.journal-search-group {
-  border-bottom: 1px solid var(--rule);
+.jsearch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
-.journal-search-group:last-child { border-bottom: none; }
 
-.journal-search-date {
+.jsearch-group-date {
   font-size: 0.75rem;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  padding: 0.5rem 1rem 0.25rem;
-  margin: 0;
+  margin: 0 0 0.25rem;
 }
 
-.journal-search-row {
+.jsearch-card {
   display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  border-top: 1px solid var(--rule);
-  padding: 0.55rem 1rem;
-  cursor: pointer;
-  transition: background 0.1s;
-  color: var(--ink);
-  font: inherit;
+  gap: 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper);
 }
-.journal-search-row:first-of-type { border-top: none; }
-.journal-search-row:hover { background: var(--paper-sunk); }
 
-.journal-search-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.jsearch-card-accent {
+  width: 4px;
   flex-shrink: 0;
-  margin-top: 0.2rem;
-  align-self: center;
 }
 
-.journal-search-time {
+.jsearch-card-body {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.jsearch-card-time {
   font-family: var(--fig);
   font-size: 0.75rem;
   color: var(--ink-faint);
-  flex-shrink: 0;
-  white-space: nowrap;
+  margin: 0;
 }
 
-.journal-search-text {
+.jsearch-card-subject {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.jsearch-card-content {
   font-size: 0.875rem;
   color: var(--ink-soft);
-  line-height: 1.4;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
-.journal-search-text strong {
+
+/* Highlight matched text */
+.search-hl {
+  background: color-mix(in srgb, var(--amber) 30%, transparent);
   color: var(--ink);
-  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 1px;
+  font-style: normal;
+}
+
+.jsearch-count {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+  margin: 0;
+  text-align: center;
+  padding-top: 0.5rem;
 }
 
 /* Add form */
