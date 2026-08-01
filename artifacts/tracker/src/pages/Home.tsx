@@ -42,7 +42,6 @@ export default function Home() {
           >
             <span className="home-card-icon">{s.icon}</span>
             <span className="home-card-label">{s.label}</span>
-            <span className="home-card-desc">{s.description}</span>
           </button>
         ))}
       </div>
