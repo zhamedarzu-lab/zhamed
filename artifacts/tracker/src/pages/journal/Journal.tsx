@@ -193,15 +193,19 @@ function DayPopup({ date, entries, onClose, onSelect, onGoToDay }: DayPopupProps
           <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className="day-popup-list">
-          {sorted.map(e => (
-            <button key={e.id} className="day-popup-row" onClick={() => { onClose(); onSelect(e); }}>
-              <span className="day-popup-dot" style={{ background: e.color, ...br(e.color) }} />
-              <span className="day-popup-time">{fmtRange(e.startTime, e.endTime)}</span>
-              <span className="day-popup-label">
-                {e.subject || e.content.slice(0, 60) || "—"}
-              </span>
-            </button>
-          ))}
+          {sorted.map(e => {
+            const isCarryover = e.entryDate !== toYMD(date);
+            return (
+              <button key={e.id} className={`day-popup-row${isCarryover ? " is-carryover" : ""}`} onClick={() => { onClose(); onSelect(e); }}>
+                <span className="day-popup-dot" style={{ background: e.color, ...br(e.color) }} />
+                {isCarryover
+                  ? <span className="day-popup-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                  : <span className="day-popup-time">{fmtRange(e.startTime, e.endTime)}</span>
+                }
+                <span className="day-popup-label">{e.subject || e.content.slice(0, 60) || "—"}</span>
+              </button>
+            );
+          })}
         </div>
         <div className="day-popup-footer">
           <button onClick={() => { onClose(); onGoToDay(); }}>Open day view</button>
@@ -751,12 +755,13 @@ export default function Journal() {
                 const ymd = toYMD(day);
                 const inMonth   = day >= monthStart && day <= monthEnd;
                 const dayEntries = byDate.get(ymd) ?? [];
+                const allDayEntries = [...carryoversForDate(ymd, entries), ...dayEntries];
                 const isT = ymd === todayYmd;
                 return (
                   <div key={ymd}
                     className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}`}
                     onClick={() => {
-                      if (dayEntries.length > 0) setDayPopup({ date: day, entries: dayEntries });
+                      if (allDayEntries.length > 0) setDayPopup({ date: day, entries: allDayEntries });
                       else { setFocus(day); setView("day"); }
                     }}>
                     {isT && (
