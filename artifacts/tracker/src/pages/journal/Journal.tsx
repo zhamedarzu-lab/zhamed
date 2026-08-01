@@ -26,7 +26,8 @@ const ENTRY_COLORS: { hex: string; label: string }[] = [
 type View = "day" | "week" | "month";
 
 /* ── date helpers ──────────────────────────────────────────────────── */
-const toYMD = (d: Date) => d.toISOString().slice(0, 10);
+const toYMD = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 function startOfWeek(d: Date) {
   const c = new Date(d); c.setDate(c.getDate() - c.getDay()); return c;
