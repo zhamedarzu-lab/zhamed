@@ -210,12 +210,6 @@ a:hover {
   letter-spacing: -0.02em;
 }
 
-.home-sub {
-  margin: 0 0 2rem;
-  font-size: 0.9rem;
-  color: var(--ink-soft);
-}
-
 .home-cards {
   display: flex;
   flex-direction: column;

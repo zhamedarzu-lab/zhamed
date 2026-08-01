@@ -32,7 +32,6 @@ export default function Home() {
   return (
     <div className="home-shell">
       <h1 className="home-title">zh</h1>
-      <p className="home-sub">What are we looking at today?</p>
       <div className="home-cards">
         {SECTIONS.map(s => (
           <button
