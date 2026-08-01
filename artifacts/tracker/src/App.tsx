@@ -9,13 +9,16 @@ import Cash from "./pages/finance/Cash";
 import MonthlySummary from "./pages/finance/MonthlySummary";
 import Journal from "./pages/journal/Journal";
 import Fitness from "./pages/fitness/Fitness";
+import Home from "./pages/Home";
 import PaydayCountdown from "./components/PaydayCountdown";
 
 function WordmarkNav() {
   const { pathname } = useLocation();
-  const section =
+  const isHome    = pathname === "/";
+  const section   =
     pathname.startsWith("/journal") ? "Journal"
     : pathname.startsWith("/fitness") ? "Fitness"
+    : isHome ? "zh"
     : "Finance";
 
   const [open, setOpen] = useState(false);
@@ -44,9 +47,10 @@ function WordmarkNav() {
       </span>
       {open && (
         <nav className="wordmark-nav" aria-label="Sections">
-          <Link to="/" className={section === "Finance" ? "active" : ""} onClick={handleLinkClick}>Finance</Link>
-          <Link to="/journal" className={section === "Journal" ? "active" : ""} onClick={handleLinkClick}>Journal</Link>
-          <Link to="/fitness" className={section === "Fitness" ? "active" : ""} onClick={handleLinkClick}>Fitness</Link>
+          <Link to="/"        className={isHome ? "active" : ""}                       onClick={handleLinkClick}>Home</Link>
+          <Link to="/finance" className={section === "Finance" ? "active" : ""}        onClick={handleLinkClick}>Finance</Link>
+          <Link to="/journal" className={section === "Journal" ? "active" : ""}        onClick={handleLinkClick}>Journal</Link>
+          <Link to="/fitness" className={section === "Fitness" ? "active" : ""}        onClick={handleLinkClick}>Fitness</Link>
         </nav>
       )}
     </div>
@@ -65,17 +69,18 @@ export default function App() {
 
       <main>
         <Routes>
-          <Route path="/" element={<Biweekly />} />
-          <Route path="/finance/new" element={<PaycheckEditor />} />
-          <Route path="/finance/paycheck/:id" element={<PaycheckEditor />} />
-          <Route path="/finance/bills" element={<Bills />} />
-          <Route path="/finance/subscriptions" element={<Subscriptions />} />
-          <Route path="/finance/debt" element={<Debt />} />
-          <Route path="/finance/cash" element={<Cash />} />
-          <Route path="/finance/monthly" element={<MonthlySummary />} />
-          <Route path="/journal" element={<Journal />} />
-          <Route path="/fitness" element={<Fitness />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="/"                        element={<Home />} />
+          <Route path="/finance"                 element={<Biweekly />} />
+          <Route path="/finance/new"             element={<PaycheckEditor />} />
+          <Route path="/finance/paycheck/:id"    element={<PaycheckEditor />} />
+          <Route path="/finance/bills"           element={<Bills />} />
+          <Route path="/finance/subscriptions"   element={<Subscriptions />} />
+          <Route path="/finance/debt"            element={<Debt />} />
+          <Route path="/finance/cash"            element={<Cash />} />
+          <Route path="/finance/monthly"         element={<MonthlySummary />} />
+          <Route path="/journal"                 element={<Journal />} />
+          <Route path="/fitness"                 element={<Fitness />} />
+          <Route path="*"                        element={<NotFound />} />
         </Routes>
       </main>
     </div>
