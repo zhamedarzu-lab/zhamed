@@ -1196,32 +1196,18 @@ a:hover {
   justify-content: flex-end;
 }
 
-/* Month chips (replace plain dots) */
 /* Month entry lines */
-.journal-month-colors {
+.journal-month-lines {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-content: flex-start;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  justify-content: flex-start;
 }
-.journal-month-color-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-.journal-month-color-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  opacity: 0.75;
-  flex-shrink: 0;
-}
-.journal-month-color-count {
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: var(--ink-soft);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+.journal-month-line {
+  height: 3px;
+  border-radius: 2px;
+  opacity: 0.65;
 }
 
 /* Shared tooltip text styles */

@@ -758,24 +758,12 @@ export default function Journal() {
                         style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
                     )}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
-                    {dayEntries.length > 0 && (() => {
-                      const groups = dayEntries.reduce<Record<string,number>>((acc, e) => {
-                        acc[e.color] = (acc[e.color] ?? 0) + 1;
-                        return acc;
-                      }, {});
-                      return (
-                        <div className="journal-month-colors">
-                          {Object.entries(groups)
-                            .sort((a, b) => b[1] - a[1])
-                            .map(([color, cnt]) => (
-                              <span key={color} className="journal-month-color-chip">
-                                <span className="journal-month-color-dot" style={{ background: color, ...br(color) }} />
-                                {cnt > 1 && <span className="journal-month-color-count">{cnt}</span>}
-                              </span>
-                            ))}
-                        </div>
-                      );
-                    })()}
+                    <div className="journal-month-lines">
+                      {dayEntries.map(e => (
+                        <div key={e.id} className="journal-month-line"
+                          style={{ background: e.color === BLACK ? undefined : e.color, ...(e.color === BLACK ? { background: "rgba(255,255,255,0.5)" } : {}) }} />
+                      ))}
+                    </div>
                   </div>
                 );
               })}
