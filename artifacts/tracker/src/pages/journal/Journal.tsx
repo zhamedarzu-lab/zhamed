@@ -14,7 +14,8 @@ type View = "day" | "week" | "month";
 
 /* ── black color visibility helper ────────────────────────────────── */
 const BLACK = "#1c1c1e";
-const BLACK_STRIPE = "repeating-linear-gradient(45deg, #1c1c1e, #1c1c1e 4px, rgba(255,255,255,0.6) 4px, rgba(255,255,255,0.6) 5px)";
+const BLACK_STRIPE      = "repeating-linear-gradient(45deg, #1c1c1e, #1c1c1e 4px, rgba(255,255,255,0.6) 4px, rgba(255,255,255,0.6) 5px)";
+const BLACK_STRIPE_WEEK = "repeating-linear-gradient(45deg, #1c1c1e, #1c1c1e 4px, rgba(255,255,255,0.28) 4px, rgba(255,255,255,0.28) 5px)";
 const blackRing: React.CSSProperties = { boxShadow: "0 0 0 2px #ffffff" };
 function br(color: string): React.CSSProperties { return color === BLACK ? blackRing : {}; }
 
@@ -653,7 +654,7 @@ export default function Journal() {
                           : 3;
                         return (
                           <div key={e.id} className="journal-week-line"
-                            style={{ top: topPct, height: heightVal, background: e.color === BLACK ? BLACK_STRIPE : e.color, ...(e.color === BLACK ? { outline: "1px solid rgba(255,255,255,0.5)", outlineOffset: "-1px" } : {}) }}
+                            style={{ top: topPct, height: heightVal, background: e.color === BLACK ? BLACK_STRIPE_WEEK : e.color, ...(e.color === BLACK ? { outline: "1px solid rgba(255,255,255,0.3)", outlineOffset: "-1px" } : {}) }}
                             onClick={() => setModal(e)}
                             role="button" tabIndex={0}
                             onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
