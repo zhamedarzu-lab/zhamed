@@ -46,13 +46,11 @@ export default function JournalSearch() {
     setTimeout(() => inputRef.current?.focus(), 80);
   }, []);
 
-  // Always show all palette colors; sort most-used first, unused last
+  // Always show all palette colors in fixed ROYGBIV order
   const colorPalette = useMemo(() => {
     const freq = new Map<string, number>();
     for (const e of entries) freq.set(e.color, (freq.get(e.color) ?? 0) + 1);
-    return ENTRY_COLORS
-      .map(c => ({ ...c, count: freq.get(c.hex) ?? 0 }))
-      .sort((a, b) => b.count - a.count);
+    return ENTRY_COLORS.map(c => ({ ...c, count: freq.get(c.hex) ?? 0 }));
   }, [entries]);
 
   function toggleColor(color: string) {
