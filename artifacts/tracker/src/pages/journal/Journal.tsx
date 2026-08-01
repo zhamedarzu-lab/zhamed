@@ -711,7 +711,7 @@ export default function Journal() {
                           : 3;
                         return (
                           <div key={e.id} className="journal-week-line"
-                            style={{ top: topPct, height: heightVal, background: e.color === BLACK ? BLACK_STRIPE_WEEK : e.color, ...(e.color === BLACK ? { outline: "1px solid rgba(255,255,255,0.3)", outlineOffset: "-1px" } : {}) }}
+                            style={{ top: topPct, height: heightVal, background: e.color === BLACK ? BLACK_STRIPE_WEEK : e.color, opacity: e.color === "#f5f5f5" ? 0.45 : 1, ...(e.color === BLACK ? { outline: "1px solid rgba(255,255,255,0.3)", outlineOffset: "-1px" } : {}) }}
                             onClick={() => setModal(e)}
                             role="button" tabIndex={0}
                             onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
