@@ -12,6 +12,11 @@ import {
 
 type View = "day" | "week" | "month";
 
+/* ── black color visibility helper ────────────────────────────────── */
+const BLACK = "#1c1c1e";
+const blackRing: React.CSSProperties = { boxShadow: "0 0 0 1.5px rgba(255,255,255,0.65)" };
+function br(color: string): React.CSSProperties { return color === BLACK ? blackRing : {}; }
+
 /* ── date helpers ──────────────────────────────────────────────────── */
 const toYMD = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -130,7 +135,7 @@ function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps
   if (editing) return (
     <div className="journal-feed-row">
       <span className="journal-feed-time">{fmtRange(entry.startTime, entry.endTime)}</span>
-      <span className="journal-feed-node" style={{ "--dot-color": entry.color, ...(entry.color === "#1c1c1e" ? { "--dot-ring": "rgba(255,255,255,0.35)" } : {}) } as React.CSSProperties} aria-hidden="true" />
+      <span className="journal-feed-node" style={{ "--dot-color": entry.color, ...(entry.color === BLACK ? { "--dot-ring": "rgba(255,255,255,0.65)" } : {}) } as React.CSSProperties} aria-hidden="true" />
       <EntryForm
         entryDate={entryDate}
         initial={entry}
@@ -142,8 +147,8 @@ function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps
   return (
     <div className={`journal-feed-row${dim ? " is-future" : ""}`}>
       <span className="journal-feed-time">{fmtRange(entry.startTime, entry.endTime)}</span>
-      <span className="journal-feed-node" style={{ "--dot-color": entry.color, ...(entry.color === "#1c1c1e" ? { "--dot-ring": "rgba(255,255,255,0.35)" } : {}) } as React.CSSProperties} aria-hidden="true" />
-      <div className="journal-feed-card" style={{ "--entry-color": entry.color, ...(entry.color === "#1c1c1e" ? { borderLeftColor: "rgba(255,255,255,0.3)" } : {}) } as React.CSSProperties}>
+      <span className="journal-feed-node" style={{ "--dot-color": entry.color, ...(entry.color === BLACK ? { "--dot-ring": "rgba(255,255,255,0.65)" } : {}) } as React.CSSProperties} aria-hidden="true" />
+      <div className="journal-feed-card" style={{ "--entry-color": entry.color, ...(entry.color === BLACK ? { borderLeftColor: "rgba(255,255,255,0.55)" } : {}) } as React.CSSProperties}>
         <div className="journal-feed-body">
           {entry.subject && <p className="journal-feed-subject">{entry.subject}</p>}
           {entry.content && <p className="journal-feed-text">{entry.content}</p>}
@@ -188,7 +193,7 @@ function DayPopup({ date, entries, onClose, onSelect, onGoToDay }: DayPopupProps
         <div className="day-popup-list">
           {sorted.map(e => (
             <button key={e.id} className="day-popup-row" onClick={() => { onClose(); onSelect(e); }}>
-              <span className="day-popup-dot" style={{ background: e.color }} />
+              <span className="day-popup-dot" style={{ background: e.color, ...br(e.color) }} />
               <span className="day-popup-time">{fmtRange(e.startTime, e.endTime)}</span>
               <span className="day-popup-label">
                 {e.subject || e.content.slice(0, 60) || "—"}
@@ -501,7 +506,7 @@ export default function Journal() {
                       if (sliceBottom > sliceTop) slices.push(
                         <div key={h}
                           className="journal-hday-span"
-                          style={{ left: h * COL_W, top: sliceTop, width: COL_W, height: sliceBottom - sliceTop, background: e.color } as React.CSSProperties} />
+                          style={{ left: h * COL_W, top: sliceTop, width: COL_W, height: sliceBottom - sliceTop, background: e.color, ...(e.color === BLACK ? { outline: "1px solid rgba(255,255,255,0.4)" } : {}) } as React.CSSProperties} />
                       );
                     }
                     return <React.Fragment key={e.id}>{slices}</React.Fragment>;
@@ -561,7 +566,7 @@ export default function Journal() {
             <div className="journal-hday-list">
               {dayEntries.map(e => (
                 <button key={e.id} className="journal-hday-list-row" onClick={() => setModal(e)}>
-                  <span className="journal-hday-list-dot" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "0 0 0 1px rgba(255,255,255,0.3)" } : {}) } as React.CSSProperties} />
+                  <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
                   <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
                   <span className="journal-hday-list-label">{e.subject || e.content || "—"}</span>
                 </button>
@@ -647,7 +652,7 @@ export default function Journal() {
                           : 3;
                         return (
                           <div key={e.id} className="journal-week-line"
-                            style={{ top: topPct, height: heightVal, background: e.color }}
+                            style={{ top: topPct, height: heightVal, background: e.color, ...(e.color === BLACK ? { outline: "1px solid rgba(255,255,255,0.4)" } : {}) }}
                             onClick={() => setModal(e)}
                             role="button" tabIndex={0}
                             onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
@@ -706,7 +711,7 @@ export default function Journal() {
                       </button>
                       {expanded && group.map(e => (
                         <button key={e.id} className="journal-week-list-row" onClick={() => setModal(e)}>
-                          <span className="journal-week-list-dot" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "0 0 0 1px rgba(255,255,255,0.3)" } : {}) } as React.CSSProperties} />
+                          <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
                           <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
                           <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
                         </button>
@@ -762,7 +767,7 @@ export default function Journal() {
                             .sort((a, b) => b[1] - a[1])
                             .map(([color, cnt]) => (
                               <span key={color} className="journal-month-color-chip">
-                                <span className="journal-month-color-dot" style={{ background: color }} />
+                                <span className="journal-month-color-dot" style={{ background: color, ...br(color) }} />
                                 {cnt > 1 && <span className="journal-month-color-count">{cnt}</span>}
                               </span>
                             ))}
