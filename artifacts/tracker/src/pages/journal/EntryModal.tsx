@@ -17,16 +17,16 @@ export type Entry = {
 };
 
 /* ── colors ─────────────────────────────────────────────────────────── */
-export const ENTRY_COLORS: { hex: string; label: string }[] = [
-  { hex: "#e05555", label: "Red"    },
-  { hex: "#e08c3a", label: "Orange" },
-  { hex: "#e0b04e", label: "Yellow" },
-  { hex: "#4ecb71", label: "Green"  },
-  { hex: "#4e90e0", label: "Blue"   },
-  { hex: "#4b5ee0", label: "Indigo" },
-  { hex: "#9b4ee0", label: "Violet" },
-  { hex: "#f5f5f5", label: "White"  },
-  { hex: "#8a9aaa", label: "Gray"   },
+export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
+  { hex: "#e05555", label: "Red",    hint: "Bad habits"    },
+  { hex: "#e08c3a", label: "Orange", hint: "Food & drink"  },
+  { hex: "#e0b04e", label: "Yellow", hint: "Yellow"        },
+  { hex: "#4ecb71", label: "Green",  hint: "Green"         },
+  { hex: "#4e90e0", label: "Blue",   hint: "Social"        },
+  { hex: "#4b5ee0", label: "Indigo", hint: "Thoughts"      },
+  { hex: "#9b4ee0", label: "Violet", hint: "Dreams"        },
+  { hex: "#f5f5f5", label: "White",  hint: "Work"          },
+  { hex: "#8a9aaa", label: "Gray",   hint: "Sleep"         },
 ];
 
 /* ── time helpers ───────────────────────────────────────────────────── */

@@ -713,23 +713,52 @@ a:hover {
 }
 
 .jsearch-color-chip {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--chip-color);
-  border: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.2rem 0.55rem 0.2rem 0.35rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: transparent;
   cursor: pointer;
   flex-shrink: 0;
-  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  transition: border-color 0.12s, background 0.12s, opacity 0.12s;
   outline: none;
 }
 .jsearch-color-chip:hover {
-  transform: scale(1.15);
+  border-color: var(--chip-color);
+  background: color-mix(in srgb, var(--chip-color) 10%, transparent);
 }
 .jsearch-color-chip.active {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 2px var(--chip-color);
-  transform: scale(1.15);
+  border-color: var(--chip-color);
+  background: color-mix(in srgb, var(--chip-color) 15%, transparent);
+  box-shadow: 0 0 0 1px var(--chip-color);
+}
+.jsearch-color-chip.unused {
+  opacity: 0.45;
+}
+.jsearch-chip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--chip-color);
+  flex-shrink: 0;
+}
+.jsearch-chip-label {
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  line-height: 1;
+  white-space: nowrap;
+}
+.jsearch-color-chip.active .jsearch-chip-label {
+  color: var(--ink);
+}
+.jsearch-chip-count {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .jsearch-color-clear {

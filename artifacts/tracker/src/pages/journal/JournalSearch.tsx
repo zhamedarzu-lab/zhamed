@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
-import { type Entry, fmtTime, fmtFullDate, EntryModal } from "./EntryModal";
+import { type Entry, ENTRY_COLORS, fmtTime, fmtFullDate, EntryModal } from "./EntryModal";
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -46,13 +46,13 @@ export default function JournalSearch() {
     setTimeout(() => inputRef.current?.focus(), 80);
   }, []);
 
-  // Colors ordered by frequency of use (most-used first)
+  // Always show all palette colors; sort most-used first, unused last
   const colorPalette = useMemo(() => {
     const freq = new Map<string, number>();
     for (const e of entries) freq.set(e.color, (freq.get(e.color) ?? 0) + 1);
-    return Array.from(freq.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([color]) => color);
+    return ENTRY_COLORS
+      .map(c => ({ ...c, count: freq.get(c.hex) ?? 0 }))
+      .sort((a, b) => b.count - a.count);
   }, [entries]);
 
   function toggleColor(color: string) {
@@ -123,17 +123,21 @@ export default function JournalSearch() {
       </div>
 
       {/* Color filter strip */}
-      {!loading && colorPalette.length > 0 && (
+      {!loading && (
         <div className="jsearch-colors">
-          {colorPalette.map(color => (
+          {colorPalette.map(({ hex, hint, count }) => (
             <button
-              key={color}
-              className={`jsearch-color-chip${activeColors.has(color) ? " active" : ""}`}
-              style={{ "--chip-color": color } as React.CSSProperties}
-              onClick={() => toggleColor(color)}
-              aria-label={`Filter by color ${color}`}
-              aria-pressed={activeColors.has(color)}
-            />
+              key={hex}
+              className={`jsearch-color-chip${activeColors.has(hex) ? " active" : ""}${count === 0 ? " unused" : ""}`}
+              style={{ "--chip-color": hex } as React.CSSProperties}
+              onClick={() => toggleColor(hex)}
+              aria-label={`Filter by ${hint}`}
+              aria-pressed={activeColors.has(hex)}
+            >
+              <span className="jsearch-chip-dot" />
+              <span className="jsearch-chip-label">{hint}</span>
+              {count > 0 && <span className="jsearch-chip-count">{count}</span>}
+            </button>
           ))}
           {activeColors.size > 0 && (
             <button
