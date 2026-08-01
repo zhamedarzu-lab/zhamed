@@ -688,19 +688,20 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* Entry list for the week — grouped by day */}
+          {/* Entry list for the week — grouped by day, including carryovers */}
           {entries.length > 0 && (() => {
-            const sorted = [...entries].sort(
-              (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-            );
-            // Build ordered groups
-            const groupMap = new Map<string, Entry[]>();
-            for (const e of sorted) {
-              const arr = groupMap.get(e.entryDate) ?? [];
-              arr.push(e);
-              groupMap.set(e.entryDate, arr);
+            // Build groups day-by-day so carryovers appear under the day they end on
+            const groups: [string, Entry[]][] = [];
+            for (let i = 0; i < 7; i++) {
+              const day = addDays(weekStart, i);
+              const ymd = toYMD(day);
+              const carryovers = carryoversForDate(ymd, entries);
+              const own = [...(byDate.get(ymd) ?? [])].sort(
+                (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+              );
+              const combined = [...carryovers, ...own];
+              if (combined.length > 0) groups.push([ymd, combined]);
             }
-            const groups = Array.from(groupMap.entries()); // already sorted by date
 
             return (
               <div className="journal-week-list">
@@ -722,13 +723,19 @@ export default function Journal() {
                         <span className="journal-week-group-count">{group.length} {group.length === 1 ? "entry" : "entries"}</span>
                         <span className={`journal-week-group-chevron${!expanded ? " collapsed" : ""}`}>›</span>
                       </button>
-                      {expanded && group.map(e => (
-                        <button key={e.id} className="journal-week-list-row" onClick={() => setModal(e)}>
-                          <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
-                          <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                          <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
-                        </button>
-                      ))}
+                      {expanded && group.map(e => {
+                        const isCarryover = e.entryDate !== ymd;
+                        return (
+                          <button key={e.id} className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
+                            <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
+                            {isCarryover
+                              ? <span className="journal-week-list-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                              : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                            }
+                            <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   );
                 })}
