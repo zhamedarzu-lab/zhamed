@@ -126,6 +126,14 @@ export default function JournalSearch() {
           <p className="jsearch-status">No entries match <strong>"{q}"</strong>.</p>
         )}
 
+        {!loading && q && results.length > 0 && (
+          <p className="jsearch-hits">
+            <strong>{results.length}</strong> {results.length === 1 ? "entry" : "entries"}
+            {" across "}
+            <strong>{groups.length}</strong> {groups.length === 1 ? "day" : "days"}
+          </p>
+        )}
+
         {groups.map(([date, group]) => (
           <div key={date} className="jsearch-group">
             <p className="jsearch-group-date">{fmtFullDate(date)}</p>
@@ -150,9 +158,6 @@ export default function JournalSearch() {
           </div>
         ))}
 
-        {!loading && q && results.length > 0 && (
-          <p className="jsearch-count">{results.length} result{results.length !== 1 ? "s" : ""}</p>
-        )}
       </div>
     </div>
   );

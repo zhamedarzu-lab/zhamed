@@ -676,12 +676,14 @@ a:hover {
   font-style: normal;
 }
 
-.jsearch-count {
+.jsearch-hits {
   font-size: 0.8125rem;
   color: var(--ink-faint);
   margin: 0;
-  text-align: center;
-  padding-top: 0.5rem;
+}
+.jsearch-hits strong {
+  color: var(--ink-soft);
+  font-weight: 600;
 }
 
 /* Add form */
