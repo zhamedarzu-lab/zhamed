@@ -135,7 +135,6 @@ export default function JournalSearch() {
               aria-pressed={activeColors.has(hex)}
             >
               <span className="jsearch-chip-dot" />
-              <span className="jsearch-chip-label">{hint}</span>
               {count > 0 && <span className="jsearch-chip-count">{count}</span>}
             </button>
           ))}
