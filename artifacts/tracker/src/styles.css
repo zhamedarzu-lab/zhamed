@@ -1200,14 +1200,14 @@ a:hover {
 .journal-month-lines {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  justify-content: flex-start;
+  gap: 2px;
+  overflow: hidden;
 }
 .journal-month-line {
-  height: 3px;
-  border-radius: 2px;
-  opacity: 0.65;
+  height: 1px;
+  border-radius: 0;
+  opacity: 0.75;
+  flex-shrink: 0;
 }
 
 /* Shared tooltip text styles */
