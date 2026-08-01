@@ -715,9 +715,10 @@ a:hover {
 .jsearch-color-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 0.2rem 0.55rem 0.2rem 0.35rem;
-  border-radius: 999px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   border: 1.5px solid var(--rule);
   background: transparent;
   cursor: pointer;
@@ -738,8 +739,8 @@ a:hover {
   opacity: 0.45;
 }
 .jsearch-chip-dot {
-  width: 9px;
-  height: 9px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--chip-color);
   flex-shrink: 0;
