@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { api } from "../../lib/api";
 import {
   type Entry,
   ENTRY_COLORS,
