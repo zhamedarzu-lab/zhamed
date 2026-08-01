@@ -37,7 +37,8 @@ function rangeForView(focus: Date, view: View): [string, string] {
   // ended today) are included in the result set.
   if (view === "day") return [toYMD(addDays(focus, -1)), toYMD(focus)];
   if (view === "week") { const s = startOfWeek(focus); return [toYMD(addDays(s, -1)), toYMD(addDays(s, 6))]; }
-  return [toYMD(startOfMonth(focus)), toYMD(endOfMonth(focus))];
+  // Fetch one extra day back so cross-midnight carryovers from the last day of the previous month appear on the 1st.
+  return [toYMD(addDays(startOfMonth(focus), -1)), toYMD(endOfMonth(focus))];
 }
 
 /** Entries that started the day before `ymd` but ended on `ymd` (cross-midnight). */
