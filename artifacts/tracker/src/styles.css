@@ -1201,13 +1201,16 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
   overflow: hidden;
+  min-height: 0;
 }
 .journal-month-line {
-  height: 1px;
-  border-radius: 0;
+  flex: 1;
+  max-height: 4px;
+  min-height: 1px;
+  border-radius: 1px;
   opacity: 0.75;
-  flex-shrink: 0;
 }
 
 /* Shared tooltip text styles */
