@@ -1,17 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
-
-type Entry = {
-  id: number;
-  subject: string | null;
-  content: string;
-  entryDate: string;
-  startTime: string;
-  endTime: string | null;
-  color: string;
-  createdAt: string;
-};
+import { type Entry, fmtTime, fmtFullDate, EntryModal } from "./EntryModal";
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -32,17 +22,6 @@ function Highlight({ text, query }: { text: string; query: string }) {
   );
 }
 
-function fmtTime(iso: string) {
-  const d = new Date(iso);
-  const h = d.getHours(), m = d.getMinutes();
-  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "pm" : "am"}`;
-}
-function fmtFullDate(dateStr: string) {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric", year: "numeric",
-  });
-}
-
 const IcBack = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -50,30 +29,6 @@ const IcBack = () => (
   </svg>
 );
 
-function EntryDetailModal({ entry, onClose }: { entry: Entry; onClose: () => void }) {
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
-
-  return (
-    <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="entry-modal" role="dialog" aria-modal="true">
-        <div className="entry-modal-header">
-          <span className="entry-modal-date">{fmtFullDate(entry.entryDate)}</span>
-          <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
-        </div>
-        <div className="entry-modal-body">
-          <p className="entry-modal-time">{fmtTime(entry.startTime)}{entry.endTime ? ` – ${fmtTime(entry.endTime)}` : ""}</p>
-          {entry.subject && <h2 className="entry-modal-subject">{entry.subject}</h2>}
-          {entry.content && <p className="entry-modal-content">{entry.content}</p>}
-          {!entry.subject && !entry.content && <p className="entry-modal-empty">No content.</p>}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function JournalSearch() {
   const navigate  = useNavigate();
@@ -235,7 +190,20 @@ export default function JournalSearch() {
           </div>
         ))}
 
-        {selected && <EntryDetailModal entry={selected} onClose={() => setSelected(null)} />}
+        {selected && (
+          <EntryModal
+            entry={selected}
+            onClose={() => setSelected(null)}
+            onUpdate={updated => {
+              setEntries(prev => prev.map(e => e.id === updated.id ? updated : e));
+              setSelected(updated);
+            }}
+            onDelete={id => {
+              setEntries(prev => prev.filter(e => e.id !== id));
+              setSelected(null);
+            }}
+          />
+        )}
 
       </div>
     </div>
