@@ -150,9 +150,6 @@ export default function JournalSearch() {
       <div className="jsearch-body">
         {loading && <p className="jsearch-status">Loading entries…</p>}
 
-        {!loading && !hasFilter && (
-          <p className="jsearch-status">Search by keyword, or tap a color to filter.</p>
-        )}
 
         {!loading && hasFilter && results.length === 0 && (
           <p className="jsearch-status">No entries match{q ? <> "<strong>{q}</strong>"</> : null}{activeColors.size > 0 ? " with the selected color" + (activeColors.size > 1 ? "s" : "") : ""}.</p>
