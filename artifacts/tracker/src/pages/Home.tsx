@@ -31,7 +31,7 @@ export default function Home() {
     {
       label: "Finance",
       path: "/finance",
-      accent: "#e0b04e",
+      accent: "#4ecb71",
       pct: cyclePct,
       caption: `payday · ${payday.toLocaleDateString("en-US", {
         weekday: "short",
@@ -49,7 +49,7 @@ export default function Home() {
     {
       label: "Fitness",
       path: "/fitness",
-      accent: "#4ecb71",
+      accent: "#e07d3a",
       pct: null,
       caption: null,
     },
