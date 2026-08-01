@@ -613,13 +613,30 @@ a:hover {
   gap: 0.5rem;
 }
 
+.jsearch-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.1rem;
+}
+
 .jsearch-group-date {
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  margin: 0 0 0.25rem;
+  margin: 0;
 }
+
+.jsearch-group-daylink {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.12s;
+}
+.jsearch-group-daylink:hover { color: var(--ink-soft); }
 
 .jsearch-card {
   display: flex;

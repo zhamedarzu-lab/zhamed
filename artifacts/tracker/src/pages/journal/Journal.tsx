@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 
 type Entry = {
@@ -471,8 +471,16 @@ function DayPopup({ date, entries, onClose, onSelect, onGoToDay }: DayPopupProps
 
 /* ═══════════════════════════════════════════════════════════════════ */
 export default function Journal() {
-  const [view,     setView]     = useState<View>("month");
-  const [focus,    setFocus]    = useState(() => new Date());
+  const [searchParams] = useSearchParams();
+  const [view,     setView]     = useState<View>(() => {
+    const v = searchParams.get("view");
+    return (v === "day" || v === "week" || v === "month") ? v : "month";
+  });
+  const [focus,    setFocus]    = useState(() => {
+    const d = searchParams.get("date");
+    if (d) { const p = new Date(d + "T00:00:00"); if (!isNaN(p.getTime())) return p; }
+    return new Date();
+  });
   const [entries,  setEntries]  = useState<Entry[]>([]);
   const [loading,  setLoading]  = useState(false);
   const [adding,   setAdding]   = useState(false);

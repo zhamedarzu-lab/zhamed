@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { api } from "../../lib/api";
 
 type Entry = {
@@ -187,7 +187,15 @@ export default function JournalSearch() {
 
         {groups.map(([date, group]) => (
           <div key={date} className="jsearch-group">
-            <p className="jsearch-group-date">{fmtFullDate(date)}</p>
+            <div className="jsearch-group-header">
+              <p className="jsearch-group-date">{fmtFullDate(date)}</p>
+              <Link
+                to={`/journal?date=${date}&view=day`}
+                className="jsearch-group-daylink"
+              >
+                View day →
+              </Link>
+            </div>
             {group.map(e => (
               <div key={e.id} className="jsearch-card">
                 <div className="jsearch-card-accent" style={{ background: e.color }} />
