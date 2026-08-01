@@ -76,10 +76,7 @@ export default function Home() {
             <div className="home-pane-head">
               <span className="home-pane-label">{pane.label}</span>
               {pane.pct !== null && (
-                <span className="home-pane-pct fig">
-                  {Math.round(pane.pct)}%
-                  {pane.caption && <span className="home-pane-caption"> · {pane.caption}</span>}
-                </span>
+                <span className="home-pane-pct fig">{Math.round(pane.pct)}%</span>
               )}
             </div>
             {pane.pct !== null && (
