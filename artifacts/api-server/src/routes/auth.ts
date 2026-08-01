@@ -33,6 +33,11 @@ router.post("/login", (req, res) => {
 
 // GET /api/auth/check
 router.get("/check", (req, res) => {
+  // No password configured → always authed
+  if (!process.env.APP_PASSWORD) {
+    res.json({ ok: true });
+    return;
+  }
   if (req.signedCookies?.["zh_sess"] === "1") {
     res.json({ ok: true });
   } else {
