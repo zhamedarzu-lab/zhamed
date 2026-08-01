@@ -130,7 +130,7 @@ function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps
   if (editing) return (
     <div className="journal-feed-row">
       <span className="journal-feed-time">{fmtRange(entry.startTime, entry.endTime)}</span>
-      <span className="journal-feed-node" style={{ "--dot-color": entry.color } as React.CSSProperties} aria-hidden="true" />
+      <span className="journal-feed-node" style={{ "--dot-color": entry.color, ...(entry.color === "#1c1c1e" ? { "--dot-ring": "rgba(255,255,255,0.35)" } : {}) } as React.CSSProperties} aria-hidden="true" />
       <EntryForm
         entryDate={entryDate}
         initial={entry}
@@ -142,8 +142,8 @@ function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps
   return (
     <div className={`journal-feed-row${dim ? " is-future" : ""}`}>
       <span className="journal-feed-time">{fmtRange(entry.startTime, entry.endTime)}</span>
-      <span className="journal-feed-node" style={{ "--dot-color": entry.color } as React.CSSProperties} aria-hidden="true" />
-      <div className="journal-feed-card" style={{ "--entry-color": entry.color } as React.CSSProperties}>
+      <span className="journal-feed-node" style={{ "--dot-color": entry.color, ...(entry.color === "#1c1c1e" ? { "--dot-ring": "rgba(255,255,255,0.35)" } : {}) } as React.CSSProperties} aria-hidden="true" />
+      <div className="journal-feed-card" style={{ "--entry-color": entry.color, ...(entry.color === "#1c1c1e" ? { borderLeftColor: "rgba(255,255,255,0.3)" } : {}) } as React.CSSProperties}>
         <div className="journal-feed-body">
           {entry.subject && <p className="journal-feed-subject">{entry.subject}</p>}
           {entry.content && <p className="journal-feed-text">{entry.content}</p>}
@@ -561,7 +561,7 @@ export default function Journal() {
             <div className="journal-hday-list">
               {dayEntries.map(e => (
                 <button key={e.id} className="journal-hday-list-row" onClick={() => setModal(e)}>
-                  <span className="journal-hday-list-dot" style={{ background: e.color } as React.CSSProperties} />
+                  <span className="journal-hday-list-dot" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "0 0 0 1px rgba(255,255,255,0.3)" } : {}) } as React.CSSProperties} />
                   <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
                   <span className="journal-hday-list-label">{e.subject || e.content || "—"}</span>
                 </button>
@@ -706,7 +706,7 @@ export default function Journal() {
                       </button>
                       {expanded && group.map(e => (
                         <button key={e.id} className="journal-week-list-row" onClick={() => setModal(e)}>
-                          <span className="journal-week-list-dot" style={{ background: e.color } as React.CSSProperties} />
+                          <span className="journal-week-list-dot" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "0 0 0 1px rgba(255,255,255,0.3)" } : {}) } as React.CSSProperties} />
                           <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
                           <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
                         </button>

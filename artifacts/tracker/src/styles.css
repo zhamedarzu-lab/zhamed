@@ -1722,7 +1722,7 @@ a:hover {
   box-sizing: border-box;
   display: block;
   flex-shrink: 0;
-  box-shadow: 0 0 0 1px var(--dot-color, var(--amber));
+  box-shadow: 0 0 0 1px var(--dot-ring, var(--dot-color, var(--amber)));
 }
 
 .journal-feed-card {
