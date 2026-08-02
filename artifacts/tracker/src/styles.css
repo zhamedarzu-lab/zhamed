@@ -1750,34 +1750,20 @@ a:hover {
   gap: 0.5rem;
   align-items: center;
 }
-.day-popup-highlight-btn {
-  margin-right: auto;
-  background: transparent;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  color: var(--ink-soft);
-  font-size: 0.75rem;
-  padding: 0.3rem 0.65rem;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-.day-popup-highlight-btn:hover {
-  color: var(--amber);
-  border-color: var(--amber);
-}
+.day-popup-highlight-btn,
 .day-popup-add-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
   background: transparent;
   border: 1px solid var(--rule);
   border-radius: 6px;
   color: var(--ink-soft);
+  font: inherit;
   font-size: 0.75rem;
   padding: 0.3rem 0.65rem;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
 }
+.day-popup-highlight-btn { margin-right: auto; }
+.day-popup-highlight-btn:hover,
 .day-popup-add-btn:hover {
   color: var(--ink);
   border-color: var(--ink-soft);

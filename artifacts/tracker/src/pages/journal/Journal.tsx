@@ -291,7 +291,7 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onGo
           {!highlight && (
             <button className="day-popup-highlight-btn" onClick={() => { onClose(); onHighlight(); }}>Highlight</button>
           )}
-          <button className="day-popup-add-btn" onClick={() => { onClose(); onAddEntry(); }}>Entry</button>
+          <button className="day-popup-add-btn" onClick={() => { onClose(); onAddEntry(); }} aria-label="Add entry">Entry</button>
           <button onClick={() => { onClose(); onGoToWeek(); }}>Week</button>
           <button onClick={() => { onClose(); onGoToDay(); }}>Day</button>
         </div>
