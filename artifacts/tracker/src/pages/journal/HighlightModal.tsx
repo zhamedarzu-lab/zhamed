@@ -131,7 +131,11 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
                     key={t}
                     type="button"
                     className={`highlight-time-tab${timeType === t ? " active" : ""}`}
-                    onClick={() => setTimeType(t)}
+                    onClick={() => {
+                      setTimeType(t);
+                      if (t === "allday") { setStartTime(""); setEndTime(""); }
+                      if (t === "time")   { setEndTime(""); }
+                    }}
                   >
                     {t === "allday" ? "All day" : t === "time" ? "Time" : "Block"}
                   </button>

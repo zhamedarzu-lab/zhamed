@@ -393,7 +393,6 @@ export default function Journal() {
             <button className="journal-today-btn" onClick={() => setFocus(new Date())}>Today</button>
           )}
         </div>
-        {view === "month" && <HighlightCountdown highlights={highlights} />}
         <Link to="/journal/search" className="journal-search-link" aria-label="Search entries">
           Search
         </Link>
@@ -465,6 +464,8 @@ export default function Journal() {
       {/* ════ DAY VIEW — 2D grid: X=hour, Y=minute within hour ════ */}
       {view === "day" && (() => {
         const focusYmd  = toYMD(focus);
+        const focusHl   = highlights.find(h => h.date === focusYmd) ?? null;
+        const focusHlAllDay = focusHl && !focusHl.startTime;
         const carryovers = carryoversForDate(focusYmd, entries);
         const dayEntries = [...(byDate.get(focusYmd) ?? []), ...carryovers].sort(
           (a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
@@ -483,7 +484,8 @@ export default function Journal() {
 
         return (
           <>
-          <div className="journal-hday journal-hday--2d">
+          <div className="journal-hday journal-hday--2d"
+            style={focusHlAllDay ? { outline: `2px solid ${focusHl!.color}`, outlineOffset: "-2px" } as React.CSSProperties : undefined}>
             {/* Fixed minute-axis panel */}
             <div className="journal-hday-min-axis" style={{ paddingTop: AXIS_H }}>
               <div style={{ position: "relative", height: GRID_H }}>
@@ -532,6 +534,34 @@ export default function Journal() {
                     <div className="journal-hday-curhour"
                       style={{ left: curHour * COL_W, width: COL_W }} />
                   )}
+
+                  {/* Timed highlight block */}
+                  {focusHl && focusHl.startTime && (() => {
+                    const [sH, sM] = focusHl.startTime!.split(":").map(Number);
+                    const endParts = focusHl.endTime ? focusHl.endTime.split(":").map(Number) : null;
+                    const durMin   = endParts ? Math.max(15, (endParts[0] - sH) * 60 + (endParts[1] - sM)) : 30;
+                    const colSpan  = Math.max(1, Math.ceil((sM + durMin) / 60));
+                    return (
+                      <div style={{
+                        position: "absolute",
+                        left: sH * COL_W,
+                        top: (sM / 60) * GRID_H,
+                        width: colSpan * COL_W,
+                        height: Math.max(20, (Math.min(durMin, 60 - sM) / 60) * GRID_H),
+                        background: focusHl.color,
+                        opacity: 0.3,
+                        borderRadius: 3,
+                        pointerEvents: "none",
+                        zIndex: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        paddingLeft: 4,
+                        overflow: "hidden",
+                      }}>
+                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#fff", whiteSpace: "nowrap", opacity: 0.9 }}>{focusHl.label}</span>
+                      </div>
+                    );
+                  })()}
 
                   {/* NOW — horizontal line + pulsing dot at exact (hour, minute) */}
                   {isToday && (
@@ -679,12 +709,15 @@ export default function Journal() {
                   const day = addDays(weekStart, i);
                   const ymd = toYMD(day);
                   const isT = ymd === todayYmd;
+                  const colHl = highlights.find(h => h.date === ymd) ?? null;
                   const dayEntries = [
                     ...(byDate.get(ymd) ?? []),
                     ...carryoversForDate(ymd, entries),
                   ];
                   return (
-                    <div key={ymd} className={`journal-week-col${isT?" is-today":""}`}>
+                    <div key={ymd}
+                      className={`journal-week-col${isT?" is-today":""}`}
+                      style={colHl && !colHl.startTime ? { outline: `2px solid ${colHl.color}`, outlineOffset: "-2px" } as React.CSSProperties : undefined}>
                       {Array.from({ length: 9 }, (_, h) => {
                         const hour = h * 3;
                         const isMajor = MAJOR_HOURS.has(hour);
@@ -699,6 +732,25 @@ export default function Journal() {
                           <span className="journal-week-now-dot" aria-hidden="true" />
                         </div>
                       )}
+                      {/* Timed highlight block */}
+                      {colHl && colHl.startTime && (() => {
+                        const [sH, sM] = colHl.startTime!.split(":").map(Number);
+                        const startMin = sH * 60 + sM;
+                        const endParts = colHl.endTime ? colHl.endTime.split(":").map(Number) : null;
+                        const endMin   = endParts ? endParts[0] * 60 + endParts[1] : startMin + 30;
+                        const topPct   = `${(startMin / 1440) * 100}%`;
+                        const heightPct = `${(Math.max(15, endMin - startMin) / 1440) * 100}%`;
+                        return (
+                          <div style={{
+                            position: "absolute", top: topPct, height: heightPct, left: 0, right: 0,
+                            background: colHl.color, opacity: 0.3, borderRadius: 2, zIndex: 0,
+                            pointerEvents: "none", overflow: "hidden",
+                            display: "flex", alignItems: "flex-start", padding: "2px 3px",
+                          }}>
+                            <span style={{ fontSize: "0.55rem", fontWeight: 700, color: "#fff", lineHeight: 1, whiteSpace: "nowrap" }}>{colHl.label}</span>
+                          </div>
+                        );
+                      })()}
                       {dayEntries.map(e => {
                         const isCarryover = e.entryDate !== ymd;
                         // Carryovers started yesterday — pin to top of this column
@@ -802,6 +854,7 @@ export default function Journal() {
         const gridStart  = startOfWeek(monthStart);
         const totalDays  = Math.ceil((monthEnd.getDate() + monthStart.getDay()) / 7) * 7;
         return (
+          <>
           <div className="journal-month">
             <div className="journal-month-header">
               {WEEKDAYS.map(w => <span key={w}>{w}</span>)}
@@ -846,6 +899,8 @@ export default function Journal() {
               })}
             </div>
           </div>
+          <HighlightCountdown highlights={highlights} />
+        </>
         );
       })()}
 
