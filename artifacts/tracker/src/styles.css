@@ -2826,7 +2826,7 @@ a:hover {
   width: 2px;
   border-radius: 1px;
   pointer-events: none;
-  opacity: 0.55;
+  opacity: 0.28;
   z-index: 1;
   transform: translateX(-50%);
 }
