@@ -150,7 +150,7 @@ export default function JournalSearch() {
           <input
             ref={inputRef}
             className="jsearch-input"
-            placeholder="Search entries… (try (((open or )))closed)"
+            placeholder=""
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => { if (e.key === "Escape") navigate("/journal"); }}
