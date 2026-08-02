@@ -610,10 +610,6 @@ function ExerciseRow({
       {/* Inline form */}
       {open && !editing && (
         <div className="ft-log-form">
-          <button type="button" className="quiet ft-history-btn"
-            onClick={() => setShowHistory(true)} title="View history">↗</button>
-          <button type="button" className="quiet ft-history-btn"
-            onClick={openEdit} title="Edit exercise">edit</button>
           <input
             ref={inputRef}
             className="ft-log-input"
@@ -628,6 +624,10 @@ function ExerciseRow({
           />
           <button className="primary ft-log-submit" onClick={submit}
             disabled={busy || !amount.trim()}>✓</button>
+          <button type="button" className="quiet ft-history-btn"
+            onClick={() => setShowHistory(true)} title="View history">↗</button>
+          <button type="button" className="quiet ft-history-btn"
+            onClick={openEdit} title="Edit exercise">edit</button>
         </div>
       )}
 
