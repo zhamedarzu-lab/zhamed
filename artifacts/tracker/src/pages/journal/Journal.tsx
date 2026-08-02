@@ -797,43 +797,19 @@ export default function Journal() {
                 const isCarryover = e.entryDate !== focusYmd;
                 const isOpener = e.looseEndType === 'open';
                 const isCloser = e.looseEndType === 'close';
-                const closeLinkedLocal = entries.find(x => x.looseEndLink === e.id && x.looseEndType === 'close') ?? null;
-                const linkedLocal = isCloser && e.looseEndLink
-                  ? entries.find(x => x.id === e.looseEndLink) ?? null
-                  : closeLinkedLocal;
-                const showLink = linkedLocal !== null || (isCloser && !!e.looseEndLink);
                 return (
-                  <React.Fragment key={e.id}>
-                    <button className={`journal-hday-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
-                      <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
-                      {isCarryover
-                        ? <span className="journal-hday-list-time">— {e.endTime ? fmtTime(e.endTime) : ""}</span>
-                        : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                      }
-                      <span className="journal-hday-list-label">
-                        {isOpener && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
-                        {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
-                        {e.subject || e.content || "—"}
-                      </span>
-                    </button>
-                    {showLink && (
-                      <button className="journal-list-linked-row" onClick={async () => {
-                        if (linkedLocal) { setModal(linkedLocal); return; }
-                        const fetched = await api.get<Entry>(`/api/journal/entries/${e.looseEndLink}`);
-                        setModal(fetched);
-                      }}>
-                        <span className={`loose-end-badge ${isCloser ? 'loose-end-badge--open' : 'loose-end-badge--closed'}`}>
-                          {isCloser ? '◎' : '◉'}
-                        </span>
-                        <span className="journal-list-linked-label">
-                          {linkedLocal
-                            ? `${isCloser ? "open end" : "closed"} · ${new Date(linkedLocal.entryDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                            : "View open end"}
-                        </span>
-                        <span className="journal-list-linked-arrow">→</span>
-                      </button>
-                    )}
-                  </React.Fragment>
+                  <button key={e.id} className={`journal-hday-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
+                    <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
+                    {isCarryover
+                      ? <span className="journal-hday-list-time">— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                      : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                    }
+                    <span className="journal-hday-list-label">
+                      {isOpener && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                      {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
+                      {e.subject || e.content || "—"}
+                    </span>
+                  </button>
                 );
               })}
             </div>
@@ -1027,43 +1003,19 @@ export default function Journal() {
                             const isCarryover = e.entryDate !== ymd;
                             const isOpener = e.looseEndType === 'open';
                             const isCloser = e.looseEndType === 'close';
-                            const closeLinkedLocal = entries.find(x => x.looseEndLink === e.id && x.looseEndType === 'close') ?? null;
-                            const linkedLocal = isCloser && e.looseEndLink
-                              ? entries.find(x => x.id === e.looseEndLink) ?? null
-                              : closeLinkedLocal;
-                            const showLink = linkedLocal !== null || (isCloser && !!e.looseEndLink);
                             return (
-                              <React.Fragment key={e.id}>
-                                <button className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
-                                  <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
-                                  {isCarryover
-                                    ? <span className="journal-week-list-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
-                                    : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                                  }
-                                  <span className="journal-week-list-label">
-                                    {isOpener && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
-                                    {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
-                                    {e.subject || e.content || "—"}
-                                  </span>
-                                </button>
-                                {showLink && (
-                                  <button className="journal-list-linked-row" onClick={async () => {
-                                    if (linkedLocal) { setModal(linkedLocal); return; }
-                                    const fetched = await api.get<Entry>(`/api/journal/entries/${e.looseEndLink}`);
-                                    setModal(fetched);
-                                  }}>
-                                    <span className={`loose-end-badge ${isCloser ? 'loose-end-badge--open' : 'loose-end-badge--closed'}`}>
-                                      {isCloser ? '◎' : '◉'}
-                                    </span>
-                                    <span className="journal-list-linked-label">
-                                      {linkedLocal
-                                        ? `${isCloser ? "open end" : "closed"} · ${new Date(linkedLocal.entryDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                                        : "View open end"}
-                                    </span>
-                                    <span className="journal-list-linked-arrow">→</span>
-                                  </button>
-                                )}
-                              </React.Fragment>
+                              <button key={e.id} className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
+                                <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
+                                {isCarryover
+                                  ? <span className="journal-week-list-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                                  : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                                }
+                                <span className="journal-week-list-label">
+                                  {isOpener && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                                  {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
+                                  {e.subject || e.content || "—"}
+                                </span>
+                              </button>
                             );
                           })}
                         </>
