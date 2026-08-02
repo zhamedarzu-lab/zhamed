@@ -597,14 +597,6 @@ function ExerciseRow({
           </button>
         </div>
 
-        <button
-          className="quiet ft-row-delete"
-          onClick={deleteExercise}
-          aria-label={`Delete ${stat.name}`}
-          title={`Delete ${stat.name}`}
-        >
-          ✕
-        </button>
       </div>
 
       {/* Inline form */}
@@ -628,6 +620,8 @@ function ExerciseRow({
             onClick={() => setShowHistory(true)} title="View history">↗</button>
           <button type="button" className="quiet ft-history-btn"
             onClick={openEdit} title="Edit exercise">edit</button>
+          <button type="button" className="quiet ft-history-btn ft-row-delete"
+            onClick={deleteExercise} title={`Delete ${stat.name}`}>🗑</button>
         </div>
       )}
 
