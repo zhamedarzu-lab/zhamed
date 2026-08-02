@@ -5060,12 +5060,6 @@ button.btn-icon {
   line-height: 1;
   flex-shrink: 0;
 }
-.ft-log-cancel {
-  font-size: 0.8rem;
-  padding: 0.28rem 0.3rem;
-  color: var(--ink-faint);
-  flex-shrink: 0;
-}
 
 /* ── Mobile ─────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {

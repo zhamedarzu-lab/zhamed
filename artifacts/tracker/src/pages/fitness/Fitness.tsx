@@ -351,13 +351,6 @@ function ExerciseRow({
           >
             ✓
           </button>
-          <button
-            className="quiet ft-log-cancel"
-            onClick={() => setOpen(false)}
-            type="button"
-          >
-            ✕
-          </button>
         </div>
       )}
     </div>
