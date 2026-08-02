@@ -4982,31 +4982,24 @@ button.btn-icon {
   flex-shrink: 0;
 }
 
-/* D / W / M tab row */
-.ft-period-tabs {
+/* Tap-to-cycle period button */
+.ft-period-cycle {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 0.15rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: right;
 }
-.ft-period-tab {
+.ft-period-cycle-lbl {
   font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 0.18rem 0.32rem;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--ink-faint);
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-}
-.ft-period-tab:hover {
-  border-color: var(--ink-soft);
-  color: var(--ink-soft);
-}
-.ft-period-tab--on {
-  background: var(--row-color, var(--accent));
-  border-color: var(--row-color, var(--accent));
-  color: #fff;
 }
 
 /* Single selected value */

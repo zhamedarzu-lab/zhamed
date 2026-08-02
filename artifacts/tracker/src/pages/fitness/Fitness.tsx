@@ -303,26 +303,27 @@ function ExerciseRow({
         </div>
 
         <div className="ft-row-right">
-          <div className="ft-period-tabs">
-            {(["D", "W", "M"] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`ft-period-tab${period === p ? " ft-period-tab--on" : ""}`}
-                onClick={(e) => { e.stopPropagation(); setPeriod(p); }}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-          <span className={`ft-row-stat-val${
-            period === "D" && stat.todayTotal > 0 ? " ft-row-stat-val--active" : ""
-          }`}>
-            {(period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal) > 0
-              ? (period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal).toLocaleString()
-              : "—"}
-          </span>
-          <span className="ft-row-stat-unit">{stat.unit}</span>
+          <button
+            type="button"
+            className="ft-period-cycle"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPeriod((p) => p === "D" ? "W" : p === "W" ? "M" : "D");
+            }}
+            title="Tap to cycle Day / Week / Month"
+          >
+            <span className="ft-period-cycle-lbl">
+              {period === "D" ? "Day" : period === "W" ? "Week" : "Month"}
+            </span>
+            <span className={`ft-row-stat-val${
+              period === "D" && stat.todayTotal > 0 ? " ft-row-stat-val--active" : ""
+            }`}>
+              {(period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal) > 0
+                ? (period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal).toLocaleString()
+                : "—"}
+            </span>
+            <span className="ft-row-stat-unit">{stat.unit}</span>
+          </button>
         </div>
 
         <button
