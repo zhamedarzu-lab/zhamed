@@ -958,10 +958,12 @@ export default function Journal() {
         const isThisYear = year === new Date().getFullYear();
         const yearStart = new Date(year, 0, 1);
         const daysInYear = (new Date(year, 11, 31).getTime() - yearStart.getTime()) / 86400000 + 1;
-        const dayOfYear = isThisYear
-          ? Math.floor((new Date(todayYmd + "T00:00:00").getTime() - yearStart.getTime()) / 86400000)
-          : -1;
-        const yearNowPct = dayOfYear >= 0 ? (dayOfYear + nowMin / 1440) / daysInYear * 100 : -1;
+        const yearNowPct = isThisYear ? (() => {
+          const n = new Date();
+          const dayFrac = (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds()) / 86400;
+          const dayOfYear = (new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime() - yearStart.getTime()) / 86400000;
+          return (dayOfYear + dayFrac) / daysInYear * 100;
+        })() : -1;
         return (
           <>
             <div className="journal-year">
@@ -1029,9 +1031,11 @@ export default function Journal() {
         const totalDays  = Math.ceil((monthEnd.getDate() + monthStart.getDay()) / 7) * 7;
         const isThisMonth = focus.getFullYear() === new Date().getFullYear() && focus.getMonth() === new Date().getMonth();
         const daysInMonth = monthEnd.getDate();
-        const monthNowPct = isThisMonth
-          ? (new Date().getDate() - 1 + nowMin / 1440) / daysInMonth * 100
-          : -1;
+        const monthNowPct = isThisMonth ? (() => {
+          const n = new Date();
+          const dayFrac = (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds()) / 86400;
+          return (n.getDate() - 1 + dayFrac) / daysInMonth * 100;
+        })() : -1;
         return (
           <>
           <div className="journal-month">
