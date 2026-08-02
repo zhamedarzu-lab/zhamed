@@ -307,13 +307,13 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
     setConfirmMsg(null);
   }, [entry.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch the close entry when viewing an opener
+  // Fetch the close entry for any non-close entry (looseEndType may be null on old resolved openers)
   useEffect(() => {
-    if (currentEntry.looseEndType !== 'open') { setCloseEntry(null); return; }
+    if (isCloser) { setCloseEntry(null); return; }
     api.get<Entry[]>(`/api/journal/entries?looseEndLink=${currentEntry.id}`)
       .then(rows => setCloseEntry(rows[0] ?? null))
       .catch(() => setCloseEntry(null));
-  }, [currentEntry.id, currentEntry.looseEndType]);
+  }, [currentEntry.id, isCloser]);
 
   const isOpener = currentEntry.looseEndType === 'open';
   const isCloser = currentEntry.looseEndType === 'close';
@@ -411,7 +411,7 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
                     >◎ View open end →</button>
                   : <p className="entry-modal-link-note unlinked">No open end linked — edit to add one</p>
               )}
-              {isOpener && closeEntry && (
+              {!isCloser && closeEntry && (
                 <button
                   className="entry-modal-open-link entry-modal-open-link--close"
                   onClick={() => navigateTo(closeEntry)}
