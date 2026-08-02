@@ -873,18 +873,6 @@ export default function Journal() {
                 {Array.from({ length: 7 }, (_, i) => {
                   const day = addDays(weekStart, i);
                   const ymd = toYMD(day);
-                  const wkHl = highlights.find(h => h.date === ymd) ?? null;
-                  if (!wkHl) return null;
-                  const pct = (i + 0.5) / 7 * 100;
-                  return (
-                    <div key={wkHl.id}
-                      className="journal-grid-hl-line"
-                      style={{ left: `${pct}%`, background: wkHl.color }} />
-                  );
-                })}
-                {Array.from({ length: 7 }, (_, i) => {
-                  const day = addDays(weekStart, i);
-                  const ymd = toYMD(day);
                   const isT = ymd === todayYmd;
                   const colHl = highlights.find(h => h.date === ymd) ?? null;
                   const dayEntries = [
@@ -909,6 +897,15 @@ export default function Journal() {
                           <span className="journal-week-now-dot" aria-hidden="true" />
                         </div>
                       )}
+                      {/* Highlight time marker — subtle horizontal line at startTime */}
+                      {colHl && colHl.startTime && (() => {
+                        const [sH, sM] = colHl.startTime!.split(":").map(Number);
+                        const startMin = sH * 60 + sM;
+                        return (
+                          <div className="journal-week-hl-marker"
+                            style={{ top: `${(startMin/1440)*100}%`, borderColor: colHl.color }} />
+                        );
+                      })()}
                       {/* Highlight entry block in week column */}
                       {colHl && colHl.startTime && (() => {
                         const [sH, sM] = colHl.startTime!.split(":").map(Number);

@@ -2594,6 +2594,18 @@ a:hover {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 30%, transparent);
 }
 
+/* Highlight time marker in week column — subtle horizontal rule at startTime */
+.journal-week-hl-marker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px dashed;
+  opacity: 0.3;
+  z-index: 3;
+  pointer-events: none;
+}
+
 /* Week entries — thin line at start time, label inside, tooltip on hover */
 .journal-week-line {
   position: absolute;
