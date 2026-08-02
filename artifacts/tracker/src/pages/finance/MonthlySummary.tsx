@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../../lib/api";
 import { currentMonth, dollars, monthName, signed } from "../../lib/format";
@@ -14,8 +14,11 @@ import {
   tagColor,
 } from "../../components/ui";
 import { AllocationList } from "../../components/finance-ui";
-import MonthlyCharts from "./MonthlyCharts";
 import FinanceNav from "./FinanceNav";
+
+// Recharts is ~380 kB and lives only in the chart components. Loading them on
+// demand keeps it out of the entry bundle every other page has to download.
+const MonthlyCharts = lazy(() => import("./MonthlyCharts"));
 
 type Summary = {
   income: number;
@@ -264,7 +267,9 @@ export default function MonthlySummary() {
         })}
       </div>
 
-      <MonthlyCharts />
+      <Suspense fallback={<Loading />}>
+        <MonthlyCharts />
+      </Suspense>
     </>
   );
 }

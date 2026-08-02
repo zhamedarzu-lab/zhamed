@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { Suspense, lazy, useRef, useState } from "react";
 import { currentMonth, dollars, monthName } from "../../lib/format";
 import { Empty, Loading, MonthPicker, Notice, Panel, tagColor } from "../../components/ui";
 import {
@@ -14,7 +14,9 @@ import {
   type MonthlyItem,
 } from "../../components/finance-ui";
 import FinanceNav from "./FinanceNav";
-import BillsCharts from "./BillsCharts";
+
+// Lazy for the same reason as MonthlyCharts — see the note there.
+const BillsCharts = lazy(() => import("./BillsCharts"));
 
 const BUDGET_KEY = "bills-budget";
 const DEFAULT_BUDGET = 2000;
@@ -147,7 +149,9 @@ export default function Bills() {
         />
       </Panel>
 
-      <BillsCharts budget={budget} colors={colors} />
+      <Suspense fallback={<Loading />}>
+        <BillsCharts budget={budget} colors={colors} />
+      </Suspense>
     </>
   );
 }
