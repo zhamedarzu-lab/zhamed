@@ -5041,6 +5041,54 @@ button.btn-icon {
   .ft-row-delete { opacity: 1; }
 }
 
+/* ── History summary stats ──────────────────────────────────────────── */
+.ft-history-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 0.5rem;
+  padding: 0.6rem 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0.1rem;
+}
+.ft-history-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+.ft-history-stat-val {
+  font-family: var(--fig);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+.ft-history-stat-lbl {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* ── Entry delete button ────────────────────────────────────────────── */
+.ft-entry-delete {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.3rem;
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.ft-history-entry:hover .ft-entry-delete,
+.ft-entry-delete:focus-visible {
+  opacity: 1;
+}
+.ft-entry-delete:hover { color: var(--stamp); }
+@media (hover: none) { .ft-entry-delete { opacity: 1; } }
+
 /* ── History log list ───────────────────────────────────────────────── */
 .ft-history-log {
   margin-top: 0.75rem;
@@ -5162,6 +5210,26 @@ button.btn-icon {
   font-size: 0.9rem;
   line-height: 1;
   flex-shrink: 0;
+}
+
+/* ── Edit form ──────────────────────────────────────────────────────── */
+.ft-edit-form {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem 0.6rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-sunk);
+}
+.ft-edit-input {
+  flex: 1;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+.ft-edit-unit {
+  width: 4rem;
+  flex-shrink: 0;
+  font-size: 0.9rem;
 }
 
 /* ── Mobile ─────────────────────────────────────────────────────────── */

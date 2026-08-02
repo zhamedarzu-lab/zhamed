@@ -213,20 +213,71 @@ function HistoryModal({
   stat,
   color,
   onClose,
+  onChanged,
 }: {
   stat: ExerciseStat;
   color: string;
   onClose: () => void;
+  onChanged: () => Promise<unknown>;
 }) {
-  const [efforts, setEfforts] = useState<Effort[] | null>(null);
+  const [efforts,  setEfforts]  = useState<Effort[] | null>(null);
+  const [deleting, setDeleting] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    api.get<Effort[]>(`/api/fitness/efforts?exerciseId=${stat.exerciseId}`)
+  function loadEfforts() {
+    return api.get<Effort[]>(`/api/fitness/efforts?exerciseId=${stat.exerciseId}`)
       .then(setEfforts)
       .catch(() => setEfforts([]));
-  }, [stat.exerciseId]);
+  }
+  useEffect(() => { loadEfforts(); }, [stat.exerciseId]);
 
-  // Group efforts by date for the list
+  async function deleteEffort(id: number) {
+    setDeleting((prev) => new Set(prev).add(id));
+    try {
+      await api.del(`/api/fitness/efforts/${id}`);
+      setEfforts((prev) => prev?.filter((e) => e.id !== id) ?? null);
+      await onChanged();
+    } finally {
+      setDeleting((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }
+
+  // 30-day chart data built from fetched efforts
+  const chartData = useMemo(() => {
+    const today = todayIso();
+    const byDate = new Map<string, number>();
+    for (const e of efforts ?? []) {
+      byDate.set(e.date, (byDate.get(e.date) ?? 0) + e.amount);
+    }
+    return Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(today + "T12:00:00");
+      d.setDate(d.getDate() - (29 - i));
+      const date = d.toISOString().slice(0, 10);
+      return { date, value: byDate.get(date) ?? 0 };
+    });
+  }, [efforts]);
+
+  // Summary stats
+  const stats = useMemo(() => {
+    if (!efforts || efforts.length === 0) return null;
+    const total      = efforts.reduce((s, e) => s + e.amount, 0);
+    const activeDates = new Set(efforts.map((e) => e.date));
+    const avg        = Math.round(total / activeDates.size);
+
+    // Current streak — consecutive days with entries ending today or yesterday
+    const today = todayIso();
+    let streak = 0;
+    const cur = new Date(today + "T12:00:00");
+    // allow today to be empty (streak carries from yesterday)
+    if (!activeDates.has(today)) cur.setDate(cur.getDate() - 1);
+    while (activeDates.has(cur.toISOString().slice(0, 10))) {
+      streak++;
+      cur.setDate(cur.getDate() - 1);
+    }
+
+    return { total, avg, streak };
+  }, [efforts]);
+
+  // Group by date for the log list
   const byDate = useMemo(() => {
     if (!efforts) return [];
     const map = new Map<string, Effort[]>();
@@ -235,9 +286,7 @@ function HistoryModal({
       list.push(e);
       map.set(e.date, list);
     }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => b.localeCompare(a))
-      .slice(0, 30); // last 30 days that have entries
+    return Array.from(map.entries()).sort(([a], [b]) => b.localeCompare(a));
   }, [efforts]);
 
   return (
@@ -248,8 +297,27 @@ function HistoryModal({
           <button className="quiet" onClick={onClose}>✕</button>
         </div>
 
-        <HistoryChart sparkline={stat.sparkline} color={color} unit={stat.unit} />
+        <HistoryChart data={chartData} color={color} unit={stat.unit} />
 
+        {/* Summary stats */}
+        {stats && (
+          <div className="ft-history-stats">
+            <div className="ft-history-stat">
+              <span className="ft-history-stat-val" style={{ color }}>{stats.streak}</span>
+              <span className="ft-history-stat-lbl">day streak</span>
+            </div>
+            <div className="ft-history-stat">
+              <span className="ft-history-stat-val">{stats.avg.toLocaleString()}</span>
+              <span className="ft-history-stat-lbl">avg / day</span>
+            </div>
+            <div className="ft-history-stat">
+              <span className="ft-history-stat-val">{stats.total.toLocaleString()}</span>
+              <span className="ft-history-stat-lbl">all time · {stat.unit}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Log list */}
         <div className="ft-history-log">
           {efforts === null && <p className="ft-history-empty">Loading…</p>}
           {efforts !== null && byDate.length === 0 && (
@@ -269,6 +337,14 @@ function HistoryModal({
                         {Number(e.amount).toLocaleString()}
                         <span className="ft-history-unit"> {stat.unit}</span>
                       </span>
+                      <button
+                        className="quiet ft-entry-delete"
+                        onClick={() => deleteEffort(e.id)}
+                        disabled={deleting.has(e.id)}
+                        title="Delete entry"
+                      >
+                        ✕
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -284,20 +360,22 @@ function HistoryModal({
 // ─── History chart ────────────────────────────────────────────────────────────
 
 function HistoryChart({
-  sparkline,
+  data,
   color,
   unit,
 }: {
-  sparkline: Array<{ date: string; value: number }>;
+  data: Array<{ date: string; value: number }>;
   color: string;
   unit: string;
 }) {
   const today  = todayIso();
-  const maxVal = Math.max(...sparkline.map((s) => s.value), 1);
-  const W = 300, H = 120, padX = 8, padBottom = 20;
-  const n    = sparkline.length;
-  const slot = (W - padX * 2) / n;
-  const barW = Math.max(slot - 3, 4);
+  const maxVal = Math.max(...data.map((s) => s.value), 1);
+  const W = 300, H = 110, padX = 4, padBottom = 14;
+  const n       = data.length;
+  const slotW   = (W - padX * 2) / n;
+  const barW    = Math.max(slotW - 2, 2);
+  // Show date label every 5 bars + today
+  const showLabel = (i: number) => i === n - 1 || i === 0 || (n - 1 - i) % 5 === 0;
 
   return (
     <svg
@@ -306,63 +384,50 @@ function HistoryChart({
       style={{ display: "block", overflow: "visible" }}
       aria-label={`${unit} history`}
     >
-      {sparkline.map((s, i) => {
-        const barH   = s.value > 0 ? Math.max((s.value / maxVal) * H, 4) : 0;
-        const x      = padX + i * slot;
-        const y      = H - barH;
+      {data.map((s, i) => {
+        const barH    = s.value > 0 ? Math.max((s.value / maxVal) * H, 3) : 0;
+        const x       = padX + i * slotW;
+        const y       = H - barH;
         const isToday = s.date === today;
-        const d      = new Date(s.date + "T12:00:00");
-        const dayLbl = d.toLocaleDateString("en-US", { weekday: "narrow" });
+        const d       = new Date(s.date + "T12:00:00");
         const dateLbl = d.getDate();
         return (
           <g key={s.date}>
-            {barH > 0 && (
-              <rect
-                x={x + (slot - barW) / 2}
-                y={y}
-                width={barW}
-                height={barH}
-                fill={color}
-                opacity={isToday ? 1 : 0.55}
-                rx={2}
-              />
-            )}
-            {barH > 0 && (
+            <rect
+              x={x + (slotW - barW) / 2}
+              y={barH > 0 ? y : H - 2}
+              width={barW}
+              height={barH > 0 ? barH : 2}
+              fill={barH > 0 ? color : "var(--rule-strong)"}
+              opacity={barH > 0 ? (isToday ? 1 : 0.5) : 0.15}
+              rx={1}
+            />
+            {isToday && barH > 0 && (
               <text
-                x={x + slot / 2}
+                x={x + slotW / 2}
                 y={y - 3}
                 textAnchor="middle"
-                fontSize="8"
+                fontSize="7"
                 fill={color}
-                opacity={isToday ? 1 : 0.7}
               >
                 {s.value.toLocaleString()}
               </text>
             )}
-            <text
-              x={x + slot / 2}
-              y={H + 11}
-              textAnchor="middle"
-              fontSize="8"
-              fill={isToday ? color : "var(--ink-faint)"}
-              fontWeight={isToday ? "700" : "400"}
-            >
-              {dayLbl}
-            </text>
-            <text
-              x={x + slot / 2}
-              y={H + 20}
-              textAnchor="middle"
-              fontSize="7"
-              fill={isToday ? color : "var(--ink-faint)"}
-              opacity="0.7"
-            >
-              {dateLbl}
-            </text>
+            {showLabel(i) && (
+              <text
+                x={x + slotW / 2}
+                y={H + 11}
+                textAnchor="middle"
+                fontSize="7"
+                fill={isToday ? color : "var(--ink-faint)"}
+                fontWeight={isToday ? "700" : "400"}
+              >
+                {dateLbl}
+              </text>
+            )}
           </g>
         );
       })}
-      {/* Baseline */}
       <line x1={padX} y1={H} x2={W - padX} y2={H} stroke="var(--rule)" strokeWidth="1" />
     </svg>
   );
@@ -384,7 +449,11 @@ function ExerciseRow({
   const [busy,        setBusy]        = useState(false);
   const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
   const [showHistory, setShowHistory] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [editing,     setEditing]     = useState(false);
+  const [editName,    setEditName]    = useState("");
+  const [editUnit,    setEditUnit]    = useState("");
+  const inputRef   = useRef<HTMLInputElement>(null);
+  const editNameRef = useRef<HTMLInputElement>(null);
   const color = tagColor(stat.name);
 
   async function deleteExercise(e: React.MouseEvent) {
@@ -400,13 +469,40 @@ function ExerciseRow({
   }
 
   useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
+    if (open && !editing) inputRef.current?.focus();
+    if (open && editing)  editNameRef.current?.focus();
+  }, [open, editing]);
 
   function openRow() {
     setAmount("");
+    setEditing(false);
     setOpen(true);
     onError(null);
+  }
+
+  function openEdit(e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditName(stat.name);
+    setEditUnit(stat.unit);
+    setEditing(true);
+  }
+
+  async function saveEdit() {
+    if (!editName.trim() || !editUnit.trim()) return;
+    setBusy(true);
+    onError(null);
+    try {
+      await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, {
+        name: editName.trim(),
+        unit: editUnit.trim(),
+      });
+      setEditing(false);
+      await onChanged();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not update exercise.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function submit() {
@@ -511,17 +607,13 @@ function ExerciseRow({
         </button>
       </div>
 
-      {/* Inline log form */}
-      {open && (
+      {/* Inline form */}
+      {open && !editing && (
         <div className="ft-log-form">
-          <button
-            type="button"
-            className="quiet ft-history-btn"
-            onClick={() => setShowHistory(true)}
-            title="View history"
-          >
-            ↗
-          </button>
+          <button type="button" className="quiet ft-history-btn"
+            onClick={() => setShowHistory(true)} title="View history">↗</button>
+          <button type="button" className="quiet ft-history-btn"
+            onClick={openEdit} title="Edit exercise">✏</button>
           <input
             ref={inputRef}
             className="ft-log-input"
@@ -534,19 +626,44 @@ function ExerciseRow({
               if (e.key === "Escape") setOpen(false);
             }}
           />
-          <button
-            className="primary ft-log-submit"
-            onClick={submit}
-            disabled={busy || !amount.trim()}
-          >
-            ✓
-          </button>
+          <button className="primary ft-log-submit" onClick={submit}
+            disabled={busy || !amount.trim()}>✓</button>
+        </div>
+      )}
+
+      {open && editing && (
+        <div className="ft-edit-form">
+          <input
+            ref={editNameRef}
+            className="ft-edit-input"
+            value={editName}
+            placeholder="Name"
+            onChange={(e) => setEditName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter")  saveEdit();
+              if (e.key === "Escape") setEditing(false);
+            }}
+          />
+          <input
+            className="ft-edit-unit"
+            value={editUnit}
+            placeholder="Unit"
+            onChange={(e) => setEditUnit(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter")  saveEdit();
+              if (e.key === "Escape") setEditing(false);
+            }}
+          />
+          <button className="primary ft-log-submit" onClick={saveEdit}
+            disabled={busy || !editName.trim() || !editUnit.trim()}>✓</button>
+          <button className="quiet ft-history-btn" type="button"
+            onClick={() => setEditing(false)}>✕</button>
         </div>
       )}
 
       {/* History modal */}
       {showHistory && (
-        <HistoryModal stat={stat} color={color} onClose={() => setShowHistory(false)} />
+        <HistoryModal stat={stat} color={color} onClose={() => setShowHistory(false)} onChanged={onChanged} />
       )}
     </div>
   );
