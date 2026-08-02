@@ -289,16 +289,11 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onGo
         </div>
         <div className="day-popup-footer">
           {!highlight && (
-            <button className="day-popup-highlight-btn" onClick={() => { onClose(); onHighlight(); }}>
-              ✦ Highlight day
-            </button>
+            <button className="day-popup-highlight-btn" onClick={() => { onClose(); onHighlight(); }}>Highlight</button>
           )}
-          <button className="day-popup-add-btn" onClick={() => { onClose(); onAddEntry(); }} aria-label="Add entry">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            New entry
-          </button>
-          <button onClick={() => { onClose(); onGoToWeek(); }}>View week</button>
-          <button onClick={() => { onClose(); onGoToDay(); }}>View day</button>
+          <button className="day-popup-add-btn" onClick={() => { onClose(); onAddEntry(); }}>Entry</button>
+          <button onClick={() => { onClose(); onGoToWeek(); }}>Week</button>
+          <button onClick={() => { onClose(); onGoToDay(); }}>Day</button>
         </div>
       </div>
     </div>
