@@ -797,11 +797,10 @@ export default function Journal() {
                 const isCarryover = e.entryDate !== focusYmd;
                 const isOpener = e.looseEndType === 'open';
                 const isCloser = e.looseEndType === 'close';
+                const closeLinkedLocal = entries.find(x => x.looseEndLink === e.id && x.looseEndType === 'close') ?? null;
                 const linkedLocal = isCloser && e.looseEndLink
                   ? entries.find(x => x.id === e.looseEndLink) ?? null
-                  : isOpener
-                  ? entries.find(x => x.looseEndLink === e.id && x.looseEndType === 'close') ?? null
-                  : null;
+                  : closeLinkedLocal;
                 const showLink = linkedLocal !== null || (isCloser && !!e.looseEndLink);
                 return (
                   <React.Fragment key={e.id}>
@@ -827,7 +826,9 @@ export default function Journal() {
                           {isCloser ? '◎' : '◉'}
                         </span>
                         <span className="journal-list-linked-label">
-                          {linkedLocal ? (linkedLocal.subject || linkedLocal.content || "—") : "View open end"}
+                          {linkedLocal
+                            ? `${isCloser ? "open end" : "closed"} · ${new Date(linkedLocal.entryDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                            : "View open end"}
                         </span>
                         <span className="journal-list-linked-arrow">→</span>
                       </button>
@@ -1026,11 +1027,10 @@ export default function Journal() {
                             const isCarryover = e.entryDate !== ymd;
                             const isOpener = e.looseEndType === 'open';
                             const isCloser = e.looseEndType === 'close';
+                            const closeLinkedLocal = entries.find(x => x.looseEndLink === e.id && x.looseEndType === 'close') ?? null;
                             const linkedLocal = isCloser && e.looseEndLink
                               ? entries.find(x => x.id === e.looseEndLink) ?? null
-                              : isOpener
-                              ? entries.find(x => x.looseEndLink === e.id && x.looseEndType === 'close') ?? null
-                              : null;
+                              : closeLinkedLocal;
                             const showLink = linkedLocal !== null || (isCloser && !!e.looseEndLink);
                             return (
                               <React.Fragment key={e.id}>
@@ -1056,7 +1056,9 @@ export default function Journal() {
                                       {isCloser ? '◎' : '◉'}
                                     </span>
                                     <span className="journal-list-linked-label">
-                                      {linkedLocal ? (linkedLocal.subject || linkedLocal.content || "—") : "View open end"}
+                                      {linkedLocal
+                                        ? `${isCloser ? "open end" : "closed"} · ${new Date(linkedLocal.entryDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                                        : "View open end"}
                                     </span>
                                     <span className="journal-list-linked-arrow">→</span>
                                   </button>
