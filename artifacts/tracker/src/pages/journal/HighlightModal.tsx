@@ -10,6 +10,7 @@ export type DayHighlight = {
   id: number;
   date: string;
   label: string;
+  note: string;
   color: string;
   showCountdown: boolean;
   startTime: string | null;
@@ -35,8 +36,9 @@ function inferTimeType(h: DayHighlight | null): TimeType {
 }
 
 export default function HighlightModal({ date, existing, onClose, onSave, onDelete }: Props) {
-  const [label,         setLabel]         = useState(existing?.label         ?? "");
-  const [color,         setColor]         = useState(existing?.color         ?? "#4eaaee");
+  const [label,         setLabel]         = useState(existing?.label ?? "");
+  const [note,          setNote]          = useState(existing?.note  ?? "");
+  const [color,         setColor]         = useState(existing?.color ?? "#4eaaee");
   const [showCountdown, setShowCountdown] = useState(existing?.showCountdown ?? false);
   const [timeType,      setTimeType]      = useState<TimeType>(() => inferTimeType(existing));
   const [startTime,     setStartTime]     = useState(existing?.startTime ?? "");
@@ -61,6 +63,7 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
       const payload = {
         date,
         label:         label.trim(),
+        note:          note.trim(),
         color,
         showCountdown,
         startTime: hlStart,
@@ -112,6 +115,15 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
               autoFocus
               onChange={e => setLabel(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && label.trim()) void save(); }}
+            />
+
+            {/* Note */}
+            <textarea
+              className="highlight-form-input highlight-note-input"
+              placeholder="Note…"
+              value={note}
+              rows={3}
+              onChange={e => setNote(e.target.value)}
             />
 
             {/* Colors */}

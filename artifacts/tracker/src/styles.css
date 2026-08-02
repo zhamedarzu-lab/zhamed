@@ -1146,6 +1146,13 @@ a:hover {
   font-size: 1rem;
   font-weight: 500;
 }
+.highlight-note-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 64px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
 /* Time type tabs + countdown toggle on one row */
 .highlight-controls-row {
   display: flex;

@@ -21,6 +21,7 @@ export const dayHighlightsTable = pgTable("day_highlights", {
   date:          text("date").notNull(),
   label:         text("label").notNull().default(""),
   color:         text("color").notNull().default("#4eaaee"),
+  note:          text("note").notNull().default(""),
   showCountdown: boolean("show_countdown").notNull().default(false),
   startTime:     text("start_time"),
   endTime:       text("end_time"),

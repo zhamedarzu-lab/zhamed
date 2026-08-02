@@ -112,6 +112,7 @@ router.delete("/entries/:id", async (req, res) => {
 const HighlightInput = z.object({
   date:               z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   label:              z.string().default(""),
+  note:               z.string().default(""),
   color:              z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#4eaaee"),
   showCountdown:      z.boolean().default(false),
   startTime:          z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
@@ -125,7 +126,7 @@ const HighlightInput = z.object({
  *  Prefers client-provided ISO strings (which carry the user's local timezone)
  *  over server-side construction from bare HH:MM (which would be UTC). */
 function hlEntryValues(data: {
-  date: string; label: string; color: string;
+  date: string; label: string; note?: string; color: string;
   startTime?: string | null; endTime?: string | null;
   entryStartTimeISO?: string | null; entryEndTimeISO?: string | null;
 }) {
@@ -137,7 +138,7 @@ function hlEntryValues(data: {
     : (data.endTime ? new Date(`${data.date}T${data.endTime}:00`) : null);
   return {
     subject:   data.label,
-    content:   "",
+    content:   data.note ?? "",
     entryDate: data.date,
     startTime,
     endTime,
@@ -212,6 +213,7 @@ router.patch("/highlights/:id", async (req, res) => {
   const patch: Record<string, unknown> = {};
   if (parsed.data.date          !== undefined) patch.date          = parsed.data.date;
   if (parsed.data.label         !== undefined) patch.label         = parsed.data.label;
+  if (parsed.data.note          !== undefined) patch.note          = parsed.data.note;
   if (parsed.data.color         !== undefined) patch.color         = parsed.data.color;
   if (parsed.data.showCountdown !== undefined) patch.showCountdown = parsed.data.showCountdown;
   if (parsed.data.startTime     !== undefined) patch.startTime     = parsed.data.startTime ?? null;
@@ -226,6 +228,7 @@ router.patch("/highlights/:id", async (req, res) => {
   const merged = {
     date:      (parsed.data.date      ?? existing.date),
     label:     (parsed.data.label     ?? existing.label),
+    note:      (parsed.data.note      ?? existing.note ?? ""),
     color:     (parsed.data.color     ?? existing.color),
     startTime: parsed.data.startTime  !== undefined ? parsed.data.startTime : existing.startTime,
     endTime:   parsed.data.endTime    !== undefined ? parsed.data.endTime   : existing.endTime,
