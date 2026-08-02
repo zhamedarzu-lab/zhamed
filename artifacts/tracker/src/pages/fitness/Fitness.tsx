@@ -613,7 +613,7 @@ function ExerciseRow({
           <button type="button" className="quiet ft-history-btn"
             onClick={() => setShowHistory(true)} title="View history">↗</button>
           <button type="button" className="quiet ft-history-btn"
-            onClick={openEdit} title="Edit exercise">✏</button>
+            onClick={openEdit} title="Edit exercise">edit</button>
           <input
             ref={inputRef}
             className="ft-log-input"
