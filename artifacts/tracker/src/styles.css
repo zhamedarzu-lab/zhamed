@@ -2470,7 +2470,10 @@ a:hover {
 }
 .journal-month-cell:hover { background: var(--paper-sunk); }
 .journal-month-cell:nth-child(7n) { border-right: none; }
-.journal-month-cell.out-of-month { opacity: 0.3; }
+.journal-month-cell.out-of-month .journal-month-cell-num,
+.journal-month-cell.out-of-month .journal-month-lines {
+  opacity: 0.3;
+}
 .journal-month-cell.is-today {
   background: color-mix(in srgb, var(--amber) 6%, transparent);
 }
