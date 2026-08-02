@@ -797,6 +797,7 @@ export default function Journal() {
                 const isCarryover = e.entryDate !== focusYmd;
                 const isOpener = e.looseEndType === 'open';
                 const isCloser = e.looseEndType === 'close';
+                const hasCloseEntry = !isCloser && entries.some(x => x.looseEndLink === e.id && x.looseEndType === 'close');
                 return (
                   <button key={e.id} className={`journal-hday-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
                     <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
@@ -805,7 +806,7 @@ export default function Journal() {
                       : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
                     }
                     <span className="journal-hday-list-label">
-                      {isOpener && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                      {(isOpener || hasCloseEntry) && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
                       {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
                       {e.subject || e.content || "—"}
                     </span>
@@ -1003,6 +1004,7 @@ export default function Journal() {
                             const isCarryover = e.entryDate !== ymd;
                             const isOpener = e.looseEndType === 'open';
                             const isCloser = e.looseEndType === 'close';
+                            const hasCloseEntry = !isCloser && entries.some(x => x.looseEndLink === e.id && x.looseEndType === 'close');
                             return (
                               <button key={e.id} className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
                                 <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
@@ -1011,7 +1013,7 @@ export default function Journal() {
                                   : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
                                 }
                                 <span className="journal-week-list-label">
-                                  {isOpener && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                                  {(isOpener || hasCloseEntry) && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
                                   {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
                                   {e.subject || e.content || "—"}
                                 </span>
