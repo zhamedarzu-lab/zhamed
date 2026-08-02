@@ -12,7 +12,8 @@ import {
   monthlyBillItemsTable,
   journalEntriesTable,
   dayHighlightsTable,
-  fitnessLogsTable,
+  exercisesTable,
+  effortsTable,
 } from "@workspace/db";
 
 const router = Router();
@@ -31,7 +32,8 @@ router.get("/export", async (_req, res) => {
     bills,
     journalEntries,
     dayHighlights,
-    fitnessLogs,
+    exercises,
+    efforts,
   ] = await Promise.all([
     db.select().from(paychecksTable),
     db.select().from(debtAccountsTable),
@@ -44,7 +46,8 @@ router.get("/export", async (_req, res) => {
     db.select().from(monthlyBillItemsTable),
     db.select().from(journalEntriesTable),
     db.select().from(dayHighlightsTable),
-    db.select().from(fitnessLogsTable),
+    db.select().from(exercisesTable),
+    db.select().from(effortsTable),
   ]);
 
   const exportedAt = new Date().toISOString();
@@ -66,7 +69,8 @@ router.get("/export", async (_req, res) => {
     bills,
     journalEntries,
     dayHighlights,
-    fitnessLogs,
+    exercises,
+    efforts,
   });
 });
 

@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import financeRouter from "./finance/index.js";
 import journalRouter from "./journal/index.js";
+import fitnessRouter from "./fitness/index.js";
 import authRouter from "./auth.js";
 import exportRouter from "./export.js";
 import { requireAuth } from "../middleware/requireAuth.js";
@@ -24,5 +25,6 @@ router.use(exportRouter);
 // Domain routers
 router.use("/finance", financeRouter);
 router.use("/journal", journalRouter);
+router.use("/fitness", fitnessRouter);
 
 export default router;
