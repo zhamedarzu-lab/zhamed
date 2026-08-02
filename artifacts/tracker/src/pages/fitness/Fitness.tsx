@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { api, useApi } from "../../lib/api";
 import { shortDate, todayIso } from "../../lib/format";
 import { Empty, Loading, Notice, tagColor } from "../../components/ui";
@@ -45,10 +44,12 @@ function currentSlot() {
 export default function Fitness() {
   const summary  = useApi<Summary>("/api/fitness/summary");
   const [error,    setError]    = useState<string | null>(null);
-  const [addOpen,  setAddOpen]  = useState(false);
-  const [newName,  setNewName]  = useState("");
-  const [newUnit,  setNewUnit]  = useState("");
-  const [addBusy,  setAddBusy]  = useState(false);
+  const [addOpen,       setAddOpen]       = useState(false);
+  const [newName,       setNewName]       = useState("");
+  const [newUnit,       setNewUnit]       = useState("");
+  const [newColor,      setNewColor]      = useState<string | null>(null);
+  const [addColorOpen,  setAddColorOpen]  = useState(false);
+  const [addBusy,       setAddBusy]       = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const unitRef = useRef<HTMLInputElement>(null);
 
@@ -56,18 +57,25 @@ export default function Fitness() {
     if (addOpen) nameRef.current?.focus();
   }, [addOpen]);
 
+  function closeAddForm() {
+    setAddOpen(false);
+    setNewName("");
+    setNewUnit("");
+    setNewColor(null);
+    setAddColorOpen(false);
+  }
+
   async function addExercise() {
     if (!newName.trim() || !newUnit.trim()) return;
     setAddBusy(true);
     setError(null);
     try {
       await api.post("/api/fitness/exercises", {
-        name: newName.trim(),
-        unit: newUnit.trim(),
+        name:  newName.trim(),
+        unit:  newUnit.trim(),
+        color: newColor,
       });
-      setNewName("");
-      setNewUnit("");
-      setAddOpen(false);
+      closeAddForm();
       await summary.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add exercise.");
@@ -93,10 +101,6 @@ export default function Fitness() {
       {summary.data && (
         <>
           <WeekGrid exercises={activeExercises} />
-
-          {activeExercises.length > 0 && (
-            <CombinedChart exercises={activeExercises} />
-          )}
 
           {activeExercises.length === 0 ? (
             <Empty title="No exercises yet">
@@ -129,25 +133,53 @@ export default function Fitness() {
         </button>
       ) : (
         <div className="ft-add-form">
-          <input
-            ref={nameRef}
-            value={newName}
-            placeholder="Name — Pushups, Plank…"
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && unitRef.current?.focus()}
-            style={{ flex: 2 }}
-          />
-          <input
-            ref={unitRef}
-            value={newUnit}
-            placeholder="Unit — reps, secs…"
-            onChange={(e) => setNewUnit(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter")  addExercise();
-              if (e.key === "Escape") setAddOpen(false);
-            }}
-            style={{ flex: 1 }}
-          />
+          <div className="ft-edit-fields">
+            <div className="ft-edit-inputs">
+              <button
+                type="button"
+                className="ft-color-trigger"
+                style={{ background: newColor ?? "var(--ink-faint)" }}
+                onClick={() => setAddColorOpen(o => !o)}
+                title="Choose color"
+              />
+              <input
+                ref={nameRef}
+                value={newName}
+                placeholder="Name — Pushups, Plank…"
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && unitRef.current?.focus()}
+                style={{ flex: 2 }}
+              />
+              <input
+                ref={unitRef}
+                value={newUnit}
+                placeholder="Unit — reps, secs…"
+                onChange={(e) => setNewUnit(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter")  addExercise();
+                  if (e.key === "Escape") closeAddForm();
+                }}
+                style={{ flex: 1 }}
+              />
+            </div>
+            {addColorOpen && (
+              <div className="ft-edit-swatches">
+                {FITNESS_COLORS.map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    className={`ft-swatch${newColor === c.hex ? " ft-swatch--active" : ""}`}
+                    style={{ background: c.hex }}
+                    onClick={() => {
+                      setNewColor(newColor === c.hex ? null : c.hex);
+                      setAddColorOpen(false);
+                    }}
+                    title={c.label}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
           <button
             className="primary"
             onClick={addExercise}
@@ -155,72 +187,10 @@ export default function Fitness() {
           >
             Add
           </button>
-          <button className="quiet" onClick={() => setAddOpen(false)}>✕</button>
+          <button className="quiet" onClick={closeAddForm}>✕</button>
         </div>
       )}
     </>
-  );
-}
-
-// ─── Combined chart ───────────────────────────────────────────────────────────
-
-const DAY_LABELS = ["S","M","T","W","T","F","S"];
-
-function CombinedChart({ exercises }: { exercises: ExerciseStat[] }) {
-  const data = useMemo(() => {
-    if (!exercises.length) return [];
-    const days = exercises[0].sparkline;
-    return days.map(({ date }) => {
-      const d = new Date(date + "T12:00:00");
-      const label = `${DAY_LABELS[d.getDay()]}\n${d.getDate()}`;
-      const entry: Record<string, string | number> = { date, label };
-      for (const ex of exercises) {
-        const pt = ex.sparkline.find(s => s.date === date);
-        entry[ex.name] = (pt && pt.value > 0) ? 1 : 0;
-      }
-      return entry;
-    });
-  }, [exercises]);
-
-  if (!data.length) return null;
-
-  return (
-    <div className="ft-combined-chart">
-      <ResponsiveContainer width="100%" height={90}>
-        <BarChart data={data} barCategoryGap="25%" margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-          <XAxis
-            dataKey="label"
-            tick={{ fill: "var(--ink-faint)", fontSize: 9 }}
-            tickLine={false}
-            axisLine={false}
-            interval={0}
-          />
-          <Tooltip
-            cursor={{ fill: "rgba(255,255,255,0.05)" }}
-            content={({ active, payload, label }) => {
-              if (!active || !payload?.length) return null;
-              const active_ = payload.filter(p => (p.value as number) > 0);
-              if (!active_.length) return null;
-              return (
-                <div className="ft-chart-tip">
-                  <div className="ft-chart-tip-date">{label}</div>
-                  {active_.map(p => (
-                    <div key={p.name as string} className="ft-chart-tip-row">
-                      <span className="ft-chart-tip-dot" style={{ background: p.fill as string }} />
-                      {p.name as string}
-                    </div>
-                  ))}
-                </div>
-              );
-            }}
-          />
-          {exercises.map(ex => (
-            <Bar key={ex.exerciseId} dataKey={ex.name} stackId="a"
-              fill={ex.color ?? tagColor(ex.name)} radius={0} isAnimationActive={false} />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
   );
 }
 
