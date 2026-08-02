@@ -110,7 +110,7 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
             <div className="highlight-form-row">
               <span className="highlight-form-label">Color</span>
               <div className="entry-form-colors">
-                {ENTRY_COLORS.map(c => (
+                {ENTRY_COLORS.filter(c => c.hex !== "#1c1c1e").map(c => (
                   <button
                     key={c.hex}
                     className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
