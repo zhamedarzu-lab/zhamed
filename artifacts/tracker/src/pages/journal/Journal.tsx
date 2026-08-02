@@ -884,13 +884,15 @@ export default function Journal() {
                 (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
               );
               const combined = [...carryovers, ...own];
-              if (combined.length > 0) groups.push([ymd, combined]);
+              const hasHl = highlights.some(h => h.date === ymd);
+              if (combined.length > 0 || hasHl) groups.push([ymd, combined]);
             }
 
             return (
               <div className="journal-week-list">
                 {groups.map(([ymd, group], gi) => {
                   const expanded = expandedDays.has(ymd);
+                  const hl = highlights.find(h => h.date === ymd) ?? null;
                   const day = new Date(ymd + "T00:00:00");
                   const dayLabel = ymd === todayYmd
                     ? "Today"
@@ -900,26 +902,43 @@ export default function Journal() {
                     next.has(ymd) ? next.delete(ymd) : next.add(ymd);
                     return next;
                   });
+                  const totalCount = group.length + (hl ? 1 : 0);
                   return (
                     <div key={ymd} className={`journal-week-group${gi > 0 ? " journal-week-group--sep" : ""}`}>
                       <button className="journal-week-group-hd" onClick={toggleCollapse}>
                         <span className="journal-week-group-day">{dayLabel}</span>
-                        <span className="journal-week-group-count">{group.length} {group.length === 1 ? "entry" : "entries"}</span>
+                        <span className="journal-week-group-count">{totalCount} {totalCount === 1 ? "entry" : "entries"}</span>
                         <span className={`journal-week-group-chevron${!expanded ? " collapsed" : ""}`}>›</span>
                       </button>
-                      {expanded && group.map(e => {
-                        const isCarryover = e.entryDate !== ymd;
-                        return (
-                          <button key={e.id} className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
-                            <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
-                            {isCarryover
-                              ? <span className="journal-week-list-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
-                              : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                            }
-                            <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
-                          </button>
-                        );
-                      })}
+                      {expanded && (
+                        <>
+                          {hl && (
+                            <button className="journal-week-list-row journal-week-list-row--highlight"
+                              onClick={() => setHlModal({ date: ymd, existing: hl })}>
+                              <span className="journal-week-list-dot" style={{ background: hl.color, ...br(hl.color) } as React.CSSProperties} />
+                              <span className="journal-week-list-time">
+                                {hl.startTime
+                                  ? hl.endTime ? `${fmtHHMM(hl.startTime)} – ${fmtHHMM(hl.endTime)}` : fmtHHMM(hl.startTime)
+                                  : "All day"}
+                              </span>
+                              <span className="journal-week-list-label">✦ {hl.label || "Highlight"}</span>
+                            </button>
+                          )}
+                          {group.map(e => {
+                            const isCarryover = e.entryDate !== ymd;
+                            return (
+                              <button key={e.id} className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
+                                <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
+                                {isCarryover
+                                  ? <span className="journal-week-list-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                                  : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                                }
+                                <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
+                              </button>
+                            );
+                          })}
+                        </>
+                      )}
                     </div>
                   );
                 })}
