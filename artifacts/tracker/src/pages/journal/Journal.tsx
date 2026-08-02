@@ -802,7 +802,11 @@ export default function Journal() {
                       ? <span className="journal-hday-list-time">— {e.endTime ? fmtTime(e.endTime) : ""}</span>
                       : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
                     }
-                    <span className="journal-hday-list-label">{e.subject || e.content || "—"}</span>
+                    <span className="journal-hday-list-label">
+                      {e.looseEndType === 'open'  && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                      {e.looseEndType === 'close' && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
+                      {e.subject || e.content || "—"}
+                    </span>
                   </button>
                 );
               })}
@@ -1002,7 +1006,11 @@ export default function Journal() {
                                   ? <span className="journal-week-list-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
                                   : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
                                 }
-                                <span className="journal-week-list-label">{e.subject || e.content || "—"}</span>
+                                <span className="journal-week-list-label">
+                                  {e.looseEndType === 'open'  && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                                  {e.looseEndType === 'close' && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
+                                  {e.subject || e.content || "—"}
+                                </span>
                               </button>
                             );
                           })}
