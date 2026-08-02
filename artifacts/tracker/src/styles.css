@@ -638,6 +638,34 @@ a:hover {
 }
 .jsearch-group-daylink:hover { color: var(--ink-soft); }
 
+.jsearch-card-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.jsearch-card-wrap .jsearch-card {
+  flex: 1;
+}
+.jsearch-resolve-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--rule);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  padding: 0 0.75rem;
+  font-size: 1rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.jsearch-resolve-btn:hover {
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  color: var(--amber);
+}
+.jsearch-card-wrap .jsearch-card {
+  border-radius: 10px 0 0 10px;
+}
+
 .jsearch-card {
   display: flex;
   gap: 0;
