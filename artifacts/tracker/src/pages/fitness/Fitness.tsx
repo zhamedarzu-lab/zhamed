@@ -84,13 +84,6 @@ export default function Fitness() {
     <>
       <div className="page-head">
         <div><h1>Fitness</h1></div>
-        {summary.data && (
-          <div className="ft-cycle-stat">
-            <span className="ft-cycle-num">{activeDays}</span>
-            <span className="ft-cycle-denom">/14</span>
-            <span className="ft-cycle-label">this cycle</span>
-          </div>
-        )}
       </div>
 
       <Notice>{error}</Notice>
