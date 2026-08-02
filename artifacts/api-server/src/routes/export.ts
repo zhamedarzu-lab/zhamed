@@ -11,6 +11,7 @@ import {
   monthlySubscriptionItemsTable,
   monthlyBillItemsTable,
   journalEntriesTable,
+  dayHighlightsTable,
   fitnessLogsTable,
 } from "@workspace/db";
 
@@ -29,6 +30,7 @@ router.get("/export", async (_req, res) => {
     subscriptions,
     bills,
     journalEntries,
+    dayHighlights,
     fitnessLogs,
   ] = await Promise.all([
     db.select().from(paychecksTable),
@@ -41,6 +43,7 @@ router.get("/export", async (_req, res) => {
     db.select().from(monthlySubscriptionItemsTable),
     db.select().from(monthlyBillItemsTable),
     db.select().from(journalEntriesTable),
+    db.select().from(dayHighlightsTable),
     db.select().from(fitnessLogsTable),
   ]);
 
@@ -62,6 +65,7 @@ router.get("/export", async (_req, res) => {
     subscriptions,
     bills,
     journalEntries,
+    dayHighlights,
     fitnessLogs,
   });
 });
