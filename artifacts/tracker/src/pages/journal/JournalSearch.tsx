@@ -245,38 +245,25 @@ export default function JournalSearch() {
               const isOpener = e.looseEndType === "open";
               const isCloser = e.looseEndType === "close";
               return (
-                <div key={e.id} className="jsearch-card-wrap">
-                  <button className="jsearch-card" onClick={() => setSelected(e)}>
-                    <div className="jsearch-card-accent" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)" } : {}) }} />
-                    <div className="jsearch-card-body">
-                      <p className="jsearch-card-time">{fmtRange(e.startTime, e.endTime)}</p>
-                      {e.subject && (
-                        <p className="jsearch-card-subject">
-                          {isOpener && <span className="loose-end-badge loose-end-badge--open" title="Open loose end">◎</span>}
-                          {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉</span>}
-                          {" "}
-                          <Highlight text={e.subject} query={filterMode === "normal" ? q : ""} />
-                        </p>
-                      )}
-                      {e.content && (
-                        <p className="jsearch-card-content">
-                          <Highlight text={e.content} query={filterMode === "normal" ? q : ""} />
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                  {filterMode === "open-ends" && isOpener && (
-                    <button
-                      className="jsearch-resolve-btn"
-                      title="Mark as resolved"
-                      onClick={async ev => {
-                        ev.stopPropagation();
-                        await api.patch(`/api/journal/entries/${e.id}`, { looseEndType: null });
-                        setEntries(prev => prev.map(x => x.id === e.id ? { ...x, looseEndType: null } : x));
-                      }}
-                    >◉</button>
-                  )}
-                </div>
+                <button key={e.id} className="jsearch-card" onClick={() => setSelected(e)}>
+                  <div className="jsearch-card-accent" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)" } : {}) }} />
+                  <div className="jsearch-card-body">
+                    <p className="jsearch-card-time">{fmtRange(e.startTime, e.endTime)}</p>
+                    {e.subject && (
+                      <p className="jsearch-card-subject">
+                        {isOpener && <span className="loose-end-badge loose-end-badge--open" title="Open loose end">◎</span>}
+                        {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉</span>}
+                        {" "}
+                        <Highlight text={e.subject} query={filterMode === "normal" ? q : ""} />
+                      </p>
+                    )}
+                    {e.content && (
+                      <p className="jsearch-card-content">
+                        <Highlight text={e.content} query={filterMode === "normal" ? q : ""} />
+                      </p>
+                    )}
+                  </div>
+                </button>
               );
             })}
           </div>
