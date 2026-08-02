@@ -71,6 +71,15 @@ export default function JournalSearch() {
     });
   }
 
+  // Opener IDs that have an explicit close entry pointing at them via looseEndLink
+  const resolvedOpenerIds = useMemo(() => {
+    const s = new Set<number>();
+    for (const e of entries) {
+      if (e.looseEndLink !== null && e.looseEndLink !== undefined) s.add(e.looseEndLink);
+    }
+    return s;
+  }, [entries]);
+
   const filterMode = detectMode(query);
 
   const results = useMemo(() => {
@@ -81,7 +90,7 @@ export default function JournalSearch() {
       return entries
         .filter(e => {
           const colorOk = !hasColors || activeColors.has(e.color);
-          return colorOk && e.looseEndType === "open";
+          return colorOk && e.looseEndType === "open" && !resolvedOpenerIds.has(e.id);
         })
         .sort((a, b) => b.startTime.localeCompare(a.startTime));
     }
@@ -108,7 +117,7 @@ export default function JournalSearch() {
         return colorOk && textOk;
       })
       .sort((a, b) => b.startTime.localeCompare(a.startTime));
-  }, [query, entries, activeColors, filterMode]);
+  }, [query, entries, activeColors, filterMode, resolvedOpenerIds]);
 
   // Group results by date
   const groups = useMemo(() => {
