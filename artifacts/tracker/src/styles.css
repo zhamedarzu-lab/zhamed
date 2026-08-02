@@ -5007,6 +5007,27 @@ button.btn-icon {
   opacity: 1;
 }
 
+.ft-row-delete {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.35rem;
+  color: var(--ink-faint);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
+  align-self: center;
+}
+.ft-row-main:hover .ft-row-delete,
+.ft-row-delete:focus-visible {
+  opacity: 1;
+}
+.ft-row-delete:hover {
+  color: var(--stamp);
+  opacity: 1;
+}
+@media (hover: none) {
+  .ft-row-delete { opacity: 1; }
+}
+
 /* ── Log form ───────────────────────────────────────────────────────── */
 .ft-log-form {
   display: flex;

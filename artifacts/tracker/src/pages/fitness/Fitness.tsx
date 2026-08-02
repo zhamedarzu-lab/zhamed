@@ -225,6 +225,18 @@ function ExerciseRow({
   const inputRef = useRef<HTMLInputElement>(null);
   const color = tagColor(stat.name);
 
+  async function deleteExercise(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`Delete "${stat.name}"? This removes all its history.`)) return;
+    onError(null);
+    try {
+      await api.del(`/api/fitness/exercises/${stat.exerciseId}`);
+      await onChanged();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not delete exercise.");
+    }
+  }
+
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
@@ -324,6 +336,15 @@ function ExerciseRow({
             ))}
           </div>
         </div>
+
+        <button
+          className="quiet ft-row-delete"
+          onClick={deleteExercise}
+          aria-label={`Delete ${stat.name}`}
+          title={`Delete ${stat.name}`}
+        >
+          ✕
+        </button>
       </div>
 
       {/* Inline log form */}
