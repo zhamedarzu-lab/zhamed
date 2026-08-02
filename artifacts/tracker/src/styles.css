@@ -1763,6 +1763,7 @@ a:hover {
   transition: color 0.15s, border-color 0.15s;
 }
 .day-popup-highlight-btn { margin-right: auto; }
+.day-popup-add-btn { margin-left: auto; }
 .day-popup-highlight-btn:hover,
 .day-popup-add-btn:hover {
   color: var(--ink);
