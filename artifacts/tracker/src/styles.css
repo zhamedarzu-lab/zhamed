@@ -4969,9 +4969,13 @@ button.btn-icon {
 }
 .ft-row-delta {
   font-weight: 700;
+  text-decoration: none;
+  -webkit-text-decoration: none;
 }
 .ft-row-best {
   opacity: 0.65;
+  text-decoration: none;
+  -webkit-text-decoration: none;
 }
 
 .ft-row-right {
