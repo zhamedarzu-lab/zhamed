@@ -4262,3 +4262,177 @@ button.btn-icon {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Loose-end badges (◎ opener, ◉ closer) ─────────────────────────── */
+.loose-end-badge {
+  display: inline-block;
+  font-size: 0.85em;
+  margin-right: 0.2em;
+  vertical-align: baseline;
+  line-height: 1;
+}
+.loose-end-badge--open   { color: #e0b04e; }
+.loose-end-badge--closed { color: #8a9aaa; }
+.loose-end-badge--closer { color: #4ecb71; }
+
+/* ── Open Ends topbar link / badge ─────────────────────────────────── */
+.journal-open-ends-link {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--paper-sunk);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.journal-open-ends-link:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+  background: var(--rule);
+}
+.journal-open-ends-link.has-open {
+  border-color: #e0b04e;
+  color: #e0b04e;
+}
+.journal-open-ends-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #e0b04e;
+  color: #111;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Loose-end picker (in EntryForm) ────────────────────────────────── */
+.loose-end-picker {
+  margin: 0.35rem 0 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--paper-sunk);
+  padding: 0.5rem 0.6rem;
+}
+.loose-end-picker-label {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.loose-end-picker-loading,
+.loose-end-picker-empty {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+  margin: 0;
+  padding: 0.25rem 0;
+}
+.loose-end-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.loose-end-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.3rem 0.45rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s, border-color 0.1s;
+  font: inherit;
+}
+.loose-end-picker-item:hover {
+  background: var(--rule);
+  border-color: var(--rule-strong);
+}
+.loose-end-picker-item.selected {
+  background: color-mix(in srgb, #e0b04e 15%, transparent);
+  border-color: #e0b04e;
+}
+.loose-end-picker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.loose-end-picker-title {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.loose-end-picker-age {
+  font-size: 0.71rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── EntryModal: closer link note ──────────────────────────────────── */
+.entry-modal-link-note {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  margin: 0.25rem 0 0;
+  font-style: italic;
+}
+
+/* ── Search shortcut chips ─────────────────────────────────────────── */
+.jsearch-shortcuts {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 0 0.5rem;
+  flex-wrap: wrap;
+}
+.jsearch-shortcut-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  border: 1px solid var(--rule-strong);
+  background: var(--paper-sunk);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.jsearch-shortcut-chip:hover {
+  background: var(--rule);
+  color: var(--ink);
+}
+.jsearch-shortcut-chip.active {
+  background: color-mix(in srgb, #e0b04e 15%, transparent);
+  border-color: #e0b04e;
+  color: #e0b04e;
+}
+
+/* ── Search mode label ─────────────────────────────────────────────── */
+.jsearch-mode-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem;
+  padding: 0;
+}

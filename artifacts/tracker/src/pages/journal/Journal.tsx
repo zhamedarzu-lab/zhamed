@@ -278,6 +278,7 @@ export default function Journal() {
   const [highlights, setHighlights] = useState<DayHighlight[]>([]);
   const [loading,    setLoading]    = useState(false);
   const [adding,     setAdding]     = useState(false);
+  const [openEndsCount, setOpenEndsCount] = useState<number | null>(null);
   const [nowMin,     setNowMin]     = useState(nowMinutes());
   const [modal,      setModal]      = useState<Entry | null>(null);
   const [dayPopup,   setDayPopup]   = useState<{ date: Date; entries: Entry[] } | null>(null);
@@ -346,8 +347,17 @@ export default function Journal() {
     setHighlights(data);
   }, []);
 
+  // Fetch open loose ends count for the badge
+  const fetchOpenEnds = useCallback(async () => {
+    try {
+      const data = await api.get<Entry[]>("/api/journal/loose-ends");
+      setOpenEndsCount(data.length);
+    } catch { /* silently ignore */ }
+  }, []);
+
   useEffect(() => { void fetchEntries(); }, [fetchEntries]);
   useEffect(() => { void fetchHighlights(); }, [fetchHighlights]);
+  useEffect(() => { void fetchOpenEnds(); }, [fetchOpenEnds]);
 
   useEffect(() => {
     if (view !== "day" || !hdayScrollRef.current) return;
@@ -431,6 +441,16 @@ export default function Journal() {
             <button className="journal-today-btn" onClick={() => setFocus(new Date())}>Today</button>
           )}
         </div>
+        <Link
+          to="/journal/search?q=(((open"
+          className={`journal-open-ends-link${openEndsCount ? " has-open" : ""}`}
+          aria-label="Open loose ends"
+          title="Open loose ends"
+        >
+          ◎{openEndsCount != null && openEndsCount > 0 && (
+            <span className="journal-open-ends-count">{openEndsCount}</span>
+          )}
+        </Link>
         <Link to="/journal/search" className="journal-search-link" aria-label="Search entries">
           Search
         </Link>

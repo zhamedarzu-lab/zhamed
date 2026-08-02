@@ -13,6 +13,7 @@ export type Entry = {
   startTime: string;
   endTime: string | null;
   color: string;
+  looseEndLink: number | null;
   createdAt: string;
 };
 
@@ -71,6 +72,47 @@ export const IcEdit = () => (
   </svg>
 );
 
+/* ── LooseEndPicker ─────────────────────────────────────────────────── */
+type LooseEndPickerProps = {
+  selected: number | null;
+  onChange: (id: number | null) => void;
+};
+function LooseEndPicker({ selected, onChange }: LooseEndPickerProps) {
+  const [openEnds, setOpenEnds] = useState<Entry[] | null>(null);
+
+  useEffect(() => {
+    api.get<Entry[]>("/api/journal/loose-ends").then(setOpenEnds).catch(() => setOpenEnds([]));
+  }, []);
+
+  if (openEnds === null) return <p className="loose-end-picker-loading">Loading open loose ends…</p>;
+  if (openEnds.length === 0) return <p className="loose-end-picker-empty">No open loose ends found.</p>;
+
+  return (
+    <div className="loose-end-picker">
+      <p className="loose-end-picker-label">Resolves which loose end?</p>
+      <div className="loose-end-picker-list">
+        {openEnds.map(e => {
+          const title = e.subject?.replace(/^\(\(\(\s*/, "") ?? "(untitled)";
+          const age = Math.floor((Date.now() - new Date(e.startTime).getTime()) / 86_400_000);
+          const ageLabel = age === 0 ? "today" : age === 1 ? "1 day ago" : `${age} days ago`;
+          return (
+            <button
+              key={e.id}
+              className={`loose-end-picker-item${selected === e.id ? " selected" : ""}`}
+              onClick={() => onChange(selected === e.id ? null : e.id)}
+              type="button"
+            >
+              <span className="loose-end-picker-dot" style={{ background: e.color }} />
+              <span className="loose-end-picker-title">{title}</span>
+              <span className="loose-end-picker-age">{ageLabel}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── EntryForm ──────────────────────────────────────────────────────── */
 type EntryFormProps = {
   entryDate: string;
@@ -80,18 +122,27 @@ type EntryFormProps = {
   onPunch?: (note: string, color: string) => void;
 };
 export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: EntryFormProps) {
-  const [subject,   setSubject]   = useState(initial?.subject ?? "");
-  const [content,   setContent]   = useState(initial?.content ?? "");
-  const [startHHMM, setStartHHMM] = useState(initial ? toHHMM(initial.startTime) : nowHHMM());
-  const [hasEnd,    setHasEnd]    = useState(Boolean(initial?.endTime));
-  const [endHHMM,   setEndHHMM]   = useState(initial?.endTime ? toHHMM(initial.endTime) : "");
-  const [color,     setColor]     = useState(initial?.color ?? ENTRY_COLORS[0].hex);
-  const [date,      setDate]      = useState(initial?.entryDate ?? entryDate);
+  const [subject,      setSubject]      = useState(initial?.subject ?? "");
+  const [content,      setContent]      = useState(initial?.content ?? "");
+  const [startHHMM,    setStartHHMM]    = useState(initial ? toHHMM(initial.startTime) : nowHHMM());
+  const [hasEnd,       setHasEnd]       = useState(Boolean(initial?.endTime));
+  const [endHHMM,      setEndHHMM]      = useState(initial?.endTime ? toHHMM(initial.endTime) : "");
+  const [color,        setColor]        = useState(initial?.color ?? ENTRY_COLORS[0].hex);
+  const [date,         setDate]         = useState(initial?.entryDate ?? entryDate);
   const [timesOpen,    setTimesOpen]    = useState(false);
   const [showSubject,  setShowSubject]  = useState(Boolean(initial?.subject));
   const [saving,       setSaving]       = useState(false);
   const [punchMode,    setPunchMode]    = useState(false);
   const [punchNote,    setPunchNote]    = useState("");
+  const [looseEndLink, setLooseEndLink] = useState<number | null>(initial?.looseEndLink ?? null);
+
+  // Detect closer prefix
+  const isCloser = subject.startsWith(")))");
+
+  // When a new ))) is typed and picker wasn't visible before, auto-show subject field
+  useEffect(() => {
+    if (isCloser && !showSubject) setShowSubject(true);
+  }, [isCloser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit() {
     setSaving(true);
@@ -103,12 +154,13 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
         : date;
       const endIso   = hasEnd && endHHMM ? toISOWithDate(endDate, endHHMM) : null;
       const payload  = {
-        subject:   subject.trim() || null,
-        content:   content.trim(),
-        entryDate: date,
-        startTime: startIso,
-        endTime:   endIso,
+        subject:      subject.trim() || null,
+        content:      content.trim(),
+        entryDate:    date,
+        startTime:    startIso,
+        endTime:      endIso,
         color,
+        looseEndLink: isCloser ? (looseEndLink ?? null) : null,
       };
       const row: Entry = initial
         ? await api.patch<Entry>(`/api/journal/entries/${initial.id}`, payload)
@@ -166,6 +218,10 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
           autoFocus={!initial?.subject}
           onChange={e => setSubject(e.target.value)}
         />
+      )}
+      {/* Loose-end picker — shown when subject starts with ))) */}
+      {showSubject && isCloser && (
+        <LooseEndPicker selected={looseEndLink} onChange={setLooseEndLink} />
       )}
       {timesOpen && (
         <div className="entry-form-times">
@@ -241,6 +297,9 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalPro
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
+  const isOpener = entry.subject?.startsWith("(((");
+  const isCloser = entry.subject?.startsWith(")))");
+
   return (
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="entry-modal" role="dialog" aria-modal="true">
@@ -261,10 +320,19 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalPro
           <>
             <div className="entry-modal-body">
               <p className="entry-modal-time">{fmtRange(entry.startTime, entry.endTime)}</p>
-              {entry.subject && <h2 className="entry-modal-subject">{entry.subject}</h2>}
+              {entry.subject && (
+                <h2 className="entry-modal-subject">
+                  {isOpener && <span className="loose-end-badge loose-end-badge--open" title="Opens a loose end">◎</span>}
+                  {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉</span>}
+                  {entry.subject}
+                </h2>
+              )}
               {entry.content && <p className="entry-modal-content">{entry.content}</p>}
               {!entry.subject && !entry.content && (
                 <p className="entry-modal-empty">No content.</p>
+              )}
+              {isCloser && entry.looseEndLink && (
+                <p className="entry-modal-link-note">Resolves loose end #{entry.looseEndLink}</p>
               )}
             </div>
             <div className="entry-modal-footer">

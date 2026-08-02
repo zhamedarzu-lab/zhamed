@@ -2,17 +2,18 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { journalEntriesTable, dayHighlightsTable } from "@workspace/db";
-import { and, gte, lte, desc, eq } from "drizzle-orm";
+import { and, gte, lte, desc, eq, isNull, like, notInArray, sql } from "drizzle-orm";
 
 const router = Router();
 
 const EntryInput = z.object({
-  subject:   z.string().nullable().optional(),
-  content:   z.string().default(""),
-  entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  startTime: z.string().datetime({ offset: true }).optional(),
-  endTime:   z.string().datetime({ offset: true }).nullable().optional(),
-  color:     z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  subject:      z.string().nullable().optional(),
+  content:      z.string().default(""),
+  entryDate:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  startTime:    z.string().datetime({ offset: true }).optional(),
+  endTime:      z.string().datetime({ offset: true }).nullable().optional(),
+  color:        z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  looseEndLink: z.number().int().nullable().optional(),
 });
 
 // GET /api/journal/entries?from=YYYY-MM-DD&to=YYYY-MM-DD
@@ -31,22 +32,49 @@ router.get("/entries", async (req, res) => {
   res.json(rows);
 });
 
+// GET /api/journal/loose-ends — all open (((  entries with no closer pointing at them
+router.get("/loose-ends", async (_req, res) => {
+  // Find all entry IDs that are referenced as a closer (loose_end_link IS NOT NULL)
+  const closerLinks = await db
+    .select({ linkedId: journalEntriesTable.looseEndLink })
+    .from(journalEntriesTable)
+    .where(sql`${journalEntriesTable.looseEndLink} IS NOT NULL`);
+  const closedIds = closerLinks.map(r => r.linkedId as number);
+
+  // Open loose ends: subject starts with '(((' and no entry closes them
+  const baseCondition = like(journalEntriesTable.subject, "(((%" as string);
+  const rows = closedIds.length > 0
+    ? await db
+        .select()
+        .from(journalEntriesTable)
+        .where(and(baseCondition, notInArray(journalEntriesTable.id, closedIds)))
+        .orderBy(desc(journalEntriesTable.startTime))
+    : await db
+        .select()
+        .from(journalEntriesTable)
+        .where(baseCondition)
+        .orderBy(desc(journalEntriesTable.startTime));
+
+  res.json(rows);
+});
+
 // POST /api/journal/entries
 router.post("/entries", async (req, res) => {
   const parsed = EntryInput.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
-  const { subject, content, entryDate, startTime, endTime } = parsed.data;
+  const { subject, content, entryDate, startTime, endTime, looseEndLink } = parsed.data;
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const [row] = await db
     .insert(journalEntriesTable)
     .values({
-      subject:   subject ?? null,
+      subject:      subject ?? null,
       content,
-      entryDate: entryDate ?? today,
-      startTime: startTime ? new Date(startTime) : now,
-      endTime:   endTime   ? new Date(endTime)   : null,
-      color:     parsed.data.color ?? "#e0b04e",
+      entryDate:    entryDate ?? today,
+      startTime:    startTime ? new Date(startTime) : now,
+      endTime:      endTime   ? new Date(endTime)   : null,
+      color:        parsed.data.color ?? "#e0b04e",
+      looseEndLink: looseEndLink ?? null,
     })
     .returning();
   res.status(201).json(row);
@@ -59,11 +87,12 @@ router.patch("/entries/:id", async (req, res) => {
   const parsed = EntryInput.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
   const patch: Record<string, unknown> = {};
-  if (parsed.data.subject   !== undefined) patch.subject   = parsed.data.subject;
-  if (parsed.data.content   !== undefined) patch.content   = parsed.data.content;
-  if (parsed.data.startTime !== undefined) patch.startTime = new Date(parsed.data.startTime!);
-  if (parsed.data.endTime   !== undefined) patch.endTime   = parsed.data.endTime ? new Date(parsed.data.endTime) : null;
-  if (parsed.data.color     !== undefined) patch.color     = parsed.data.color;
+  if (parsed.data.subject      !== undefined) patch.subject      = parsed.data.subject;
+  if (parsed.data.content      !== undefined) patch.content      = parsed.data.content;
+  if (parsed.data.startTime    !== undefined) patch.startTime    = new Date(parsed.data.startTime!);
+  if (parsed.data.endTime      !== undefined) patch.endTime      = parsed.data.endTime ? new Date(parsed.data.endTime) : null;
+  if (parsed.data.color        !== undefined) patch.color        = parsed.data.color;
+  if (parsed.data.looseEndLink !== undefined) patch.looseEndLink = parsed.data.looseEndLink ?? null;
   if (!Object.keys(patch).length) { res.status(400).json({ error: "Nothing to update" }); return; }
   const [row] = await db
     .update(journalEntriesTable)
