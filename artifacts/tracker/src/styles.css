@@ -5042,33 +5042,6 @@ button.btn-icon {
   flex-shrink: 0;
   font-size: 0.9rem;
 }
-.ft-slots {
-  display: flex;
-  gap: 0.2rem;
-  flex: 1;
-}
-.ft-slot-btn {
-  flex: 1;
-  padding: 0.28rem 0.1rem;
-  font-size: 0.63rem;
-  font-weight: 600;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: transparent;
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-  white-space: nowrap;
-}
-.ft-slot-btn:hover {
-  border-color: var(--ink-soft);
-  color: var(--ink);
-}
-.ft-slot-btn--on {
-  background: var(--row-color, var(--accent));
-  border-color: var(--row-color, var(--accent));
-  color: #fff;
-}
 .ft-log-submit {
   padding: 0.28rem 0.55rem;
   font-size: 0.9rem;

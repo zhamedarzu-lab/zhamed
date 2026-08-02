@@ -89,7 +89,7 @@ router.get("/efforts", async (req, res): Promise<void> => {
 const EffortInput = z.object({
   exerciseId: z.number().int().positive(),
   date:       z.string().regex(DATE_RE),
-  slot:       z.enum(SLOTS),
+  slot:       z.enum(SLOTS).optional().default("morning"),
   amount:     z.number().positive(),
 });
 

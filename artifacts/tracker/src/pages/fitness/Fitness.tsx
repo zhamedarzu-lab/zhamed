@@ -26,17 +26,7 @@ type Summary = {
   exercises: ExerciseStat[];
 };
 
-const SLOTS = ["morning", "noon", "evening", "night"] as const;
-type Slot = (typeof SLOTS)[number];
-
-const SLOT_LABELS: Record<Slot, string> = {
-  morning: "AM",
-  noon:    "Noon",
-  evening: "PM",
-  night:   "Night",
-};
-
-function currentSlot(): Slot {
+function currentSlot() {
   const h = new Date().getHours();
   if (h >= 5  && h < 12) return "morning";
   if (h >= 12 && h < 17) return "noon";
@@ -220,7 +210,6 @@ function ExerciseRow({
 }) {
   const [open,   setOpen]   = useState(false);
   const [amount, setAmount] = useState("");
-  const [slot,   setSlot]   = useState<Slot>(currentSlot());
   const [busy,   setBusy]   = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const color = tagColor(stat.name);
@@ -242,7 +231,6 @@ function ExerciseRow({
   }, [open]);
 
   function openRow() {
-    setSlot(currentSlot());
     setAmount("");
     setOpen(true);
     onError(null);
@@ -257,7 +245,7 @@ function ExerciseRow({
       await api.post("/api/fitness/efforts", {
         exerciseId: stat.exerciseId,
         date:       todayIso(),
-        slot,
+
         amount:     n,
       });
       setAmount("");
@@ -364,18 +352,6 @@ function ExerciseRow({
               if (e.key === "Escape") setOpen(false);
             }}
           />
-          <div className="ft-slots">
-            {SLOTS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`ft-slot-btn${slot === s ? " ft-slot-btn--on" : ""}`}
-                onClick={() => setSlot(s)}
-              >
-                {SLOT_LABELS[s]}
-              </button>
-            ))}
-          </div>
           <button
             className="primary ft-log-submit"
             onClick={submit}
