@@ -249,9 +249,11 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHi
           }
         </div>
         <div className="day-popup-footer">
-          <button className="day-popup-highlight-btn" onClick={() => { onClose(); onHighlight(); }}>
-            ✦ {highlight ? "Edit highlight" : "Highlight day"}
-          </button>
+          {!highlight && (
+            <button className="day-popup-highlight-btn" onClick={() => { onClose(); onHighlight(); }}>
+              ✦ Highlight day
+            </button>
+          )}
           <button onClick={() => { onClose(); onGoToDay(); }}>Open day view</button>
         </div>
       </div>
