@@ -5023,6 +5023,9 @@ button.btn-icon {
 .ft-row-delete:hover {
   color: var(--stamp);
 }
+.ft-drawer-right {
+  margin-left: auto;
+}
 
 /* ── History summary stats ──────────────────────────────────────────── */
 .ft-history-stats {

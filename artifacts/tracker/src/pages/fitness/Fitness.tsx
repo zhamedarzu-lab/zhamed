@@ -65,6 +65,8 @@ export default function Fitness() {
     }
   }
 
+  const [openId, setOpenId] = useState<number | null>(null);
+
   const activeExercises = (summary.data?.exercises ?? []).filter((e) => e.active);
   const activeDays = (summary.data?.consistencyStrip ?? []).filter((d) => d.active).length;
 
@@ -98,6 +100,8 @@ export default function Fitness() {
                 <ExerciseRow
                   key={ex.exerciseId}
                   stat={ex}
+                  isOpen={openId === ex.exerciseId}
+                  onOpen={setOpenId}
                   onChanged={summary.reload}
                   onError={setError}
                 />
@@ -437,14 +441,17 @@ function HistoryChart({
 
 function ExerciseRow({
   stat,
+  isOpen,
+  onOpen,
   onChanged,
   onError,
 }: {
   stat: ExerciseStat;
+  isOpen: boolean;
+  onOpen: (id: number | null) => void;
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const [open,        setOpen]        = useState(false);
   const [amount,      setAmount]      = useState("");
   const [busy,        setBusy]        = useState(false);
   const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
@@ -469,14 +476,14 @@ function ExerciseRow({
   }
 
   useEffect(() => {
-    if (open && !editing) inputRef.current?.focus();
-    if (open && editing)  editNameRef.current?.focus();
-  }, [open, editing]);
+    if (isOpen && !editing) inputRef.current?.focus();
+    if (isOpen && editing)  editNameRef.current?.focus();
+  }, [isOpen, editing]);
 
   function openRow() {
     setAmount("");
     setEditing(false);
-    setOpen(true);
+    onOpen(stat.exerciseId);
     onError(null);
   }
 
@@ -518,7 +525,7 @@ function ExerciseRow({
         amount:     n,
       });
       setAmount("");
-      setOpen(false);
+      onOpen(null);
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not log effort.");
@@ -537,22 +544,22 @@ function ExerciseRow({
 
   return (
     <div
-      className={`ft-row${open ? " ft-row--open" : ""}`}
+      className={`ft-row${isOpen ? " ft-row--open" : ""}`}
       style={{ "--row-color": color } as CSSProperties}
     >
       {/* Main tap target */}
       <div
         className="ft-row-main"
-        onClick={() => { if (open) setOpen(false); else openRow(); }}
+        onClick={() => { if (isOpen) onOpen(null); else openRow(); }}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
-            if (open) setOpen(false); else openRow();
+            if (isOpen) onOpen(null); else openRow();
           }
         }}
         aria-label={`Log ${stat.name}`}
-        aria-expanded={open}
+        aria-expanded={isOpen}
       >
         <div className="ft-row-left">
           <span className="ft-row-name">{stat.name}</span>
@@ -599,9 +606,11 @@ function ExerciseRow({
 
       </div>
 
-      {/* Inline form */}
-      {open && !editing && (
+      {/* Drawer */}
+      {isOpen && !editing && (
         <div className="ft-log-form">
+          <button type="button" className="quiet ft-history-btn"
+            onClick={() => setShowHistory(true)} title="View history">↗</button>
           <input
             ref={inputRef}
             className="ft-log-input"
@@ -611,21 +620,19 @@ function ExerciseRow({
             onChange={(e) => setAmount(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter")  submit();
-              if (e.key === "Escape") setOpen(false);
+              if (e.key === "Escape") onOpen(null);
             }}
           />
           <button className="primary ft-log-submit" onClick={submit}
             disabled={busy || !amount.trim()}>✓</button>
-          <button type="button" className="quiet ft-history-btn"
-            onClick={() => setShowHistory(true)} title="View history">↗</button>
-          <button type="button" className="quiet ft-history-btn"
+          <button type="button" className="quiet ft-history-btn ft-drawer-right"
             onClick={openEdit} title="Edit exercise">edit</button>
           <button type="button" className="quiet ft-history-btn ft-row-delete"
             onClick={deleteExercise} title={`Delete ${stat.name}`}>🗑</button>
         </div>
       )}
 
-      {open && editing && (
+      {isOpen && editing && (
         <div className="ft-edit-form">
           <input
             ref={editNameRef}
@@ -650,7 +657,7 @@ function ExerciseRow({
           />
           <button className="primary ft-log-submit" onClick={saveEdit}
             disabled={busy || !editName.trim() || !editUnit.trim()}>✓</button>
-          <button className="quiet ft-history-btn" type="button"
+          <button className="quiet ft-history-btn ft-drawer-right" type="button"
             onClick={() => setEditing(false)}>✕</button>
         </div>
       )}
