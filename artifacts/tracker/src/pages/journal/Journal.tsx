@@ -21,6 +21,14 @@ const BLACK_STRIPE_WEEK = "repeating-linear-gradient(45deg, #1c1c1e, #1c1c1e 4px
 const blackRing: React.CSSProperties = { boxShadow: "0 0 0 2px #ffffff" };
 function br(color: string): React.CSSProperties { return color === BLACK ? blackRing : {}; }
 
+/** Return #111 or #fff depending on which gives better contrast on the given hex bg. */
+function contrastColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55 ? "#111" : "#fff";
+}
+
 /* ── date helpers ──────────────────────────────────────────────────── */
 const toYMD = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -196,7 +204,8 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHi
             {date.toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}
           </span>
           {highlight && (
-            <span className="day-popup-highlight-badge" style={{ background: highlight.color }}>
+            <span className="day-popup-highlight-badge"
+              style={{ background: highlight.color, color: contrastColor(highlight.color) }}>
               {highlight.label}
             </span>
           )}
@@ -485,7 +494,7 @@ export default function Journal() {
         return (
           <>
           <div className="journal-hday journal-hday--2d"
-            style={focusHlAllDay ? { outline: `2px solid ${focusHl!.color}`, outlineOffset: "-2px" } as React.CSSProperties : undefined}>
+            style={focusHlAllDay ? { boxShadow: `inset 0 0 0 2px color-mix(in srgb, ${focusHl!.color} 40%, transparent)` } as React.CSSProperties : undefined}>
             {/* Fixed minute-axis panel */}
             <div className="journal-hday-min-axis" style={{ paddingTop: AXIS_H }}>
               <div style={{ position: "relative", height: GRID_H }}>
@@ -535,30 +544,55 @@ export default function Journal() {
                       style={{ left: curHour * COL_W, width: COL_W }} />
                   )}
 
-                  {/* Timed highlight block */}
+                  {/* Highlight marker / block */}
                   {focusHl && focusHl.startTime && (() => {
                     const [sH, sM] = focusHl.startTime!.split(":").map(Number);
-                    const endParts = focusHl.endTime ? focusHl.endTime.split(":").map(Number) : null;
-                    const durMin   = endParts ? Math.max(15, (endParts[0] - sH) * 60 + (endParts[1] - sM)) : 30;
+                    const top = (sM / 60) * GRID_H;
+                    if (!focusHl.endTime) {
+                      // Single time → thin horizontal marker line + label
+                      return (
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: sH * COL_W,
+                            top,
+                            width: COL_W * 2,
+                            height: 2,
+                            background: focusHl.color,
+                            opacity: 0.7,
+                            zIndex: 1,
+                            cursor: "pointer",
+                          }}
+                          onDoubleClick={() => setHlModal({ date: focusYmd, existing: focusHl })}
+                          title={`${focusHl.label} — double-click to edit`}
+                        />
+                      );
+                    }
+                    const endParts = focusHl.endTime.split(":").map(Number);
+                    const durMin   = Math.max(15, (endParts[0] - sH) * 60 + (endParts[1] - sM));
                     const colSpan  = Math.max(1, Math.ceil((sM + durMin) / 60));
                     return (
-                      <div style={{
-                        position: "absolute",
-                        left: sH * COL_W,
-                        top: (sM / 60) * GRID_H,
-                        width: colSpan * COL_W,
-                        height: Math.max(20, (Math.min(durMin, 60 - sM) / 60) * GRID_H),
-                        background: focusHl.color,
-                        opacity: 0.3,
-                        borderRadius: 3,
-                        pointerEvents: "none",
-                        zIndex: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        paddingLeft: 4,
-                        overflow: "hidden",
-                      }}>
-                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#fff", whiteSpace: "nowrap", opacity: 0.9 }}>{focusHl.label}</span>
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: sH * COL_W,
+                          top,
+                          width: colSpan * COL_W,
+                          height: Math.max(20, (Math.min(durMin, 60 - sM) / 60) * GRID_H),
+                          background: focusHl.color,
+                          opacity: 0.28,
+                          borderRadius: 3,
+                          cursor: "pointer",
+                          zIndex: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          paddingLeft: 4,
+                          overflow: "hidden",
+                        }}
+                        onDoubleClick={() => setHlModal({ date: focusYmd, existing: focusHl })}
+                        title={`${focusHl.label} — double-click to edit`}
+                      >
+                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: contrastColor(focusHl.color), whiteSpace: "nowrap", opacity: 0.9 }}>{focusHl.label}</span>
                       </div>
                     );
                   })()}
@@ -717,7 +751,7 @@ export default function Journal() {
                   return (
                     <div key={ymd}
                       className={`journal-week-col${isT?" is-today":""}`}
-                      style={colHl && !colHl.startTime ? { outline: `2px solid ${colHl.color}`, outlineOffset: "-2px" } as React.CSSProperties : undefined}>
+                      style={colHl && !colHl.startTime ? { boxShadow: `inset 0 0 0 2px color-mix(in srgb, ${colHl.color} 40%, transparent)` } as React.CSSProperties : undefined}>
                       {Array.from({ length: 9 }, (_, h) => {
                         const hour = h * 3;
                         const isMajor = MAJOR_HOURS.has(hour);
@@ -732,22 +766,41 @@ export default function Journal() {
                           <span className="journal-week-now-dot" aria-hidden="true" />
                         </div>
                       )}
-                      {/* Timed highlight block */}
+                      {/* Timed highlight marker / block */}
                       {colHl && colHl.startTime && (() => {
                         const [sH, sM] = colHl.startTime!.split(":").map(Number);
                         const startMin = sH * 60 + sM;
-                        const endParts = colHl.endTime ? colHl.endTime.split(":").map(Number) : null;
-                        const endMin   = endParts ? endParts[0] * 60 + endParts[1] : startMin + 30;
                         const topPct   = `${(startMin / 1440) * 100}%`;
+                        if (!colHl.endTime) {
+                          // Single time → thin horizontal line marker
+                          return (
+                            <div
+                              style={{
+                                position: "absolute", top: topPct, height: "2px",
+                                left: 0, right: 0,
+                                background: colHl.color, opacity: 0.75, zIndex: 1,
+                                cursor: "pointer",
+                              }}
+                              onDoubleClick={() => setHlModal({ date: ymd, existing: colHl })}
+                              title={`${colHl.label} — double-click to edit`}
+                            />
+                          );
+                        }
+                        const endParts = colHl.endTime.split(":").map(Number);
+                        const endMin   = endParts[0] * 60 + endParts[1];
                         const heightPct = `${(Math.max(15, endMin - startMin) / 1440) * 100}%`;
                         return (
-                          <div style={{
-                            position: "absolute", top: topPct, height: heightPct, left: 0, right: 0,
-                            background: colHl.color, opacity: 0.3, borderRadius: 2, zIndex: 0,
-                            pointerEvents: "none", overflow: "hidden",
-                            display: "flex", alignItems: "flex-start", padding: "2px 3px",
-                          }}>
-                            <span style={{ fontSize: "0.55rem", fontWeight: 700, color: "#fff", lineHeight: 1, whiteSpace: "nowrap" }}>{colHl.label}</span>
+                          <div
+                            style={{
+                              position: "absolute", top: topPct, height: heightPct, left: 0, right: 0,
+                              background: colHl.color, opacity: 0.28, borderRadius: 2, zIndex: 0,
+                              cursor: "pointer", overflow: "hidden",
+                              display: "flex", alignItems: "flex-start", padding: "2px 3px",
+                            }}
+                            onDoubleClick={() => setHlModal({ date: ymd, existing: colHl })}
+                            title={`${colHl.label} — double-click to edit`}
+                          >
+                            <span style={{ fontSize: "0.55rem", fontWeight: 700, color: contrastColor(colHl.color), lineHeight: 1, whiteSpace: "nowrap" }}>{colHl.label}</span>
                           </div>
                         );
                       })()}
@@ -877,7 +930,7 @@ export default function Journal() {
                       <div className="journal-month-now-bar"
                         style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
                     )}
-                    {hl && <span className="journal-month-cell-hlabel" style={{ color: hl.color }}>{hl.label}</span>}
+                    {hl && <span className="journal-month-cell-hlabel" style={{ background: hl.color, color: contrastColor(hl.color) }}>{hl.label}</span>}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
                     <div className="journal-month-lines">
                       {[...dayEntries]

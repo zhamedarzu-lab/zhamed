@@ -88,43 +88,39 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="entry-modal highlight-modal" role="dialog" aria-modal="true">
         <div className="entry-modal-header">
-          <span className="entry-modal-date">✦ Highlight · {displayDate}</span>
+          <span className="entry-modal-date">✦ {displayDate}</span>
           <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
+
         <div className="entry-modal-body">
           <div className="highlight-form">
 
-            <label className="highlight-form-row">
-              <span className="highlight-form-label">Label</span>
-              <input
-                className="highlight-form-input"
-                type="text"
-                placeholder="e.g. dentist, concert…"
-                value={label}
-                autoFocus
-                onChange={e => setLabel(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && label.trim()) void save(); }}
-              />
-            </label>
+            {/* Label */}
+            <input
+              className="highlight-form-input highlight-label-input"
+              type="text"
+              placeholder="Label (e.g. dentist, concert…)"
+              value={label}
+              autoFocus
+              onChange={e => setLabel(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && label.trim()) void save(); }}
+            />
 
-            <div className="highlight-form-row">
-              <span className="highlight-form-label">Color</span>
-              <div className="entry-form-colors">
-                {ENTRY_COLORS.filter(c => c.hex !== "#1c1c1e").map(c => (
-                  <button
-                    key={c.hex}
-                    className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
-                    style={{ background: c.hex }}
-                    aria-label={c.label}
-                    onClick={() => setColor(c.hex)}
-                  />
-                ))}
-              </div>
+            {/* Colors */}
+            <div className="entry-form-colors">
+              {ENTRY_COLORS.filter(c => c.hex !== "#1c1c1e").map(c => (
+                <button
+                  key={c.hex}
+                  className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+                  style={{ background: c.hex }}
+                  aria-label={c.label}
+                  onClick={() => setColor(c.hex)}
+                />
+              ))}
             </div>
 
-            {/* Time type selector */}
-            <div className="highlight-form-row">
-              <span className="highlight-form-label">Time</span>
+            {/* Time type + countdown on one row */}
+            <div className="highlight-controls-row">
               <div className="highlight-time-tabs">
                 {(["allday", "time", "block"] as TimeType[]).map(t => (
                   <button
@@ -141,12 +137,22 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
                   </button>
                 ))}
               </div>
+              <button
+                type="button"
+                className={`highlight-toggle${showCountdown ? " on" : ""}`}
+                onClick={() => setShowCountdown(v => !v)}
+                aria-pressed={showCountdown}
+                title="Show countdown in month view"
+              >
+                {showCountdown ? "🔔 On" : "🔔"}
+              </button>
             </div>
 
+            {/* Time inputs — key on timeType forces remount on tab switch, clearing browser-held values */}
             {timeType !== "allday" && (
-              <div className="highlight-form-row">
-                <span className="highlight-form-label">{timeType === "block" ? "From" : "At"}</span>
+              <div className="highlight-time-row">
                 <input
+                  key={`start-${timeType}`}
                   className="highlight-form-input highlight-time-input"
                   type="time"
                   value={startTime}
@@ -154,8 +160,9 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
                 />
                 {timeType === "block" && (
                   <>
-                    <span className="highlight-form-label" style={{ marginLeft: "0.5rem" }}>To</span>
+                    <span className="highlight-time-arrow">→</span>
                     <input
+                      key="end-block"
                       className="highlight-form-input highlight-time-input"
                       type="time"
                       value={endTime}
@@ -166,18 +173,6 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
               </div>
             )}
 
-            <label className="highlight-form-row highlight-form-toggle-row">
-              <span className="highlight-form-label">Countdown</span>
-              <button
-                type="button"
-                className={`highlight-toggle${showCountdown ? " on" : ""}`}
-                onClick={() => setShowCountdown(v => !v)}
-                aria-pressed={showCountdown}
-              >
-                {showCountdown ? "On" : "Off"}
-              </button>
-            </label>
-
           </div>
         </div>
 
@@ -187,17 +182,12 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
               className="journal-action-btn danger"
               onClick={remove}
               disabled={deleting}
-              aria-label="Remove highlight"
             >
               {deleting ? "Removing…" : "Remove"}
             </button>
           )}
           <button onClick={onClose}>Cancel</button>
-          <button
-            className="primary"
-            onClick={save}
-            disabled={saving || !label.trim()}
-          >
+          <button className="primary" onClick={save} disabled={saving || !label.trim()}>
             {saving ? "Saving…" : existing ? "Save" : "Add"}
           </button>
         </div>
