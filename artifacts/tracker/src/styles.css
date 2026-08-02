@@ -4839,62 +4839,74 @@ button.btn-icon {
   margin-left: 0.3rem;
 }
 
-/* ── Activity grid ──────────────────────────────────────────────────── */
-.ft-grid {
+/* ── Week calendar grid ─────────────────────────────────────────────── */
+.ft-week {
   display: flex;
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
   margin-bottom: 1.25rem;
   background: var(--surface);
 }
-.ft-grid-col {
+.ft-week-col {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.5rem 0 0.35rem;
-  gap: 0.25rem;
+  padding: 0.55rem 0 0.5rem;
+  gap: 0.18rem;
   position: relative;
+  border-right: 1px solid var(--rule);
   min-width: 0;
 }
-.ft-grid-col--today {
+.ft-week-col:last-child {
+  border-right: none;
+}
+.ft-week-col--today {
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
-.ft-grid-col--today::before {
+.ft-week-col--today::before {
   content: '';
   position: absolute;
   inset: 0 0 auto 0;
   height: 2px;
   background: var(--accent);
 }
-.ft-grid-dots {
+.ft-week-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+  line-height: 1;
+}
+.ft-week-col--today .ft-week-label {
+  color: var(--accent);
+}
+.ft-week-date {
+  font-family: var(--fig);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+.ft-week-col--today .ft-week-date {
+  color: var(--ink);
+}
+.ft-week-dots {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  min-height: 34px;
+  min-height: 18px;
+  margin-top: 0.25rem;
   justify-content: flex-end;
 }
-.ft-grid-dot {
-  width: 7px;
-  height: 7px;
+.ft-week-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-.ft-grid-dot--empty {
-  background: var(--rule-strong);
-  opacity: 0.18;
-}
-.ft-grid-day {
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: var(--ink-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-.ft-grid-col--today .ft-grid-day {
-  color: var(--accent);
 }
 
 /* ── Exercise list ──────────────────────────────────────────────────── */

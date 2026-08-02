@@ -5,8 +5,6 @@ import { Empty, Loading, Notice, tagColor } from "../../components/ui";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type StripDay = { date: string; active: boolean };
-
 type ExerciseStat = {
   exerciseId: number;
   name: string;
@@ -22,7 +20,7 @@ type ExerciseStat = {
 };
 
 type Summary = {
-  consistencyStrip: StripDay[];
+  consistencyStrip: Array<{ date: string; active: boolean }>;
   exercises: ExerciseStat[];
 };
 
@@ -86,10 +84,7 @@ export default function Fitness() {
 
       {summary.data && (
         <>
-          <ActivityGrid
-            strip={summary.data.consistencyStrip}
-            exercises={activeExercises}
-          />
+          <WeekGrid exercises={activeExercises} />
 
           {activeExercises.length === 0 ? (
             <Empty title="No exercises yet">
@@ -145,51 +140,51 @@ export default function Fitness() {
 
 // ─── Activity grid ────────────────────────────────────────────────────────────
 
-function ActivityGrid({
-  strip,
-  exercises,
-}: {
-  strip: StripDay[];
-  exercises: ExerciseStat[];
-}) {
+function WeekGrid({ exercises }: { exercises: ExerciseStat[] }) {
   const today = todayIso();
 
-  const days = useMemo(
+  const weekDays = useMemo(() => {
+    const t = new Date(today + "T12:00:00");
+    const dow = (t.getDay() + 6) % 7; // Mon=0 … Sun=6
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(t);
+      d.setDate(t.getDate() - dow + i);
+      return d.toISOString().slice(0, 10);
+    });
+  }, [today]);
+
+  const rows = useMemo(
     () =>
-      strip.map((day) => ({
-        ...day,
+      weekDays.map((date) => ({
+        date,
         done: exercises.filter(
-          (ex) => (ex.sparkline.find((s) => s.date === day.date)?.value ?? 0) > 0,
+          (ex) => (ex.sparkline.find((s) => s.date === date)?.value ?? 0) > 0,
         ),
       })),
-    [strip, exercises],
+    [weekDays, exercises],
   );
 
   return (
-    <div className="ft-grid">
-      {days.map((day) => {
-        const isToday = day.date === today;
-        const dayLetter = new Date(day.date + "T12:00:00").toLocaleDateString("en-US", {
-          weekday: "narrow",
-        });
+    <div className="ft-week">
+      {rows.map(({ date, done }) => {
+        const isToday = date === today;
+        const d = new Date(date + "T12:00:00");
+        const label = d.toLocaleDateString("en-US", { weekday: "narrow" });
+        const num = d.getDate();
         return (
-          <div
-            key={day.date}
-            className={`ft-grid-col${isToday ? " ft-grid-col--today" : ""}`}
-          >
-            <div className="ft-grid-dots">
-              {day.done.length > 0
-                ? day.done.map((ex) => (
-                    <div
-                      key={ex.exerciseId}
-                      className="ft-grid-dot"
-                      style={{ background: tagColor(ex.name) }}
-                      title={ex.name}
-                    />
-                  ))
-                : <div className="ft-grid-dot ft-grid-dot--empty" />}
+          <div key={date} className={`ft-week-col${isToday ? " ft-week-col--today" : ""}`}>
+            <div className="ft-week-label">{label}</div>
+            <div className="ft-week-date">{num}</div>
+            <div className="ft-week-dots">
+              {done.map((ex) => (
+                <div
+                  key={ex.exerciseId}
+                  className="ft-week-dot"
+                  style={{ background: tagColor(ex.name) }}
+                  title={ex.name}
+                />
+              ))}
             </div>
-            <div className="ft-grid-day">{dayLetter}</div>
           </div>
         );
       })}
