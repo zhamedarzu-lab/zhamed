@@ -544,6 +544,37 @@ export default function Journal() {
                       style={{ left: curHour * COL_W, width: COL_W }} />
                   )}
 
+                  {/* Highlight overlay — single time: thin line; block: per-column slices */}
+                  {focusHl && focusHl.startTime && (() => {
+                    const [sH, sM] = focusHl.startTime!.split(":").map(Number);
+                    if (!focusHl.endTime) {
+                      return (
+                        <div style={{
+                          position: "absolute",
+                          left: sH * COL_W, top: (sM / 60) * GRID_H,
+                          width: COL_W, height: 3,
+                          background: focusHl.color, opacity: 0.8,
+                          borderRadius: 1, pointerEvents: "none", zIndex: 2,
+                        }} />
+                      );
+                    }
+                    const [eH, eM] = focusHl.endTime.split(":").map(Number);
+                    const slices = [];
+                    for (let h = sH; h <= eH; h++) {
+                      const sliceTop    = h === sH ? (sM / 60) * GRID_H : 0;
+                      const sliceBottom = h === eH ? (eM / 60) * GRID_H : GRID_H;
+                      if (sliceBottom > sliceTop) slices.push(
+                        <div key={h} style={{
+                          position: "absolute",
+                          left: h * COL_W, top: sliceTop,
+                          width: COL_W, height: sliceBottom - sliceTop,
+                          background: focusHl.color, opacity: 0.25,
+                          pointerEvents: "none", zIndex: 0,
+                        }} />
+                      );
+                    }
+                    return <React.Fragment>{slices}</React.Fragment>;
+                  })()}
 
                   {/* NOW — horizontal line + pulsing dot at exact (hour, minute) */}
                   {isToday && (
@@ -714,6 +745,33 @@ export default function Journal() {
                           <span className="journal-week-now-dot" aria-hidden="true" />
                         </div>
                       )}
+                      {/* Highlight overlay — single time: thin line; block: vertical band */}
+                      {colHl && colHl.startTime && (() => {
+                        const [sH, sM] = colHl.startTime!.split(":").map(Number);
+                        const startMin = sH * 60 + sM;
+                        const topPct = `${(startMin / 1440) * 100}%`;
+                        if (!colHl.endTime) {
+                          return (
+                            <div style={{
+                              position: "absolute", top: topPct, height: "3px",
+                              left: 0, right: 0,
+                              background: colHl.color, opacity: 0.8,
+                              borderRadius: 1, pointerEvents: "none", zIndex: 2,
+                            }} />
+                          );
+                        }
+                        const [eH, eM] = colHl.endTime.split(":").map(Number);
+                        const endMin = eH * 60 + eM;
+                        return (
+                          <div style={{
+                            position: "absolute", top: topPct,
+                            height: `${(Math.max(15, endMin - startMin) / 1440) * 100}%`,
+                            left: 0, right: 0,
+                            background: colHl.color, opacity: 0.25,
+                            pointerEvents: "none", zIndex: 0,
+                          }} />
+                        );
+                      })()}
                       {dayEntries.map(e => {
                         const isCarryover = e.entryDate !== ymd;
                         // Carryovers started yesterday — pin to top of this column
