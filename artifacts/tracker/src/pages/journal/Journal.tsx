@@ -480,6 +480,8 @@ export default function Journal() {
             setHlModal(null);
           }}
           onDelete={id => {
+            const hl = highlights.find(h => h.id === id);
+            if (hl?.entryId) setEntries(prev => prev.filter(e => e.id !== hl.entryId));
             setHighlights(prev => prev.filter(h => h.id !== id));
             setHlModal(null);
           }}
