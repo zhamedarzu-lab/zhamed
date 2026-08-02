@@ -5027,6 +5027,36 @@ button.btn-icon {
   margin-left: auto;
 }
 
+/* ── Add exercise button / form ─────────────────────────────────────── */
+.ft-add-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  border: 1px dashed var(--rule);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.ft-add-btn:hover {
+  border-color: var(--ink-dim);
+  color: var(--ink);
+}
+.ft-add-form {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper-sunk);
+}
+
 /* ── History summary stats ──────────────────────────────────────────── */
 .ft-history-stats {
   display: flex;

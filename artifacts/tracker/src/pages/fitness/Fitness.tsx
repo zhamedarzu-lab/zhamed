@@ -43,12 +43,17 @@ function currentSlot() {
 
 export default function Fitness() {
   const summary  = useApi<Summary>("/api/fitness/summary");
-  const [error,   setError]   = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
-  const [newUnit, setNewUnit] = useState("");
-  const [addBusy, setAddBusy] = useState(false);
+  const [error,    setError]    = useState<string | null>(null);
+  const [addOpen,  setAddOpen]  = useState(false);
+  const [newName,  setNewName]  = useState("");
+  const [newUnit,  setNewUnit]  = useState("");
+  const [addBusy,  setAddBusy]  = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
   const unitRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (addOpen) nameRef.current?.focus();
+  }, [addOpen]);
 
   async function addExercise() {
     if (!newName.trim() || !newUnit.trim()) return;
@@ -61,7 +66,7 @@ export default function Fitness() {
       });
       setNewName("");
       setNewUnit("");
-      nameRef.current?.focus();
+      setAddOpen(false);
       await summary.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add exercise.");
@@ -117,34 +122,44 @@ export default function Fitness() {
       )}
 
       {/* Add exercise */}
-      <div
-        className="panel-body bills-add-row"
-        style={{ marginTop: "1.25rem", border: "1px solid var(--rule)", borderRadius: 4 }}
-      >
-        <input
-          ref={nameRef}
-          value={newName}
-          placeholder="Exercise — Pushups, Plank…"
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && unitRef.current?.focus()}
-          style={{ flex: 2 }}
-        />
-        <input
-          ref={unitRef}
-          value={newUnit}
-          placeholder="Unit — reps, secs, mins"
-          onChange={(e) => setNewUnit(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addExercise()}
-          style={{ flex: 1 }}
-        />
+      {!addOpen ? (
         <button
-          className="primary"
-          onClick={addExercise}
-          disabled={addBusy || !newName.trim() || !newUnit.trim()}
+          className="ft-add-btn"
+          onClick={() => setAddOpen(true)}
         >
-          Add
+          + Add exercise
         </button>
-      </div>
+      ) : (
+        <div className="ft-add-form">
+          <input
+            ref={nameRef}
+            value={newName}
+            placeholder="Name — Pushups, Plank…"
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && unitRef.current?.focus()}
+            style={{ flex: 2 }}
+          />
+          <input
+            ref={unitRef}
+            value={newUnit}
+            placeholder="Unit — reps, secs…"
+            onChange={(e) => setNewUnit(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter")  addExercise();
+              if (e.key === "Escape") setAddOpen(false);
+            }}
+            style={{ flex: 1 }}
+          />
+          <button
+            className="primary"
+            onClick={addExercise}
+            disabled={addBusy || !newName.trim() || !newUnit.trim()}
+          >
+            Add
+          </button>
+          <button className="quiet" onClick={() => setAddOpen(false)}>✕</button>
+        </div>
+      )}
     </>
   );
 }

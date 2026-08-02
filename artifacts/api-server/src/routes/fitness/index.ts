@@ -43,7 +43,7 @@ router.patch("/exercises/:id", async (req, res): Promise<void> => {
   const [existing] = await db.select().from(exercisesTable).where(eq(exercisesTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
 
-  const update: Record<string, unknown> = {};
+  const update: Partial<typeof exercisesTable.$inferInsert> = {};
   if (data.name      !== undefined) update.name      = data.name;
   if (data.unit      !== undefined) update.unit      = data.unit;
   if (data.color     !== undefined) update.color     = data.color;
