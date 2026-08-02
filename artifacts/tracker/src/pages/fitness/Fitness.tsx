@@ -529,6 +529,7 @@ function ExerciseRow({
         color: editColor,
       });
       setEditing(false);
+      onOpen(null);
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not update exercise.");
