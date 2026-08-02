@@ -97,11 +97,11 @@ export default function JournalSearch() {
     }
 
     if (filterMode === "closed-ends") {
-      // All (((  entries that have been closed
+      // All entries that close a loose end ())) anywhere in subject)
       return entries
         .filter(e => {
           const colorOk = !hasColors || activeColors.has(e.color);
-          return colorOk && e.subject?.includes("(((") && closedOpenerIds.has(e.id);
+          return colorOk && e.subject?.includes(")))");
         })
         .sort((a, b) => b.startTime.localeCompare(a.startTime));
     }
