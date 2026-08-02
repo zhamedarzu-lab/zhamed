@@ -5207,6 +5207,17 @@ button.btn-icon {
   border-top: 1px solid var(--rule);
   background: var(--paper-sunk);
 }
+.ft-edit-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.ft-edit-inputs {
+  display: flex;
+  gap: 0.35rem;
+}
 .ft-edit-input {
   flex: 1;
   font-size: 0.9rem;
@@ -5217,6 +5228,23 @@ button.btn-icon {
   flex-shrink: 0;
   font-size: 0.9rem;
 }
+.ft-edit-swatches {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.1rem 0;
+}
+.ft-swatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s, border-color 0.1s;
+}
+.ft-swatch:hover   { transform: scale(1.15); }
+.ft-swatch--active { border-color: #fff; transform: scale(1.15); }
 
 /* ── Mobile ─────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {

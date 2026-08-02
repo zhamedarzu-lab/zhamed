@@ -5,10 +5,16 @@ import { Empty, Loading, Notice, tagColor } from "../../components/ui";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+const PALETTE = [
+  "#f0a500", "#5fc97a", "#4da6ff", "#a78bfa",
+  "#f87171", "#2dd4bf", "#fb923c", "#f472b6",
+];
+
 type ExerciseStat = {
   exerciseId: number;
   name: string;
   unit: string;
+  color: string | null;
   active: boolean;
   sortOrder: number;
   todayTotal: number;
@@ -459,9 +465,10 @@ function ExerciseRow({
   const [editing,     setEditing]     = useState(false);
   const [editName,    setEditName]    = useState("");
   const [editUnit,    setEditUnit]    = useState("");
+  const [editColor,   setEditColor]   = useState<string | null>(null);
   const inputRef   = useRef<HTMLInputElement>(null);
   const editNameRef = useRef<HTMLInputElement>(null);
-  const color = tagColor(stat.name);
+  const color = stat.color ?? tagColor(stat.name);
 
   async function deleteExercise(e: React.MouseEvent) {
     e.stopPropagation();
@@ -491,6 +498,7 @@ function ExerciseRow({
     e.stopPropagation();
     setEditName(stat.name);
     setEditUnit(stat.unit);
+    setEditColor(stat.color ?? null);
     setEditing(true);
   }
 
@@ -500,8 +508,9 @@ function ExerciseRow({
     onError(null);
     try {
       await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, {
-        name: editName.trim(),
-        unit: editUnit.trim(),
+        name:  editName.trim(),
+        unit:  editUnit.trim(),
+        color: editColor,
       });
       setEditing(false);
       await onChanged();
@@ -634,27 +643,43 @@ function ExerciseRow({
 
       {isOpen && editing && (
         <div className="ft-edit-form">
-          <input
-            ref={editNameRef}
-            className="ft-edit-input"
-            value={editName}
-            placeholder="Name"
-            onChange={(e) => setEditName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter")  saveEdit();
-              if (e.key === "Escape") setEditing(false);
-            }}
-          />
-          <input
-            className="ft-edit-unit"
-            value={editUnit}
-            placeholder="Unit"
-            onChange={(e) => setEditUnit(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter")  saveEdit();
-              if (e.key === "Escape") setEditing(false);
-            }}
-          />
+          <div className="ft-edit-fields">
+            <div className="ft-edit-inputs">
+              <input
+                ref={editNameRef}
+                className="ft-edit-input"
+                value={editName}
+                placeholder="Name"
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter")  saveEdit();
+                  if (e.key === "Escape") setEditing(false);
+                }}
+              />
+              <input
+                className="ft-edit-unit"
+                value={editUnit}
+                placeholder="Unit"
+                onChange={(e) => setEditUnit(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter")  saveEdit();
+                  if (e.key === "Escape") setEditing(false);
+                }}
+              />
+            </div>
+            <div className="ft-edit-swatches">
+              {PALETTE.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={`ft-swatch${editColor === c ? " ft-swatch--active" : ""}`}
+                  style={{ background: c }}
+                  onClick={() => setEditColor(editColor === c ? null : c)}
+                  title={c}
+                />
+              ))}
+            </div>
+          </div>
           <button className="primary ft-log-submit" onClick={saveEdit}
             disabled={busy || !editName.trim() || !editUnit.trim()}>✓</button>
           <button className="quiet ft-history-btn ft-drawer-right" type="button"

@@ -20,6 +20,7 @@ router.get("/exercises", async (_req, res): Promise<void> => {
 const ExerciseInput = z.object({
   name:      z.string().min(1).max(200).trim(),
   unit:      z.string().min(1).max(50).trim(),
+  color:     z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
   active:    z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });
@@ -45,6 +46,7 @@ router.patch("/exercises/:id", async (req, res): Promise<void> => {
   const update: Record<string, unknown> = {};
   if (data.name      !== undefined) update.name      = data.name;
   if (data.unit      !== undefined) update.unit      = data.unit;
+  if (data.color     !== undefined) update.color     = data.color;
   if (data.active    !== undefined) update.active    = data.active;
   if (data.sortOrder !== undefined) update.sortOrder = data.sortOrder;
 
@@ -235,6 +237,7 @@ router.get("/summary", async (_req, res): Promise<void> => {
       exerciseId: ex.id,
       name:       ex.name,
       unit:       ex.unit,
+      color:      ex.color ?? null,
       active:     ex.active,
       sortOrder:  ex.sortOrder,
       todayTotal,

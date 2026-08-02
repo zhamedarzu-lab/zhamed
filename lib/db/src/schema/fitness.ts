@@ -3,6 +3,7 @@ import {
   pgEnum,
   serial,
   text,
+  varchar,
   date,
   integer,
   boolean,
@@ -16,6 +17,7 @@ export const exercisesTable = pgTable("exercises", {
   id:        serial("id").primaryKey(),
   name:      text("name").notNull(),
   unit:      text("unit").notNull(),
+  color:     varchar("color", { length: 7 }),
   active:    boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
 });
