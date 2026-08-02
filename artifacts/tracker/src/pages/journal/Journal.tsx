@@ -226,10 +226,11 @@ type DayPopupProps = {
   onClose: () => void;
   onSelect: (e: Entry) => void;
   onGoToDay: () => void;
+  onGoToWeek: () => void;
   onHighlight: () => void;
   onAddEntry: () => void;
 };
-function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHighlight, onAddEntry }: DayPopupProps) {
+function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onGoToWeek, onHighlight, onAddEntry }: DayPopupProps) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -296,6 +297,7 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHi
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             New entry
           </button>
+          <button onClick={() => { onClose(); onGoToWeek(); }}>Open week view</button>
           <button onClick={() => { onClose(); onGoToDay(); }}>Open day view</button>
         </div>
       </div>
@@ -523,6 +525,7 @@ export default function Journal() {
           onClose={() => setDayPopup(null)}
           onAddEntry={() => { setFocus(dayPopup.date); setView("day"); setAdding(true); }}
           onSelect={e => setModal(e)}
+          onGoToWeek={() => { setFocus(dayPopup.date); setView("week"); }}
           onGoToDay={() => { setFocus(dayPopup.date); setView("day"); }}
           onHighlight={() => {
             const ymd = toYMD(dayPopup.date);
