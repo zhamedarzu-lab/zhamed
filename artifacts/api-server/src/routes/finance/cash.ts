@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { cashAccountsTable, cashSnapshotsTable } from "@workspace/db";
+import { cashAccountsTable, cashSnapshotsTable, paychecksTable } from "@workspace/db";
 import { DATE_RE, money, optionalIdQuery, parseBody, parseId } from "./shared.js";
 
 const router: IRouter = Router();
@@ -81,12 +81,26 @@ router.get("/cash-snapshots", async (req, res): Promise<void> => {
   const accountId = optionalIdQuery(req.query.accountId);
 
   const rows = await db
-    .select()
+    .select({
+      id: cashSnapshotsTable.id,
+      cashAccountId: cashSnapshotsTable.cashAccountId,
+      snapshotDate: cashSnapshotsTable.snapshotDate,
+      balance: cashSnapshotsTable.balance,
+      loggedAt: cashSnapshotsTable.loggedAt,
+      paycheckId: cashSnapshotsTable.paycheckId,
+      paycheckMonth: paychecksTable.month,
+      paycheckSeq: paychecksTable.seq,
+    })
     .from(cashSnapshotsTable)
+    .leftJoin(paychecksTable, eq(cashSnapshotsTable.paycheckId, paychecksTable.id))
     .where(accountId !== undefined ? eq(cashSnapshotsTable.cashAccountId, accountId) : undefined)
     .orderBy(cashSnapshotsTable.snapshotDate);
 
-  res.json(rows.map((s) => ({ ...s, balance: Number(s.balance), loggedAt: s.loggedAt ? s.loggedAt.toISOString() : null })));
+  res.json(rows.map((s) => ({
+    ...s,
+    balance: Number(s.balance),
+    loggedAt: s.loggedAt ? s.loggedAt.toISOString() : null,
+  })));
 });
 
 router.post("/cash-snapshots", async (req, res): Promise<void> => {
@@ -95,6 +109,7 @@ router.post("/cash-snapshots", async (req, res): Promise<void> => {
       cashAccountId: z.number().int(),
       snapshotDate: z.string().regex(DATE_RE),
       balance: z.number().min(0),
+      paycheckId: z.number().int().nullable().optional(),
     }),
     req.body,
     res,
@@ -110,6 +125,12 @@ router.post("/cash-snapshots", async (req, res): Promise<void> => {
     return;
   }
 
+  // Validate paycheckId if provided
+  if (data.paycheckId) {
+    const [pc] = await db.select({ id: paychecksTable.id }).from(paychecksTable).where(eq(paychecksTable.id, data.paycheckId));
+    if (!pc) { res.status(404).json({ error: "Paycheck not found" }); return; }
+  }
+
   const [snap] = await db
     .insert(cashSnapshotsTable)
     .values({
@@ -117,6 +138,7 @@ router.post("/cash-snapshots", async (req, res): Promise<void> => {
       snapshotDate: data.snapshotDate,
       balance: money(data.balance),
       loggedAt: new Date(),
+      paycheckId: data.paycheckId ?? null,
     })
     .returning();
 

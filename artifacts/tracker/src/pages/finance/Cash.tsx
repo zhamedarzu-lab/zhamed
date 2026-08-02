@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { api, useApi } from "../../lib/api";
-import { dollars, shortDate, todayIso, toAmount } from "../../lib/format";
+import { dollars, shortDate, shortMonth, todayIso, toAmount } from "../../lib/format";
 import {
   BalanceChart,
   Empty,
@@ -26,7 +26,14 @@ type Snapshot = {
   snapshotDate: string;
   balance: number;
   loggedAt: string | null;
+  paycheckId: number | null;
+  paycheckMonth: string | null;
+  paycheckSeq: number | null;
 };
+
+type PaycheckOption = { id: number; month: string; seq: number };
+
+const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seq}/2`;
 
 /** Shared empty array so cards without history keep a stable prop identity. */
 const EMPTY: never[] = [];
@@ -58,15 +65,20 @@ function BalanceLogModal({ log, onClose }: { log: Snapshot[]; onClose: () => voi
           </button>
         </div>
         <ul className="bal-log-list">
-          {log.map((s) => (
-            <li key={s.id} className="bal-log-row">
-              <span className="bal-log-when">
-                {shortDate(s.snapshotDate)}
-                {s.loggedAt && <span className="bal-log-tod">{timeOfDay(s.loggedAt)}</span>}
-              </span>
-              <span className="bal-log-amt">{dollars(s.balance)}</span>
-            </li>
-          ))}
+          {log.map((s) => {
+            const when = s.paycheckMonth && s.paycheckSeq != null
+              ? paydayLabel(s.paycheckMonth, s.paycheckSeq)
+              : null;
+            return (
+              <li key={s.id} className="bal-log-row">
+                <span className="bal-log-when">
+                  {when ?? shortDate(s.snapshotDate)}
+                  {s.loggedAt && <span className="bal-log-tod">{timeOfDay(s.loggedAt)}</span>}
+                </span>
+                <span className="bal-log-amt">{dollars(s.balance)}</span>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
@@ -88,8 +100,14 @@ export default function Cash() {
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
 
-  const accounts = useApi<Account[]>("/api/finance/cash-accounts");
+  const accounts  = useApi<Account[]>("/api/finance/cash-accounts");
   const snapshots = useApi<Snapshot[]>("/api/finance/cash-snapshots");
+  const paychecks = useApi<PaycheckOption[]>("/api/finance/paychecks");
+
+  const paycheckOptions = useMemo(
+    () => [...(paychecks.data ?? [])].sort((a, b) => b.month.localeCompare(a.month) || b.seq - a.seq),
+    [paychecks.data],
+  );
 
   const refreshAll = () => Promise.all([accounts.reload(), snapshots.reload()]);
 
@@ -151,6 +169,7 @@ export default function Cash() {
               key={account.id}
               account={account}
               snapshots={snapshotsByAccount.get(account.id) ?? EMPTY}
+              paycheckOptions={paycheckOptions}
               onChanged={refreshAll}
               onError={setError}
             />
@@ -180,15 +199,18 @@ export default function Cash() {
 function AccountPanel({
   account,
   snapshots,
+  paycheckOptions,
   onChanged,
   onError,
 }: {
   account: Account;
   snapshots: Snapshot[];
+  paycheckOptions: PaycheckOption[];
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
   const [balInput, setBalInput] = useState("");
+  const [payday, setPayday] = useState("");
   const [busy, setBusy] = useState(false);
   const [showLog, setShowLog] = useState(false);
 
@@ -209,8 +231,10 @@ function AccountPanel({
         cashAccountId: account.id,
         snapshotDate: todayIso(),
         balance: v,
+        paycheckId: payday ? Number(payday) : null,
       });
       setBalInput("");
+      setPayday("");
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not update balance.");
@@ -288,6 +312,19 @@ function AccountPanel({
             Log <span className="bal-log-count">{log.length}</span>
           </button>
         )}
+        <select
+          className="debt-payday-select"
+          aria-label="Tag this balance to a payday"
+          value={payday}
+          onChange={(e) => setPayday(e.target.value)}
+        >
+          <option value="">No payday</option>
+          {paycheckOptions.map((p) => (
+            <option key={p.id} value={p.id}>
+              {paydayLabel(p.month, p.seq)}
+            </option>
+          ))}
+        </select>
         <input
           className="debt-bal-input"
           inputMode="decimal"

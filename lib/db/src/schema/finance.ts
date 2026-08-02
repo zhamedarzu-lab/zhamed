@@ -74,6 +74,8 @@ export const cashSnapshotsTable = pgTable("cash_snapshots", {
   snapshotDate: date("snapshot_date", { mode: "string" }).notNull(),
   balance: numeric("balance", { precision: 10, scale: 2 }).notNull(),
   loggedAt: timestamp("logged_at", { withTimezone: true }),
+  paycheckId: integer("paycheck_id")
+    .references(() => paychecksTable.id, { onDelete: "set null" }),
 });
 
 /**
