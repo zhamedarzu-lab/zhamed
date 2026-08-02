@@ -194,6 +194,93 @@ function WeekGrid({ exercises }: { exercises: ExerciseStat[] }) {
   );
 }
 
+// ─── Slot labels ──────────────────────────────────────────────────────────────
+
+const SLOT_LABELS: Record<string, string> = {
+  morning:    "Morning",
+  before_noon:"Before Noon",
+  noon:       "Noon",
+  afternoon:  "Afternoon",
+  evening:    "Evening",
+  night:      "Night",
+};
+
+type Effort = { id: number; exerciseId: number; date: string; slot: string; amount: number };
+
+// ─── History modal ────────────────────────────────────────────────────────────
+
+function HistoryModal({
+  stat,
+  color,
+  onClose,
+}: {
+  stat: ExerciseStat;
+  color: string;
+  onClose: () => void;
+}) {
+  const [efforts, setEfforts] = useState<Effort[] | null>(null);
+
+  useEffect(() => {
+    api.get<Effort[]>(`/api/fitness/efforts?exerciseId=${stat.exerciseId}`)
+      .then(setEfforts)
+      .catch(() => setEfforts([]));
+  }, [stat.exerciseId]);
+
+  // Group efforts by date for the list
+  const byDate = useMemo(() => {
+    if (!efforts) return [];
+    const map = new Map<string, Effort[]>();
+    for (const e of efforts) {
+      const list = map.get(e.date) ?? [];
+      list.push(e);
+      map.set(e.date, list);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 30); // last 30 days that have entries
+  }, [efforts]);
+
+  return (
+    <div className="ft-history-overlay" onClick={onClose}>
+      <div className="ft-history-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="ft-history-header">
+          <span className="ft-history-title" style={{ color }}>{stat.name}</span>
+          <button className="quiet" onClick={onClose}>✕</button>
+        </div>
+
+        <HistoryChart sparkline={stat.sparkline} color={color} unit={stat.unit} />
+
+        <div className="ft-history-log">
+          {efforts === null && <p className="ft-history-empty">Loading…</p>}
+          {efforts !== null && byDate.length === 0 && (
+            <p className="ft-history-empty">No entries yet.</p>
+          )}
+          {byDate.map(([date, entries]) => {
+            const d = new Date(date + "T12:00:00");
+            const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", weekday: "short" });
+            return (
+              <div key={date} className="ft-history-day">
+                <span className="ft-history-day-label">{label}</span>
+                <div className="ft-history-entries">
+                  {entries.map((e) => (
+                    <div key={e.id} className="ft-history-entry">
+                      <span className="ft-history-slot">{SLOT_LABELS[e.slot] ?? e.slot}</span>
+                      <span className="ft-history-amount">
+                        {Number(e.amount).toLocaleString()}
+                        <span className="ft-history-unit"> {stat.unit}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── History chart ────────────────────────────────────────────────────────────
 
 function HistoryChart({
@@ -459,15 +546,7 @@ function ExerciseRow({
 
       {/* History modal */}
       {showHistory && (
-        <div className="ft-history-overlay" onClick={() => setShowHistory(false)}>
-          <div className="ft-history-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ft-history-header">
-              <span className="ft-history-title" style={{ color: color }}>{stat.name}</span>
-              <button className="quiet" onClick={() => setShowHistory(false)}>✕</button>
-            </div>
-            <HistoryChart sparkline={stat.sparkline} color={color} unit={stat.unit} />
-          </div>
-        </div>
+        <HistoryModal stat={stat} color={color} onClose={() => setShowHistory(false)} />
       )}
     </div>
   );

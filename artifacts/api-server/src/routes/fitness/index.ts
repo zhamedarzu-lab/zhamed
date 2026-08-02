@@ -62,20 +62,32 @@ router.delete("/exercises/:id", async (req, res): Promise<void> => {
 
 // ─── Efforts ─────────────────────────────────────────────────────────────────
 
-const SLOTS = ["morning", "noon", "evening", "night"] as const;
+const SLOTS = ["morning", "before_noon", "noon", "afternoon", "evening", "night"] as const;
 type Slot = typeof SLOTS[number];
 
+function autoSlot(): Slot {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 9)  return "morning";
+  if (h >= 9  && h < 12) return "before_noon";
+  if (h >= 12 && h < 13) return "noon";
+  if (h >= 13 && h < 17) return "afternoon";
+  if (h >= 17 && h < 21) return "evening";
+  return "night";
+}
+
 router.get("/efforts", async (req, res): Promise<void> => {
-  const from = typeof req.query.from === "string" ? req.query.from : undefined;
-  const to   = typeof req.query.to   === "string" ? req.query.to   : undefined;
+  const from       = typeof req.query.from       === "string" ? req.query.from       : undefined;
+  const to         = typeof req.query.to         === "string" ? req.query.to         : undefined;
+  const exerciseId = typeof req.query.exerciseId === "string" ? parseInt(req.query.exerciseId, 10) : undefined;
 
   if (from && !DATE_RE.test(from)) { res.status(400).json({ error: "from must be YYYY-MM-DD" }); return; }
   if (to   && !DATE_RE.test(to))   { res.status(400).json({ error: "to must be YYYY-MM-DD" });   return; }
 
   const conditions = [
-    from ? gte(effortsTable.date, from) : undefined,
-    to   ? lte(effortsTable.date, to)   : undefined,
-  ].filter(Boolean) as ReturnType<typeof gte>[];
+    from                          ? gte(effortsTable.date,       from)       : undefined,
+    to                            ? lte(effortsTable.date,       to)         : undefined,
+    exerciseId && !isNaN(exerciseId) ? eq(effortsTable.exerciseId, exerciseId) : undefined,
+  ].filter(Boolean) as ReturnType<typeof eq>[];
 
   const rows = await db
     .select()
@@ -89,7 +101,6 @@ router.get("/efforts", async (req, res): Promise<void> => {
 const EffortInput = z.object({
   exerciseId: z.number().int().positive(),
   date:       z.string().regex(DATE_RE),
-  slot:       z.enum(SLOTS).optional().default("morning"),
   amount:     z.number().positive(),
 });
 
@@ -105,7 +116,7 @@ router.post("/efforts", async (req, res): Promise<void> => {
     .values({
       exerciseId: data.exerciseId,
       date:       data.date,
-      slot:       data.slot as Slot,
+      slot:       autoSlot(),
       amount:     String(data.amount),
     })
     .returning();
