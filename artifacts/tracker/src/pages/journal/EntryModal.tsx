@@ -307,6 +307,9 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
     setConfirmMsg(null);
   }, [entry.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isOpener = currentEntry.looseEndType === 'open';
+  const isCloser = currentEntry.looseEndType === 'close';
+
   // Fetch the close entry for any non-close entry (looseEndType may be null on old resolved openers)
   useEffect(() => {
     if (isCloser) { setCloseEntry(null); return; }
@@ -314,9 +317,6 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
       .then(rows => setCloseEntry(rows[0] ?? null))
       .catch(() => setCloseEntry(null));
   }, [currentEntry.id, isCloser]);
-
-  const isOpener = currentEntry.looseEndType === 'open';
-  const isCloser = currentEntry.looseEndType === 'close';
 
   function navigateTo(target: Entry) {
     setHistory(prev => [...prev, currentEntry]);
@@ -389,7 +389,7 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
           <>
             <div className="entry-modal-body">
               <p className="entry-modal-time">
-                {isOpener && <span className="loose-end-badge loose-end-badge--open" title="Open loose end">◎ </span>}
+                {(isOpener || (!isCloser && closeEntry)) && <span className="loose-end-badge loose-end-badge--open" title="Open loose end">◎ </span>}
                 {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉ </span>}
                 {fmtRange(currentEntry.startTime, currentEntry.endTime)}
               </p>
