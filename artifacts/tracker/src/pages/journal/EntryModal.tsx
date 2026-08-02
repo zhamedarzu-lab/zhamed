@@ -30,6 +30,7 @@ export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
   { hex: "#f5f5f5", label: "White",  hint: "Work"          },
   { hex: "#8a9aaa", label: "Gray",   hint: "Sleep"         },
   { hex: "#1c1c1e", label: "Black",  hint: "Black"         },
+  { hex: "#7c4a1e", label: "Brown",  hint: "Brown"         },
 ];
 
 export function toYMD(d: Date) {
