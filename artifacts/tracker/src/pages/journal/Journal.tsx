@@ -791,6 +791,15 @@ export default function Journal() {
                 })}
               </div>
               <div className="journal-week-cols">
+                {(() => {
+                  const weekEnd = addDays(weekStart, 6);
+                  const isThisWeek = todayYmd >= toYMD(weekStart) && todayYmd <= toYMD(weekEnd);
+                  if (!isThisWeek) return null;
+                  const n = new Date();
+                  const dayFrac = (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds()) / 86400;
+                  const weekNowPct = (n.getDay() + dayFrac) / 7 * 100;
+                  return <div className="journal-grid-now-line" style={{ left: `${weekNowPct}%` }} />;
+                })()}
                 {Array.from({ length: 7 }, (_, i) => {
                   const day = addDays(weekStart, i);
                   const ymd = toYMD(day);

@@ -2236,6 +2236,7 @@ a:hover {
   grid-template-columns: repeat(7, 1fr);
   flex: 1;
   height: 100%;
+  position: relative;
 }
 .journal-week-col {
   position: relative;
