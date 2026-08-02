@@ -121,38 +121,44 @@ router.delete("/efforts/:id", async (req, res): Promise<void> => {
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
 router.get("/summary", async (_req, res): Promise<void> => {
-  // Rolling windows relative to today
-  const today     = todayIso();
-  const d14ago    = offsetDate(today, -13); // 14-day window start
-  const d7ago     = offsetDate(today, -6);  // last-7 window start
-  const d8ago     = offsetDate(today, -7);  // prev-7 window end
-  const d14agoEx  = offsetDate(today, -13); // prev-7 window start (same as d14ago)
+  const today = todayIso();
+
+  // Rolling windows
+  const d14ago = offsetDate(today, -13);
+
+  // Calendar week start (Sunday)
+  const weekStart = (() => {
+    const d = new Date(today + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() - d.getUTCDay());
+    return d.toISOString().slice(0, 10);
+  })();
+
+  // Calendar month start
+  const monthStart = today.slice(0, 8) + "01";
+
+  // Query window covers 14-day sparkline AND full week AND full month
+  const queryFrom = [d14ago, weekStart, monthStart].sort()[0];
 
   const [exercises, efforts] = await Promise.all([
     db.select().from(exercisesTable).orderBy(asc(exercisesTable.sortOrder), asc(exercisesTable.name)),
     db.select().from(effortsTable)
-      .where(gte(effortsTable.date, d14ago))
+      .where(gte(effortsTable.date, queryFrom))
       .orderBy(asc(effortsTable.date)),
   ]);
 
-  // Consistency strip: which of the last 14 days had any effort at all
-  const activeDates = new Set(efforts.map((e) => e.date));
+  // Consistency strip: which of the last 14 days had any effort
+  const activeDates = new Set(efforts.filter((e) => e.date >= d14ago).map((e) => e.date));
   const consistencyStrip: Array<{ date: string; active: boolean }> = [];
   for (let i = 13; i >= 0; i--) {
     const d = offsetDate(today, -i);
     consistencyStrip.push({ date: d, active: activeDates.has(d) });
   }
 
-  // Per-exercise stats — also need all-time best, so fetch unbounded for best day
+  // All-time efforts for best-day calculation
   const allEfforts = await db
-    .select({
-      exerciseId: effortsTable.exerciseId,
-      date:       effortsTable.date,
-      amount:     effortsTable.amount,
-    })
+    .select({ exerciseId: effortsTable.exerciseId, date: effortsTable.date, amount: effortsTable.amount })
     .from(effortsTable);
 
-  // Group all-time by exercise → date → total for best day
   const allTimeByExDate = new Map<number, Map<string, number>>();
   for (const e of allEfforts) {
     let byDate = allTimeByExDate.get(e.exerciseId);
@@ -160,32 +166,39 @@ router.get("/summary", async (_req, res): Promise<void> => {
     byDate.set(e.date, (byDate.get(e.date) ?? 0) + Number(e.amount));
   }
 
-  // Group last-14 by exercise
-  const last14ByEx = new Map<number, typeof efforts>();
+  // Group recent efforts by exercise
+  const effortsByEx = new Map<number, typeof efforts>();
   for (const e of efforts) {
-    const list = last14ByEx.get(e.exerciseId) ?? [];
+    const list = effortsByEx.get(e.exerciseId) ?? [];
     list.push(e);
-    last14ByEx.set(e.exerciseId, list);
+    effortsByEx.set(e.exerciseId, list);
   }
 
   const perExercise = exercises.map((ex) => {
-    const rows   = last14ByEx.get(ex.id) ?? [];
+    const rows = effortsByEx.get(ex.id) ?? [];
+
+    // Build date→total map for the full query window
     const byDate = new Map<string, number>();
     for (const r of rows) byDate.set(r.date, (byDate.get(r.date) ?? 0) + Number(r.amount));
 
     // Today
     const todayTotal = byDate.get(today) ?? 0;
 
-    // Last 7 days (today − 6 through today)
+    // This calendar week (Sun–today)
+    let weekTotal = 0;
+    for (const [d, v] of byDate) { if (d >= weekStart) weekTotal += v; }
+
+    // This calendar month (1st–today)
+    let monthTotal = 0;
+    for (const [d, v] of byDate) { if (d >= monthStart) monthTotal += v; }
+
+    // Last 7 rolling days
     let last7 = 0;
-    for (let i = 6; i >= 0; i--) {
-      last7 += byDate.get(offsetDate(today, -i)) ?? 0;
-    }
-    // Previous 7 days (today − 13 through today − 7)
+    for (let i = 6; i >= 0; i--) last7 += byDate.get(offsetDate(today, -i)) ?? 0;
+
+    // Previous 7 rolling days
     let prev7 = 0;
-    for (let i = 13; i >= 7; i--) {
-      prev7 += byDate.get(offsetDate(today, -i)) ?? 0;
-    }
+    for (let i = 13; i >= 7; i--) prev7 += byDate.get(offsetDate(today, -i)) ?? 0;
 
     const delta = prev7 === 0
       ? (last7 > 0 ? 100 : 0)
@@ -200,7 +213,7 @@ router.get("/summary", async (_req, res): Promise<void> => {
       }
     }
 
-    // Sparkline: daily totals for last 14 days
+    // Sparkline: last 14 days
     const sparkline: Array<{ date: string; value: number }> = [];
     for (let i = 13; i >= 0; i--) {
       const d = offsetDate(today, -i);
@@ -208,12 +221,14 @@ router.get("/summary", async (_req, res): Promise<void> => {
     }
 
     return {
-      exerciseId:  ex.id,
-      name:        ex.name,
-      unit:        ex.unit,
-      active:      ex.active,
-      sortOrder:   ex.sortOrder,
+      exerciseId: ex.id,
+      name:       ex.name,
+      unit:       ex.unit,
+      active:     ex.active,
+      sortOrder:  ex.sortOrder,
       todayTotal,
+      weekTotal,
+      monthTotal,
       last7,
       prev7,
       delta,

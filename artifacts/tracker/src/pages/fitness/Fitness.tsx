@@ -12,6 +12,8 @@ type ExerciseStat = {
   active: boolean;
   sortOrder: number;
   todayTotal: number;
+  weekTotal: number;
+  monthTotal: number;
   last7: number;
   prev7: number;
   delta: number;
@@ -300,26 +302,21 @@ function ExerciseRow({
         </div>
 
         <div className="ft-row-right">
-          <div className="ft-row-today">
-            <span className={`ft-row-total${stat.todayTotal > 0 ? " ft-row-total--active" : ""}`}>
-              {stat.todayTotal > 0 ? stat.todayTotal.toLocaleString() : "—"}
-            </span>
-            <span className="ft-row-unit">{stat.unit}</span>
-          </div>
-          <div className="ft-row-trail">
-            {stat.sparkline.map((s) => (
-              <div
-                key={s.date}
-                className={`ft-row-dot${s.value > 0 ? " ft-row-dot--on" : ""}`}
-                style={s.value > 0 ? { background: color } : undefined}
-                title={
-                  s.value > 0
-                    ? `${s.value.toLocaleString()} on ${shortDate(s.date)}`
-                    : shortDate(s.date)
-                }
-              />
-            ))}
-          </div>
+          {(
+            [
+              { label: "D", val: stat.todayTotal,  active: stat.todayTotal > 0 },
+              { label: "W", val: stat.weekTotal,   active: false },
+              { label: "M", val: stat.monthTotal,  active: false },
+            ] as const
+          ).map(({ label, val, active }) => (
+            <div key={label} className="ft-row-stat">
+              <span className="ft-row-stat-lbl">{label}</span>
+              <span className={`ft-row-stat-val${active ? " ft-row-stat-val--active" : ""}`}>
+                {val > 0 ? val.toLocaleString() : "—"}
+              </span>
+            </div>
+          ))}
+          <span className="ft-row-stat-unit">{stat.unit}</span>
         </div>
 
         <button
