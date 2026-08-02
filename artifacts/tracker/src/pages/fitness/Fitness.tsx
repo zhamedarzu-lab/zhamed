@@ -226,6 +226,21 @@ function ExerciseCard({
     }
   }
 
+  async function remove() {
+    // Efforts cascade with the exercise, so say so before it happens.
+    if (!confirm(`Remove "${stat.name}"? This deletes all its logged history.`)) return;
+    setBusy(true);
+    onError(null);
+    try {
+      await api.del(`/api/fitness/exercises/${stat.exerciseId}`);
+      await onChanged();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not remove this exercise.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   // Delta display
   const both0 = stat.last7 === 0 && stat.prev7 === 0;
   const deltaText =
@@ -255,6 +270,20 @@ function ExerciseCard({
               {stat.todayTotal.toLocaleString()} {stat.unit} today
             </span>
           )}
+          <button
+            className="quiet danger btn-icon fitness-card-remove"
+            title={`Remove ${stat.name}`}
+            aria-label={`Remove ${stat.name}`}
+            onClick={remove}
+          >
+            <svg
+              width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+              strokeLinejoin="round" aria-hidden="true"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* Stats strip */}

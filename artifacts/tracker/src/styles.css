@@ -4874,6 +4874,23 @@ button.btn-icon {
   flex-wrap: wrap;
 }
 
+/* Pushed to the right edge, and only inked on hover so the card stays calm. */
+.fitness-card-remove {
+  margin-left: auto;
+  align-self: center;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.panel:hover .fitness-card-remove,
+.fitness-card-remove:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .fitness-card-remove {
+    opacity: 1;
+  }
+}
+
 .fitness-card-name {
   font-size: 1.05rem;
   font-weight: 600;
