@@ -873,6 +873,18 @@ export default function Journal() {
                 {Array.from({ length: 7 }, (_, i) => {
                   const day = addDays(weekStart, i);
                   const ymd = toYMD(day);
+                  const wkHl = highlights.find(h => h.date === ymd) ?? null;
+                  if (!wkHl) return null;
+                  const pct = (i + 0.5) / 7 * 100;
+                  return (
+                    <div key={wkHl.id}
+                      className="journal-grid-hl-line"
+                      style={{ left: `${pct}%`, background: wkHl.color }} />
+                  );
+                })}
+                {Array.from({ length: 7 }, (_, i) => {
+                  const day = addDays(weekStart, i);
+                  const ymd = toYMD(day);
                   const isT = ymd === todayYmd;
                   const colHl = highlights.find(h => h.date === ymd) ?? null;
                   const dayEntries = [
