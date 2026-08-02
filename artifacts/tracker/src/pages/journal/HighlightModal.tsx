@@ -107,7 +107,7 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
             <input
               className="highlight-form-input highlight-label-input"
               type="text"
-              placeholder="Label (e.g. dentist, concert…)"
+              placeholder=""
               value={label}
               autoFocus
               onChange={e => setLabel(e.target.value)}
