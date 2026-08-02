@@ -227,8 +227,9 @@ type DayPopupProps = {
   onSelect: (e: Entry) => void;
   onGoToDay: () => void;
   onHighlight: () => void;
+  onAddEntry: () => void;
 };
-function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHighlight }: DayPopupProps) {
+function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHighlight, onAddEntry }: DayPopupProps) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -291,6 +292,10 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHi
               ✦ Highlight day
             </button>
           )}
+          <button className="day-popup-add-btn" onClick={() => { onClose(); onAddEntry(); }} aria-label="Add entry">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            New entry
+          </button>
           <button onClick={() => { onClose(); onGoToDay(); }}>Open day view</button>
         </div>
       </div>
@@ -516,6 +521,7 @@ export default function Journal() {
           entries={dayPopup.entries}
           highlight={highlights.find(h => h.date === toYMD(dayPopup.date)) ?? null}
           onClose={() => setDayPopup(null)}
+          onAddEntry={() => { setFocus(dayPopup.date); setView("day"); setAdding(true); }}
           onSelect={e => setModal(e)}
           onGoToDay={() => { setFocus(dayPopup.date); setView("day"); }}
           onHighlight={() => {
