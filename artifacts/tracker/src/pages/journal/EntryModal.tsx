@@ -290,6 +290,7 @@ export type EntryModalProps = {
 };
 export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalProps) {
   const [editing, setEditing] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(false);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -336,16 +337,40 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalPro
               )}
             </div>
             <div className="entry-modal-footer">
-              <button
-                className="journal-action-btn danger"
-                onClick={() => { onDelete(entry.id); onClose(); }}
-                aria-label="Delete"
-              >
-                <IcTrash /> Delete
-              </button>
-              <button className="primary" onClick={() => setEditing(true)}>
-                <IcEdit /> Edit
-              </button>
+              {pendingDelete ? (
+                <div className="entry-modal-delete-confirm">
+                  <p className="entry-modal-delete-confirm-msg">
+                    {isOpener
+                      ? "This is an open loose end — delete anyway?"
+                      : "This will reopen the linked loose end — delete anyway?"}
+                  </p>
+                  <div className="entry-modal-delete-confirm-btns">
+                    <button onClick={() => setPendingDelete(false)}>Cancel</button>
+                    <button className="journal-action-btn danger" onClick={() => { onDelete(entry.id); onClose(); }}>
+                      <IcTrash /> Delete
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    className="journal-action-btn danger"
+                    onClick={() => {
+                      if (isOpener || (isCloser && !!entry.looseEndLink)) {
+                        setPendingDelete(true);
+                      } else {
+                        onDelete(entry.id); onClose();
+                      }
+                    }}
+                    aria-label="Delete"
+                  >
+                    <IcTrash /> Delete
+                  </button>
+                  <button className="primary" onClick={() => setEditing(true)}>
+                    <IcEdit /> Edit
+                  </button>
+                </>
+              )}
             </div>
           </>
         )}

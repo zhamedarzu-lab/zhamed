@@ -930,6 +930,28 @@ a:hover {
   gap: 0.35rem;
 }
 
+/* Delete confirmation inside entry modal footer */
+.entry-modal-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+.entry-modal-delete-confirm-msg {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.entry-modal-delete-confirm-btns {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.entry-modal-delete-confirm-btns button {
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
 /* Week entry: pointer cursor since it's clickable */
 .journal-week-entry { cursor: pointer; }
 
