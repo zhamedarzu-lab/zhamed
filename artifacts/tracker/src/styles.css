@@ -5041,6 +5041,48 @@ button.btn-icon {
   .ft-row-delete { opacity: 1; }
 }
 
+/* ── History button (inside log form) ──────────────────────────────── */
+.ft-history-btn {
+  font-size: 1rem;
+  padding: 0.15rem 0.35rem;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.ft-history-btn:hover {
+  color: var(--ink);
+}
+
+/* ── History modal ──────────────────────────────────────────────────── */
+.ft-history-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1.5rem;
+}
+.ft-history-modal {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 360px;
+  padding: 1rem 1rem 1.25rem;
+}
+.ft-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.ft-history-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 /* ── Log form ───────────────────────────────────────────────────────── */
 .ft-log-form {
   display: flex;

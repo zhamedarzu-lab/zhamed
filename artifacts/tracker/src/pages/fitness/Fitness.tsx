@@ -194,6 +194,93 @@ function WeekGrid({ exercises }: { exercises: ExerciseStat[] }) {
   );
 }
 
+// ─── History chart ────────────────────────────────────────────────────────────
+
+function HistoryChart({
+  sparkline,
+  color,
+  unit,
+}: {
+  sparkline: Array<{ date: string; value: number }>;
+  color: string;
+  unit: string;
+}) {
+  const today  = todayIso();
+  const maxVal = Math.max(...sparkline.map((s) => s.value), 1);
+  const W = 300, H = 120, padX = 8, padBottom = 20;
+  const n    = sparkline.length;
+  const slot = (W - padX * 2) / n;
+  const barW = Math.max(slot - 3, 4);
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H + padBottom}`}
+      width="100%"
+      style={{ display: "block", overflow: "visible" }}
+      aria-label={`${unit} history`}
+    >
+      {sparkline.map((s, i) => {
+        const barH   = s.value > 0 ? Math.max((s.value / maxVal) * H, 4) : 0;
+        const x      = padX + i * slot;
+        const y      = H - barH;
+        const isToday = s.date === today;
+        const d      = new Date(s.date + "T12:00:00");
+        const dayLbl = d.toLocaleDateString("en-US", { weekday: "narrow" });
+        const dateLbl = d.getDate();
+        return (
+          <g key={s.date}>
+            {barH > 0 && (
+              <rect
+                x={x + (slot - barW) / 2}
+                y={y}
+                width={barW}
+                height={barH}
+                fill={color}
+                opacity={isToday ? 1 : 0.55}
+                rx={2}
+              />
+            )}
+            {barH > 0 && (
+              <text
+                x={x + slot / 2}
+                y={y - 3}
+                textAnchor="middle"
+                fontSize="8"
+                fill={color}
+                opacity={isToday ? 1 : 0.7}
+              >
+                {s.value.toLocaleString()}
+              </text>
+            )}
+            <text
+              x={x + slot / 2}
+              y={H + 11}
+              textAnchor="middle"
+              fontSize="8"
+              fill={isToday ? color : "var(--ink-faint)"}
+              fontWeight={isToday ? "700" : "400"}
+            >
+              {dayLbl}
+            </text>
+            <text
+              x={x + slot / 2}
+              y={H + 20}
+              textAnchor="middle"
+              fontSize="7"
+              fill={isToday ? color : "var(--ink-faint)"}
+              opacity="0.7"
+            >
+              {dateLbl}
+            </text>
+          </g>
+        );
+      })}
+      {/* Baseline */}
+      <line x1={padX} y1={H} x2={W - padX} y2={H} stroke="var(--rule)" strokeWidth="1" />
+    </svg>
+  );
+}
+
 // ─── Exercise row ─────────────────────────────────────────────────────────────
 
 function ExerciseRow({
@@ -205,10 +292,11 @@ function ExerciseRow({
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const [open,   setOpen]   = useState(false);
-  const [amount, setAmount] = useState("");
-  const [busy,   setBusy]   = useState(false);
-  const [period, setPeriod] = useState<"D" | "W" | "M">("D");
+  const [open,        setOpen]        = useState(false);
+  const [amount,      setAmount]      = useState("");
+  const [busy,        setBusy]        = useState(false);
+  const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
+  const [showHistory, setShowHistory] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const color = tagColor(stat.name);
 
@@ -339,6 +427,14 @@ function ExerciseRow({
       {/* Inline log form */}
       {open && (
         <div className="ft-log-form">
+          <button
+            type="button"
+            className="quiet ft-history-btn"
+            onClick={() => setShowHistory(true)}
+            title="View history"
+          >
+            ↗
+          </button>
           <input
             ref={inputRef}
             className="ft-log-input"
@@ -358,6 +454,19 @@ function ExerciseRow({
           >
             ✓
           </button>
+        </div>
+      )}
+
+      {/* History modal */}
+      {showHistory && (
+        <div className="ft-history-overlay" onClick={() => setShowHistory(false)}>
+          <div className="ft-history-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ft-history-header">
+              <span className="ft-history-title" style={{ color: color }}>{stat.name}</span>
+              <button className="quiet" onClick={() => setShowHistory(false)}>✕</button>
+            </div>
+            <HistoryChart sparkline={stat.sparkline} color={color} unit={stat.unit} />
+          </div>
         </div>
       )}
     </div>
