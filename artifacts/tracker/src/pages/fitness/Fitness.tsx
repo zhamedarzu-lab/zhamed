@@ -2,13 +2,12 @@ import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react"
 import { api, useApi } from "../../lib/api";
 import { shortDate, todayIso } from "../../lib/format";
 import { Empty, Loading, Notice, tagColor } from "../../components/ui";
+import { ENTRY_COLORS } from "../journal/EntryModal";
+
+const FITNESS_COLORS = ENTRY_COLORS.slice(0, 7); // R O Y G B + pink + purple
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-const PALETTE = [
-  "#f0a500", "#5fc97a", "#4da6ff", "#a78bfa",
-  "#f87171", "#2dd4bf", "#fb923c", "#f472b6",
-];
 
 type ExerciseStat = {
   exerciseId: number;
@@ -465,7 +464,8 @@ function ExerciseRow({
   const [editing,     setEditing]     = useState(false);
   const [editName,    setEditName]    = useState("");
   const [editUnit,    setEditUnit]    = useState("");
-  const [editColor,   setEditColor]   = useState<string | null>(null);
+  const [editColor,      setEditColor]      = useState<string | null>(null);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const inputRef   = useRef<HTMLInputElement>(null);
   const editNameRef = useRef<HTMLInputElement>(null);
   const color = stat.color ?? tagColor(stat.name);
@@ -499,6 +499,7 @@ function ExerciseRow({
     setEditName(stat.name);
     setEditUnit(stat.unit);
     setEditColor(stat.color ?? null);
+    setColorPickerOpen(false);
     setEditing(true);
   }
 
@@ -645,6 +646,13 @@ function ExerciseRow({
         <div className="ft-edit-form">
           <div className="ft-edit-fields">
             <div className="ft-edit-inputs">
+              <button
+                type="button"
+                className="ft-color-trigger"
+                style={{ background: editColor ?? color }}
+                onClick={() => setColorPickerOpen(o => !o)}
+                title="Choose color"
+              />
               <input
                 ref={editNameRef}
                 className="ft-edit-input"
@@ -667,18 +675,23 @@ function ExerciseRow({
                 }}
               />
             </div>
-            <div className="ft-edit-swatches">
-              {PALETTE.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`ft-swatch${editColor === c ? " ft-swatch--active" : ""}`}
-                  style={{ background: c }}
-                  onClick={() => setEditColor(editColor === c ? null : c)}
-                  title={c}
-                />
-              ))}
-            </div>
+            {colorPickerOpen && (
+              <div className="ft-edit-swatches">
+                {FITNESS_COLORS.map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    className={`ft-swatch${editColor === c.hex ? " ft-swatch--active" : ""}`}
+                    style={{ background: c.hex }}
+                    onClick={() => {
+                      setEditColor(editColor === c.hex ? null : c.hex);
+                      setColorPickerOpen(false);
+                    }}
+                    title={c.label}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <button className="primary ft-log-submit" onClick={saveEdit}
             disabled={busy || !editName.trim() || !editUnit.trim()}>✓</button>
