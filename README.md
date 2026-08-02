@@ -31,7 +31,7 @@ A private, password-protected personal tracking suite covering finance, journali
 | Journal  | Timestamped daily entries with color-coding, search, and a "loose ends" linkage system |
 | Fitness  | Placeholder — reserved for future workout/health logging |
 
-The home screen shows a live clock, today's date, and animated cards with a payday countdown (Finance), a day-progress bar (Journal), and a link to Fitness.
+The home screen is deliberately minimal — the zh monogram, a live clock and date, and three panes: Finance with a progress bar tracking the current pay cycle, Journal with a progress bar tracking the current day, and Fitness. The masthead is hidden on home; each pane links to its section.
 
 ---
 
@@ -76,11 +76,11 @@ The frontend proxies all `/api/*` requests to the API server through Replit's pa
 
 ### Database
 - **PostgreSQL** (Replit-managed)
-- **Drizzle Kit** — migration runner (`lib/db/drizzle.config.ts`)
+- **Drizzle Kit** — schema sync via `push` (`lib/db/drizzle.config.ts`); data-moving migrations are plain SQL
 
 ### Infrastructure
-- **Replit Object Storage** — available for binary assets (configured via secrets)
 - **Signed session cookies** — auth state (`zh_sess`)
+- **Full-database JSON export** — `GET /api/export`, behind the auth gate
 
 ---
 
@@ -97,8 +97,11 @@ artifacts/
         api.ts                    # Typed fetch wrapper
         payday.ts                 # Payday anchor + 14-day cycle math
       components/
-        PaydayCountdown.tsx       # Masthead countdown chip
-        MoneyInput.tsx            # Cent-snapping currency input
+        PaydayCountdown.tsx       # Masthead countdown + fixed top progress bar
+        PaydayCalendar.tsx        # Payday calendar popover
+        HighlightCountdown.tsx    # Countdown chip for flagged day highlights
+        ui.tsx                    # Panel, MonthPicker, MoneyInput, AllocBar, tagColor
+        finance-ui.tsx            # AllocationList + monthly-item table pieces
       pages/
         Home.tsx                  # Dashboard: clock, progress bars, section nav
         Login.tsx                 # Password gate
@@ -121,20 +124,21 @@ artifacts/
 
   api-server/
     src/
-      index.ts                    # Express app setup, middleware, route mounts
+      index.ts                    # Entry point
+      app.ts                      # Express app setup, middleware, route mounts
+      middleware/
+        requireAuth.ts            # Session gate for everything below /api/auth
       routes/
         auth.ts                   # Login / logout / session check
+        export.ts                 # Full-database JSON backup download
         finance/
           paychecks.ts
-          bills.ts
-          subscriptions.ts
+          monthly-items.ts        # Bills and subscriptions (one factory, two routers)
           debt.ts
           cash.ts
+          summary.ts              # Monthly rollup + months list
         journal/
           index.ts                # All journal routes
-      lib/
-        db.ts                     # Drizzle client singleton
-        objectStorage.ts          # Lazy-initialised Replit Object Storage client
 
 lib/
   db/
@@ -165,19 +169,17 @@ Environment secrets required:
 
 | Secret | Purpose |
 |--------|---------|
-| `SESSION_SECRET` | Signs the `zh_sess` session cookie |
+| `APP_PASSWORD` | The login password. **If unset, the auth gate is disabled and every route is open.** |
+| `SESSION_SECRET` | Signs the `zh_sess` session cookie — required for login to work |
 | `DATABASE_URL` | PostgreSQL connection string |
-| `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | Replit Object Storage bucket |
-| `PRIVATE_OBJECT_DIR` | Object storage private path prefix |
-| `PUBLIC_OBJECT_SEARCH_PATHS` | Object storage public search paths |
 
-Migrations are **not auto-applied**. Run them manually via Drizzle Kit when the schema changes.
+Migrations are **not auto-applied** — see [Migrations](#migrations) for the required order.
 
 ---
 
 ## Authentication
 
-The app is single-user. A hardcoded password (set via environment) protects all routes.
+The app is single-user. The password is the `APP_PASSWORD` secret; sessions are signed with `SESSION_SECRET`. If `APP_PASSWORD` is not configured the gate fails open — every route is accessible — so both secrets must be set in production.
 
 - **Login**: `POST /api/auth/login` — checks the password, sets a signed `zh_sess` cookie
 - **Check**: `GET /api/auth/check` — returns 200 if the cookie is valid, 401 otherwise
@@ -522,6 +524,13 @@ Base path: `/api`
 | `GET` | `/finance/cash-snapshots` | List snapshots (filter by `?accountId=`) |
 | `POST` | `/finance/cash-snapshots` | Record a new cash balance snapshot |
 
+### Finance — Summary
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/finance/summary/:month` | Aggregate rollup for a month (income, allocations by note, spending) |
+| `GET` | `/finance/months` | Distinct months that have paychecks |
+
 ### Journal — Entries
 
 | Method | Path | Description |
@@ -563,12 +572,12 @@ Query params on `GET /journal/entries`:
 
 ## Migrations
 
-Migrations live in `lib/db/migrations/` as plain SQL files. They are applied manually using Drizzle Kit. **They are never auto-applied on startup.**
+Migrations live in `lib/db/migrations/` as plain SQL files, applied manually with `psql "$DATABASE_URL" -f <file>` **before** running `pnpm --filter @workspace/db run push`. Push only syncs structure — it will not move data — so on any schema change that moves or drops a column, the SQL runs first and push then has nothing left to do. **Nothing is auto-applied on startup.**
 
 | File | Change |
 |------|--------|
-| `0001_paychecks_month_seq.sql` | Add `month` + `seq` columns to paychecks |
-| `0002_allocations_amount_note.sql` | Add `amount` + `note` to allocations |
+| `0001_paychecks_month_seq.sql` | Replace paycheck `pay_date` + `label` with `month` + `seq` |
+| `0002_allocations_amount_note.sql` | Collapse allocation category/links/tags into a single `note` |
 | `0003_monthly_bill_items.sql` | Create `monthly_bill_items` table |
 | `0004_monthly_subscription_items.sql` | Create `monthly_subscription_items` table |
 | `0005_subs_active.sql` | Add `active` flag to subscriptions |
@@ -596,6 +605,6 @@ Migrations live in `lib/db/migrations/` as plain SQL files. They are applied man
 
 **Payday schedule**: The masthead countdown uses a hardcoded anchor date and a fixed 14-day cycle. It is not a user setting — update the anchor in `lib/payday.ts` if the real schedule shifts.
 
-**Object Storage**: The `@replit/object-storage` client is lazy-initialized (top-level `await` causes a server crash on import). Any usage must go through the lazy getter in `artifacts/api-server/src/lib/objectStorage.ts`.
+**Object Storage**: `@replit/object-storage` is declared as a dependency but nothing currently uses it — there is no upload path in the app. Remove it or wire it up before documenting it.
 
 **Loose-end badge detection**: Because some opener entries had their `loose_end_type` cleared to `null` by an earlier version of the code, the frontend does not rely solely on `looseEndType === 'open'` to decide whether to show the ◎ badge. It also checks whether any loaded entry has `looseEndLink` pointing to the current row's ID.
