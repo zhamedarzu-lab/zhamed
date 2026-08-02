@@ -4978,34 +4978,44 @@ button.btn-icon {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.15rem;
+  gap: 0.25rem;
   flex-shrink: 0;
-  min-width: 4.5rem;
 }
-.ft-row-stat {
+
+/* D / W / M tab row */
+.ft-period-tabs {
   display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  width: 100%;
-  justify-content: flex-end;
+  gap: 0.15rem;
 }
-.ft-row-stat-lbl {
+.ft-period-tab {
   font-size: 0.6rem;
   font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
+  padding: 0.18rem 0.32rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
   color: var(--ink-faint);
-  width: 0.9rem;
-  text-align: right;
-  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
+.ft-period-tab:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink-soft);
+}
+.ft-period-tab--on {
+  background: var(--row-color, var(--accent));
+  border-color: var(--row-color, var(--accent));
+  color: #fff;
+}
+
+/* Single selected value */
 .ft-row-stat-val {
   font-family: var(--fig);
-  font-size: 1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--ink-faint);
   line-height: 1;
-  min-width: 2rem;
   text-align: right;
 }
 .ft-row-stat-val--active {
@@ -5015,8 +5025,6 @@ button.btn-icon {
   font-size: 0.62rem;
   color: var(--ink-faint);
   white-space: nowrap;
-  margin-top: 0.1rem;
-  align-self: flex-end;
 }
 
 .ft-row-delete {

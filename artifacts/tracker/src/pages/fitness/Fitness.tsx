@@ -208,6 +208,7 @@ function ExerciseRow({
   const [open,   setOpen]   = useState(false);
   const [amount, setAmount] = useState("");
   const [busy,   setBusy]   = useState(false);
+  const [period, setPeriod] = useState<"D" | "W" | "M">("D");
   const inputRef = useRef<HTMLInputElement>(null);
   const color = tagColor(stat.name);
 
@@ -302,20 +303,25 @@ function ExerciseRow({
         </div>
 
         <div className="ft-row-right">
-          {(
-            [
-              { label: "D", val: stat.todayTotal,  active: stat.todayTotal > 0 },
-              { label: "W", val: stat.weekTotal,   active: false },
-              { label: "M", val: stat.monthTotal,  active: false },
-            ] as const
-          ).map(({ label, val, active }) => (
-            <div key={label} className="ft-row-stat">
-              <span className="ft-row-stat-lbl">{label}</span>
-              <span className={`ft-row-stat-val${active ? " ft-row-stat-val--active" : ""}`}>
-                {val > 0 ? val.toLocaleString() : "—"}
-              </span>
-            </div>
-          ))}
+          <div className="ft-period-tabs">
+            {(["D", "W", "M"] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`ft-period-tab${period === p ? " ft-period-tab--on" : ""}`}
+                onClick={(e) => { e.stopPropagation(); setPeriod(p); }}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <span className={`ft-row-stat-val${
+            period === "D" && stat.todayTotal > 0 ? " ft-row-stat-val--active" : ""
+          }`}>
+            {(period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal) > 0
+              ? (period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal).toLocaleString()
+              : "—"}
+          </span>
           <span className="ft-row-stat-unit">{stat.unit}</span>
         </div>
 
