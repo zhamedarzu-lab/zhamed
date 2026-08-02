@@ -2818,15 +2818,16 @@ a:hover {
   pointer-events: none;
   opacity: 0.55;
 }
-/* Highlight time tick in month cell — same mechanism as now-bar but highlight-colored */
-.journal-month-hl-tick {
+/* Highlight day marker line — spans full grid height, same mechanism as journal-grid-now-line */
+.journal-grid-hl-line {
   position: absolute;
   top: 0;
+  bottom: 0;
   width: 2px;
-  height: 100%;
   border-radius: 1px;
   pointer-events: none;
-  opacity: 0.7;
+  opacity: 0.55;
+  z-index: 1;
   transform: translateX(-50%);
 }
 /* Slow-moving now-line spanning the full month or year grid */

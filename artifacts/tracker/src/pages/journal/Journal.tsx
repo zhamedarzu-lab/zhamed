@@ -1152,6 +1152,20 @@ export default function Journal() {
               {monthNowPct >= 0 && (
                 <div className="journal-grid-now-line" style={{ left: `${monthNowPct}%` }} />
               )}
+              {highlights
+                .filter(h => {
+                  const d = new Date(h.date + "T00:00:00");
+                  return d >= monthStart && d <= monthEnd;
+                })
+                .map(h => {
+                  const day = new Date(h.date + "T00:00:00").getDate();
+                  const pct = ((day - 1 + 0.5) / daysInMonth) * 100;
+                  return (
+                    <div key={h.id}
+                      className="journal-grid-hl-line"
+                      style={{ left: `${pct}%`, background: h.color }} />
+                  );
+                })}
             <div className="journal-month-grid">
               {Array.from({ length: totalDays }, (_, i) => {
                 const day = addDays(gridStart, i);
@@ -1170,14 +1184,6 @@ export default function Journal() {
                       <div className="journal-month-now-bar"
                         style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
                     )}
-                    {hl && hl.startTime && (() => {
-                      const [sH, sM] = hl.startTime.split(":").map(Number);
-                      const pct = Math.min(100, ((sH * 60 + sM) / 1440) * 100);
-                      return (
-                        <div className="journal-month-hl-tick"
-                          style={{ left: `${pct}%`, background: hl.color }} />
-                      );
-                    })()}
                     {hl && <span className="journal-month-cell-hlabel" style={{ background: hl.color, color: contrastColor(hl.color) }}>{hl.label}</span>}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
                     <div className="journal-month-lines">
