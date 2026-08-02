@@ -1028,10 +1028,10 @@ export default function Journal() {
         const gridStart  = startOfWeek(monthStart);
         const totalDays  = Math.ceil((monthEnd.getDate() + monthStart.getDay()) / 7) * 7;
         const isThisMonth = focus.getFullYear() === new Date().getFullYear() && focus.getMonth() === new Date().getMonth();
-        const todayGridIdx = isThisMonth
-          ? Math.round((new Date(todayYmd + "T00:00:00").getTime() - gridStart.getTime()) / 86400000)
+        const daysInMonth = monthEnd.getDate();
+        const monthNowPct = isThisMonth
+          ? (new Date().getDate() - 1 + nowMin / 1440) / daysInMonth * 100
           : -1;
-        const monthNowPct = todayGridIdx >= 0 ? (todayGridIdx + nowMin / 1440) / totalDays * 100 : -1;
         return (
           <>
           <div className="journal-month">
