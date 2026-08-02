@@ -84,18 +84,31 @@ router.delete("/entries/:id", async (req, res) => {
 // ── Day Highlights ────────────────────────────────────────────────────
 
 const HighlightInput = z.object({
-  date:          z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  label:         z.string().default(""),
-  color:         z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#4eaaee"),
-  showCountdown: z.boolean().default(false),
-  startTime:     z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
-  endTime:       z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  date:               z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  label:              z.string().default(""),
+  color:              z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#4eaaee"),
+  showCountdown:      z.boolean().default(false),
+  startTime:          z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  endTime:            z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  // Client-computed ISO datetimes for the linked entry (includes local timezone offset)
+  entryStartTimeISO:  z.string().datetime({ offset: true }).nullable().optional(),
+  entryEndTimeISO:    z.string().datetime({ offset: true }).nullable().optional(),
 });
 
-/** Build journal entry values from highlight fields. */
-function hlEntryValues(data: { date: string; label: string; color: string; startTime?: string | null; endTime?: string | null }) {
-  const startTime = new Date(`${data.date}T${data.startTime ?? "00:00"}:00`);
-  const endTime   = data.endTime ? new Date(`${data.date}T${data.endTime}:00`) : null;
+/** Build journal entry values from highlight fields.
+ *  Prefers client-provided ISO strings (which carry the user's local timezone)
+ *  over server-side construction from bare HH:MM (which would be UTC). */
+function hlEntryValues(data: {
+  date: string; label: string; color: string;
+  startTime?: string | null; endTime?: string | null;
+  entryStartTimeISO?: string | null; entryEndTimeISO?: string | null;
+}) {
+  const startTime = data.entryStartTimeISO
+    ? new Date(data.entryStartTimeISO)
+    : new Date(`${data.date}T${data.startTime ?? "12:00"}:00`);
+  const endTime = data.entryEndTimeISO
+    ? new Date(data.entryEndTimeISO)
+    : (data.endTime ? new Date(`${data.date}T${data.endTime}:00`) : null);
   return {
     subject:   data.label,
     content:   "",

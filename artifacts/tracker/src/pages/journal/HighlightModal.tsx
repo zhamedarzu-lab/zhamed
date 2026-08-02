@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useState } from "react";
 import { api } from "../../lib/api";
-import { ENTRY_COLORS } from "./EntryModal";
+import { ENTRY_COLORS, toISOWithDate } from "./EntryModal";
 
 export type DayHighlight = {
   id: number;
@@ -53,13 +53,20 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
   async function save() {
     setSaving(true);
     try {
+      const hlStart = timeType !== "allday" && startTime ? startTime : null;
+      const hlEnd   = timeType === "block"  && endTime   ? endTime   : null;
+      // Compute entry times in the client's local timezone (same as regular journal entries)
+      const entryStartTimeISO = toISOWithDate(date, hlStart ?? "12:00");
+      const entryEndTimeISO   = hlEnd ? toISOWithDate(date, hlEnd) : null;
       const payload = {
         date,
         label:         label.trim(),
         color,
         showCountdown,
-        startTime: timeType !== "allday" && startTime ? startTime : null,
-        endTime:   timeType === "block"  && endTime   ? endTime   : null,
+        startTime: hlStart,
+        endTime:   hlEnd,
+        entryStartTimeISO,
+        entryEndTimeISO,
       };
       const row: DayHighlight = existing
         ? await api.patch<DayHighlight>(`/api/journal/highlights/${existing.id}`, payload)
