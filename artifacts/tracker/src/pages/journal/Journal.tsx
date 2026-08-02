@@ -12,7 +12,7 @@ import {
 import HighlightModal, { type DayHighlight } from "./HighlightModal";
 import HighlightCountdown from "../../components/HighlightCountdown";
 
-type View = "day" | "week" | "month";
+type View = "day" | "week" | "month" | "year";
 
 /** Format a raw "HH:MM" (24-hour) string → "h:mm am/pm" */
 function fmtHHMM(hhmm: string): string {
@@ -53,6 +53,7 @@ function rangeForView(focus: Date, view: View): [string, string] {
   // ended today) are included in the result set.
   if (view === "day") return [toYMD(addDays(focus, -1)), toYMD(focus)];
   if (view === "week") { const s = startOfWeek(focus); return [toYMD(addDays(s, -1)), toYMD(addDays(s, 6))]; }
+  if (view === "year") { const y = focus.getFullYear(); return [`${y}-01-01`, `${y}-12-31`]; }
   // Fetch one extra day back so cross-midnight carryovers from the last day of the previous month appear on the 1st.
   return [toYMD(addDays(startOfMonth(focus), -1)), toYMD(endOfMonth(focus))];
 }
@@ -266,7 +267,7 @@ export default function Journal() {
   const [searchParams] = useSearchParams();
   const [view,     setView]     = useState<View>(() => {
     const v = searchParams.get("view");
-    return (v === "day" || v === "week" || v === "month") ? v : "month";
+    return (v === "day" || v === "week" || v === "month" || v === "year") ? v : "month";
   });
   const [focus,    setFocus]    = useState(() => {
     const d = searchParams.get("date");
@@ -362,6 +363,7 @@ export default function Journal() {
       if (view === "day")   c.setDate(c.getDate() + dir);
       if (view === "week")  c.setDate(c.getDate() + dir * 7);
       if (view === "month") c.setMonth(c.getMonth() + dir);
+      if (view === "year")  c.setFullYear(c.getFullYear() + dir);
       return c;
     });
   }
@@ -387,6 +389,7 @@ export default function Journal() {
         ? `${MONTHS[s.getMonth()]} ${s.getDate()}–${e.getDate()}`
         : `${MONTHS[s.getMonth()]} ${s.getDate()} – ${MONTHS[e.getMonth()]} ${e.getDate()}`;
     }
+    if (view === "year") return String(focus.getFullYear());
     return `${MONTHS[focus.getMonth()]} ${focus.getFullYear()}`;
   }
 
@@ -412,7 +415,7 @@ export default function Journal() {
       {/* Top bar */}
       <div className="journal-topbar">
         <div className="journal-view-toggle">
-          {(["day","week","month"] as View[]).map(v => (
+          {(["day","week","month","year"] as View[]).map(v => (
             <button key={v} className={view === v ? "active" : ""} onClick={() => setView(v)}>
               {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
@@ -950,6 +953,65 @@ export default function Journal() {
       })()}
 
       {/* ════ MONTH VIEW ════ */}
+      {view === "year" && (() => {
+        const year = focus.getFullYear();
+        return (
+          <>
+            <div className="journal-year">
+              {Array.from({ length: 12 }, (_, mi) => {
+                const monthDate = new Date(year, mi, 1);
+                const mStart    = startOfMonth(monthDate);
+                const mEnd      = endOfMonth(monthDate);
+                const gridStart = startOfWeek(mStart);
+                const totalDays = Math.ceil((mEnd.getDate() + mStart.getDay()) / 7) * 7;
+                const isCurMonth = mi === focus.getMonth() && year === new Date().getFullYear()
+                  ? false // don't mark "current month" — just mark today's month
+                  : false;
+                const isTodayMonth = mi === new Date().getMonth() && year === new Date().getFullYear();
+                return (
+                  <div key={mi} className={`journal-year-month${isTodayMonth ? " is-today-month" : ""}`}>
+                    <div className="journal-year-month-title">{MONTHS[mi].slice(0, 3)}</div>
+                    <div className="journal-year-mini-grid">
+                      {WEEKDAYS.map(w => (
+                        <span key={w} className="journal-year-mini-hd">{w[0]}</span>
+                      ))}
+                      {Array.from({ length: totalDays }, (_, i) => {
+                        const day  = addDays(gridStart, i);
+                        const ymd  = toYMD(day);
+                        const inMonth    = day >= mStart && day <= mEnd;
+                        const isT        = ymd === todayYmd;
+                        const hl         = highlights.find(h => h.date === ymd) ?? null;
+                        const dayEntries = byDate.get(ymd) ?? [];
+                        return (
+                          <button
+                            key={ymd}
+                            className={`journal-year-day${!inMonth ? " out-of-month" : ""}${isT ? " is-today" : ""}${hl ? " has-highlight" : ""}`}
+                            style={hl ? { "--hl-color": hl.color } as React.CSSProperties : undefined}
+                            onClick={() => { setFocus(day); setView("month"); }}
+                            tabIndex={inMonth ? 0 : -1}
+                          >
+                            <span className="journal-year-day-num">{day.getDate()}</span>
+                            {(dayEntries.length > 0 || hl) && (
+                              <span className="journal-year-day-dots">
+                                {hl && <span className="journal-year-day-dot" style={{ background: hl.color }} />}
+                                {dayEntries.slice(0, hl ? 3 : 4).map(e => (
+                                  <span key={e.id} className="journal-year-day-dot" style={{ background: e.color }} />
+                                ))}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <HighlightCountdown highlights={highlights} />
+          </>
+        );
+      })()}
+
       {view === "month" && (() => {
         const monthStart = startOfMonth(focus);
         const monthEnd   = endOfMonth(focus);
