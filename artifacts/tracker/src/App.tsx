@@ -9,6 +9,7 @@ import Cash from "./pages/finance/Cash";
 import MonthlySummary from "./pages/finance/MonthlySummary";
 import Journal from "./pages/journal/Journal";
 import JournalSearch from "./pages/journal/JournalSearch";
+import JournalLooseEnds from "./pages/journal/JournalLooseEnds";
 import Fitness from "./pages/fitness/Fitness";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -104,6 +105,7 @@ function AuthedApp() {
           <Route path="/finance/monthly"         element={<MonthlySummary />} />
           <Route path="/journal"                 element={<Journal />} />
           <Route path="/journal/search"          element={<JournalSearch />} />
+          <Route path="/journal/loose-ends"      element={<JournalLooseEnds />} />
           <Route path="/fitness"                 element={<Fitness />} />
           <Route path="*"                        element={<NotFound />} />
         </Routes>

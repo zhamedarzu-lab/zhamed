@@ -891,6 +891,18 @@ a:hover {
   letter-spacing: 0.06em;
   color: var(--ink-soft);
 }
+.entry-modal-back {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0 0.3rem 0 0;
+  transition: color 0.12s;
+  margin-right: auto;
+}
+.entry-modal-back:hover { color: var(--ink); }
 .entry-modal-close {
   background: none;
   border: none;
@@ -2125,6 +2137,39 @@ a:hover {
 }
 .journal-hday-list-row:not(:last-child) {
   border-bottom: 1px solid var(--rule);
+}
+
+/* Linked loose-end row (shared by day + week lists) */
+.journal-list-linked-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.75rem 0.3rem 2rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink-soft);
+  width: 100%;
+  font: inherit;
+  font-size: 0.78rem;
+  transition: background 0.1s, color 0.1s;
+}
+.journal-list-linked-row:hover {
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+  color: var(--amber);
+}
+.journal-list-linked-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.journal-list-linked-arrow {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  opacity: 0.6;
 }
 .journal-hday-list-row:hover { background: var(--paper); }
 .journal-hday-list-row.is-carryover { opacity: 0.6; }
@@ -4508,10 +4553,6 @@ button.btn-icon {
   border-color: var(--ink-soft);
   background: var(--rule);
 }
-.journal-open-ends-link.has-open {
-  border-color: #e0b04e;
-  color: #e0b04e;
-}
 .journal-open-ends-count {
   display: inline-flex;
   align-items: center;
@@ -4525,6 +4566,40 @@ button.btn-icon {
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1;
+}
+
+/* ── Loose Ends page tabs ───────────────────────────────────────────── */
+.jle-header {
+  gap: 0.75rem;
+  align-items: center;
+}
+.jle-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex: 1;
+}
+.jle-tab {
+  flex: 1;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.jle-tab:hover {
+  background: var(--rule);
+  color: var(--ink);
+}
+.jle-tab.active {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #111;
+  font-weight: 600;
 }
 
 /* ── Loose-end picker (in EntryForm) ────────────────────────────────── */

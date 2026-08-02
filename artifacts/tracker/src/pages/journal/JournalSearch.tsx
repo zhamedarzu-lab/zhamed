@@ -32,18 +32,12 @@ const IcBack = () => (
 /** Special filter modes triggered by shortcut queries */
 type FilterMode = "normal" | "open-ends" | "closed-ends";
 
-function detectMode(q: string): FilterMode {
-  const lower = q.toLowerCase().trim();
-  if (lower === "(((" || lower === "(((open") return "open-ends";
-  if (lower === ")))" || lower === ")))closed") return "closed-ends";
-  return "normal";
-}
-
 export default function JournalSearch() {
   const navigate  = useNavigate();
   const [searchParams] = useSearchParams();
   const inputRef  = useRef<HTMLInputElement>(null);
   const [query,        setQuery]        = useState(() => searchParams.get("q") ?? "");
+  const [filterMode,   setFilterMode]   = useState<FilterMode>("normal");
   const [entries,      setEntries]      = useState<Entry[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [activeColors, setActiveColors] = useState<Set<string>>(new Set());
@@ -79,8 +73,6 @@ export default function JournalSearch() {
     }
     return s;
   }, [entries]);
-
-  const filterMode = detectMode(query);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -131,7 +123,7 @@ export default function JournalSearch() {
   }, [results]);
 
   const q = query.trim();
-  const hasFilter = q.length > 0 || activeColors.size > 0;
+  const hasFilter = q.length > 0 || activeColors.size > 0 || filterMode !== "normal";
 
   const modeLabel = filterMode === "open-ends"
     ? "Open loose ends"
@@ -152,13 +144,13 @@ export default function JournalSearch() {
             className="jsearch-input"
             placeholder=""
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => { setQuery(e.target.value); setFilterMode("normal"); }}
             onKeyDown={e => { if (e.key === "Escape") navigate("/journal"); }}
             autoComplete="off"
             spellCheck={false}
           />
-          {query && (
-            <button className="jsearch-clear" onClick={() => { setQuery(""); inputRef.current?.focus(); }} aria-label="Clear">
+          {(query || filterMode !== "normal") && (
+            <button className="jsearch-clear" onClick={() => { setQuery(""); setFilterMode("normal"); inputRef.current?.focus(); }} aria-label="Clear">
               ×
             </button>
           )}
@@ -170,13 +162,13 @@ export default function JournalSearch() {
         <div className="jsearch-shortcuts">
           <button
             className={`jsearch-shortcut-chip${filterMode === "open-ends" ? " active" : ""}`}
-            onClick={() => setQuery(filterMode === "open-ends" ? "" : "(((open")}
+            onClick={() => { setQuery(""); setFilterMode(filterMode === "open-ends" ? "normal" : "open-ends"); }}
           >
             ◎ Open ends
           </button>
           <button
             className={`jsearch-shortcut-chip${filterMode === "closed-ends" ? " active" : ""}`}
-            onClick={() => setQuery(filterMode === "closed-ends" ? "" : ")))closed")}
+            onClick={() => { setQuery(""); setFilterMode(filterMode === "closed-ends" ? "normal" : "closed-ends"); }}
           >
             ◉ Closed ends
           </button>

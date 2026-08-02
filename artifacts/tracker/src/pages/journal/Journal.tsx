@@ -478,8 +478,8 @@ export default function Journal() {
           )}
         </div>
         <Link
-          to="/journal/search?q=(((open"
-          className={`journal-open-ends-link${openEndsCount ? " has-open" : ""}`}
+          to="/journal/loose-ends"
+          className="journal-open-ends-link"
           aria-label="Open loose ends"
           title="Open loose ends"
         >
@@ -795,19 +795,44 @@ export default function Journal() {
               )}
               {dayEntries.map(e => {
                 const isCarryover = e.entryDate !== focusYmd;
+                const isOpener = e.looseEndType === 'open';
+                const isCloser = e.looseEndType === 'close';
+                const linkedLocal = isCloser && e.looseEndLink
+                  ? entries.find(x => x.id === e.looseEndLink) ?? null
+                  : isOpener
+                  ? entries.find(x => x.looseEndLink === e.id && x.looseEndType === 'close') ?? null
+                  : null;
+                const showLink = linkedLocal !== null || (isCloser && !!e.looseEndLink);
                 return (
-                  <button key={e.id} className={`journal-hday-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
-                    <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
-                    {isCarryover
-                      ? <span className="journal-hday-list-time">— {e.endTime ? fmtTime(e.endTime) : ""}</span>
-                      : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                    }
-                    <span className="journal-hday-list-label">
-                      {e.looseEndType === 'open'  && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
-                      {e.looseEndType === 'close' && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
-                      {e.subject || e.content || "—"}
-                    </span>
-                  </button>
+                  <React.Fragment key={e.id}>
+                    <button className={`journal-hday-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
+                      <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
+                      {isCarryover
+                        ? <span className="journal-hday-list-time">— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                        : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                      }
+                      <span className="journal-hday-list-label">
+                        {isOpener && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                        {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
+                        {e.subject || e.content || "—"}
+                      </span>
+                    </button>
+                    {showLink && (
+                      <button className="journal-list-linked-row" onClick={async () => {
+                        if (linkedLocal) { setModal(linkedLocal); return; }
+                        const fetched = await api.get<Entry>(`/api/journal/entries/${e.looseEndLink}`);
+                        setModal(fetched);
+                      }}>
+                        <span className={`loose-end-badge ${isCloser ? 'loose-end-badge--open' : 'loose-end-badge--closed'}`}>
+                          {isCloser ? '◎' : '◉'}
+                        </span>
+                        <span className="journal-list-linked-label">
+                          {linkedLocal ? (linkedLocal.subject || linkedLocal.content || "—") : "View open end"}
+                        </span>
+                        <span className="journal-list-linked-arrow">→</span>
+                      </button>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </div>
@@ -999,19 +1024,44 @@ export default function Journal() {
                           )}
                           {group.map(e => {
                             const isCarryover = e.entryDate !== ymd;
+                            const isOpener = e.looseEndType === 'open';
+                            const isCloser = e.looseEndType === 'close';
+                            const linkedLocal = isCloser && e.looseEndLink
+                              ? entries.find(x => x.id === e.looseEndLink) ?? null
+                              : isOpener
+                              ? entries.find(x => x.looseEndLink === e.id && x.looseEndType === 'close') ?? null
+                              : null;
+                            const showLink = linkedLocal !== null || (isCloser && !!e.looseEndLink);
                             return (
-                              <button key={e.id} className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
-                                <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
-                                {isCarryover
-                                  ? <span className="journal-week-list-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
-                                  : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                                }
-                                <span className="journal-week-list-label">
-                                  {e.looseEndType === 'open'  && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
-                                  {e.looseEndType === 'close' && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
-                                  {e.subject || e.content || "—"}
-                                </span>
-                              </button>
+                              <React.Fragment key={e.id}>
+                                <button className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
+                                  <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
+                                  {isCarryover
+                                    ? <span className="journal-week-list-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                                    : <span className="journal-week-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                                  }
+                                  <span className="journal-week-list-label">
+                                    {isOpener && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                                    {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
+                                    {e.subject || e.content || "—"}
+                                  </span>
+                                </button>
+                                {showLink && (
+                                  <button className="journal-list-linked-row" onClick={async () => {
+                                    if (linkedLocal) { setModal(linkedLocal); return; }
+                                    const fetched = await api.get<Entry>(`/api/journal/entries/${e.looseEndLink}`);
+                                    setModal(fetched);
+                                  }}>
+                                    <span className={`loose-end-badge ${isCloser ? 'loose-end-badge--open' : 'loose-end-badge--closed'}`}>
+                                      {isCloser ? '◎' : '◉'}
+                                    </span>
+                                    <span className="journal-list-linked-label">
+                                      {linkedLocal ? (linkedLocal.subject || linkedLocal.content || "—") : "View open end"}
+                                    </span>
+                                    <span className="journal-list-linked-arrow">→</span>
+                                  </button>
+                                )}
+                              </React.Fragment>
                             );
                           })}
                         </>

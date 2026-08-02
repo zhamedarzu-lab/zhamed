@@ -17,12 +17,13 @@ const EntryInput = z.object({
   looseEndType: z.enum(["open", "close"]).nullable().optional(),
 });
 
-// GET /api/journal/entries?from=YYYY-MM-DD&to=YYYY-MM-DD
+// GET /api/journal/entries?from=YYYY-MM-DD&to=YYYY-MM-DD&looseEndLink=:id
 router.get("/entries", async (req, res) => {
-  const { from, to } = req.query;
+  const { from, to, looseEndLink } = req.query;
   const conditions = [];
-  if (typeof from === "string") conditions.push(gte(journalEntriesTable.entryDate, from));
-  if (typeof to   === "string") conditions.push(lte(journalEntriesTable.entryDate, to));
+  if (typeof from         === "string") conditions.push(gte(journalEntriesTable.entryDate, from));
+  if (typeof to           === "string") conditions.push(lte(journalEntriesTable.entryDate, to));
+  if (typeof looseEndLink === "string") conditions.push(eq(journalEntriesTable.looseEndLink, Number(looseEndLink)));
 
   const rows = await db
     .select()
@@ -72,13 +73,6 @@ router.post("/entries", async (req, res) => {
       looseEndType: looseEndType ?? null,
     })
     .returning();
-  // Resolve the linked opener — once closed, it stays off the Open Ends list
-  if (looseEndType === "close" && looseEndLink) {
-    await db
-      .update(journalEntriesTable)
-      .set({ looseEndType: null })
-      .where(eq(journalEntriesTable.id, looseEndLink));
-  }
   res.status(201).json(row);
 });
 
@@ -102,13 +96,6 @@ router.patch("/entries/:id", async (req, res) => {
     .set(patch)
     .where(eq(journalEntriesTable.id, id))
     .returning();
-  // Resolve the linked opener — once closed, it stays off the Open Ends list
-  if (row.looseEndType === "close" && row.looseEndLink) {
-    await db
-      .update(journalEntriesTable)
-      .set({ looseEndType: null })
-      .where(eq(journalEntriesTable.id, row.looseEndLink));
-  }
   res.json(row);
 });
 

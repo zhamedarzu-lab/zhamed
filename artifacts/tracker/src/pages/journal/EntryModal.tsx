@@ -293,22 +293,60 @@ export type EntryModalProps = {
   onNavigate?: (entry: Entry) => void;
 };
 export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: EntryModalProps) {
-  const [editing,    setEditing]    = useState(false);
-  const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
+  const [currentEntry, setCurrentEntry] = useState(entry);
+  const [history,      setHistory]      = useState<Entry[]>([]);
+  const [editing,      setEditing]      = useState(false);
+  const [confirmMsg,   setConfirmMsg]   = useState<string | null>(null);
+  const [closeEntry,   setCloseEntry]   = useState<Entry | null>(null);
 
-  const isOpener = entry.looseEndType === 'open';
-  const isCloser = entry.looseEndType === 'close';
+  // When parent opens a different entry, reset internal navigation
+  useEffect(() => {
+    setCurrentEntry(entry);
+    setHistory([]);
+    setEditing(false);
+    setConfirmMsg(null);
+  }, [entry.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch the close entry when viewing an opener
+  useEffect(() => {
+    if (currentEntry.looseEndType !== 'open') { setCloseEntry(null); return; }
+    api.get<Entry[]>(`/api/journal/entries?looseEndLink=${currentEntry.id}`)
+      .then(rows => setCloseEntry(rows[0] ?? null))
+      .catch(() => setCloseEntry(null));
+  }, [currentEntry.id, currentEntry.looseEndType]);
+
+  const isOpener = currentEntry.looseEndType === 'open';
+  const isCloser = currentEntry.looseEndType === 'close';
+
+  function navigateTo(target: Entry) {
+    setHistory(prev => [...prev, currentEntry]);
+    setCurrentEntry(target);
+    setEditing(false);
+    setConfirmMsg(null);
+  }
+
+  function goBack() {
+    setHistory(prev => {
+      const next = [...prev];
+      const prev_entry = next.pop()!;
+      setCurrentEntry(prev_entry);
+      setEditing(false);
+      setConfirmMsg(null);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (confirmMsg) setConfirmMsg(null);
+        else if (history.length > 0) goBack();
         else onClose();
       }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [onClose, confirmMsg]);
+  }, [onClose, confirmMsg, history.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleDeleteClick() {
     if (isOpener) {
@@ -319,12 +357,12 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
       setConfirmMsg("This will remove this loose end closure — delete anyway?");
       return;
     }
-    onDelete(entry.id);
+    onDelete(currentEntry.id);
     onClose();
   }
 
   function confirmAndDelete() {
-    onDelete(entry.id);
+    onDelete(currentEntry.id);
     onClose();
   }
 
@@ -332,15 +370,18 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="entry-modal" role="dialog" aria-modal="true">
         <div className="entry-modal-header">
-          <span className="entry-modal-date">{fmtFullDate(entry.entryDate + "T00:00:00")}</span>
+          {history.length > 0 && (
+            <button className="entry-modal-back" onClick={goBack} aria-label="Back">‹</button>
+          )}
+          <span className="entry-modal-date">{fmtFullDate(currentEntry.entryDate + "T00:00:00")}</span>
           <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         {editing ? (
           <div className="entry-modal-body">
             <EntryForm
-              entryDate={entry.entryDate}
-              initial={entry}
-              onSave={e => { onUpdate(e); setEditing(false); }}
+              entryDate={currentEntry.entryDate}
+              initial={currentEntry}
+              onSave={e => { setCurrentEntry(e); onUpdate(e); setEditing(false); }}
               onCancel={() => setEditing(false)}
             />
           </div>
@@ -350,25 +391,31 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
               <p className="entry-modal-time">
                 {isOpener && <span className="loose-end-badge loose-end-badge--open" title="Open loose end">◎ </span>}
                 {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉ </span>}
-                {fmtRange(entry.startTime, entry.endTime)}
+                {fmtRange(currentEntry.startTime, currentEntry.endTime)}
               </p>
-              {entry.subject && (
-                <h2 className="entry-modal-subject">{entry.subject}</h2>
+              {currentEntry.subject && (
+                <h2 className="entry-modal-subject">{currentEntry.subject}</h2>
               )}
-              {entry.content && <p className="entry-modal-content">{entry.content}</p>}
-              {!entry.subject && !entry.content && (
+              {currentEntry.content && <p className="entry-modal-content">{currentEntry.content}</p>}
+              {!currentEntry.subject && !currentEntry.content && (
                 <p className="entry-modal-empty">No content.</p>
               )}
               {isCloser && (
-                entry.looseEndLink
+                currentEntry.looseEndLink
                   ? <button
                       className="entry-modal-open-link"
                       onClick={async () => {
-                        const opener = await api.get<Entry>(`/api/journal/entries/${entry.looseEndLink}`);
-                        onNavigate?.(opener);
+                        const opener = await api.get<Entry>(`/api/journal/entries/${currentEntry.looseEndLink}`);
+                        navigateTo(opener);
                       }}
                     >◎ View open end →</button>
                   : <p className="entry-modal-link-note unlinked">No open end linked — edit to add one</p>
+              )}
+              {isOpener && closeEntry && (
+                <button
+                  className="entry-modal-open-link entry-modal-open-link--close"
+                  onClick={() => navigateTo(closeEntry)}
+                >◉ View close entry →</button>
               )}
             </div>
             {confirmMsg ? (
