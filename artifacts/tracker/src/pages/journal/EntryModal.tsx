@@ -253,9 +253,9 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
             type="button"
           >◎</button>
           <button
-            className={`entry-form-loose-btn${looseEndType === 'close' ? ' active' : ''}`}
+            className={`entry-form-loose-btn${looseEndType === 'close' ? ' active' : ''}${looseEndType === 'close' && !looseEndLink ? ' needs-link' : ''}`}
             onClick={() => {
-              if (looseEndType === 'close') { setLooseEndType(null); setLooseEndLink(null); }
+              if (looseEndType === 'close' && looseEndLink !== null) { setLooseEndType(null); setLooseEndLink(null); }
               else setShowOpenPicker(true);
             }}
             title={looseEndType === 'close' ? 'Remove close link' : 'Close an open end'}
@@ -359,16 +359,16 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
               {!entry.subject && !entry.content && (
                 <p className="entry-modal-empty">No content.</p>
               )}
-              {isCloser && entry.looseEndLink && (
-                <button
-                  className="entry-modal-open-link"
-                  onClick={async () => {
-                    const opener = await api.get<Entry>(`/api/journal/entries/${entry.looseEndLink}`);
-                    onNavigate?.(opener);
-                  }}
-                >
-                  ◎ View open end →
-                </button>
+              {isCloser && (
+                entry.looseEndLink
+                  ? <button
+                      className="entry-modal-open-link"
+                      onClick={async () => {
+                        const opener = await api.get<Entry>(`/api/journal/entries/${entry.looseEndLink}`);
+                        onNavigate?.(opener);
+                      }}
+                    >◎ View open end →</button>
+                  : <p className="entry-modal-link-note unlinked">No open end linked — edit to add one</p>
               )}
             </div>
             {confirmMsg ? (

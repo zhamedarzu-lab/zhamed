@@ -1048,6 +1048,26 @@ a:hover {
   background: color-mix(in srgb, var(--ink-soft) 8%, transparent);
 }
 
+/* ◉ button with no opener linked yet */
+.entry-form-loose-btn.needs-link {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  animation: pulse-amber 1.4s ease-in-out infinite;
+}
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+/* unlinked note in view mode */
+.entry-modal-link-note.unlinked {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 0.5rem 0 0;
+}
+
 /* "View open end" link in entry modal */
 .entry-modal-open-link {
   display: inline-flex;
