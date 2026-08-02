@@ -1,7 +1,6 @@
 /**
- * HighlightCountdown — strip below the month grid showing a live countdown
- * to the nearest upcoming highlight with show_countdown=true.
- * Tapping the timer section cycles through d/h/m/s formats (like payday strip).
+ * HighlightCountdown — one strip per upcoming highlight that has
+ * show_countdown=true, each with its own independent d/h/m/s cycling timer.
  */
 import { useEffect, useState } from "react";
 import type { DayHighlight } from "../pages/journal/HighlightModal";
@@ -33,44 +32,36 @@ function getModes(totalSec: number): Cell[][] {
   ];
 }
 
-export default function HighlightCountdown({ highlights }: { highlights: DayHighlight[] }) {
-  const now = useNow(1000);
+function CountdownStrip({ highlight, now }: { highlight: DayHighlight; now: Date }) {
   const [mode, setMode] = useState(0);
 
-  const upcoming = highlights
-    .filter(h => {
-      if (!h.showCountdown) return false;
-      return new Date(h.date + "T00:00:00").getTime() > now.getTime();
-    })
-    .sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
-
-  if (!upcoming) return null;
-
-  const msLeft = Math.max(0, new Date(upcoming.date + "T00:00:00").getTime() - now.getTime());
-  if (msLeft <= 0) return null;
-
+  const target = new Date(
+    highlight.startTime
+      ? `${highlight.date}T${highlight.startTime}:00`
+      : `${highlight.date}T00:00:00`
+  );
+  const msLeft   = Math.max(0, target.getTime() - now.getTime());
   const totalSec = Math.round(msLeft / 1000);
-  const modes = getModes(totalSec);
-  const cells = modes[mode % modes.length];
+  const modes    = getModes(totalSec);
+  const cells    = modes[mode % modes.length];
 
-  const targetDate = new Date(upcoming.date + "T00:00:00")
-    .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const targetDate = target.toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric",
+    ...(highlight.startTime ? { hour: "numeric", minute: "2-digit" } : {}),
+  });
 
   return (
-    <div className="hl-countdown-strip" style={{ "--hc-color": upcoming.color } as React.CSSProperties}>
-      {/* Left: highlight label */}
+    <div className="hl-countdown-strip" style={{ "--hc-color": highlight.color } as React.CSSProperties}>
       <div className="hl-countdown-left">
         <span className="eyebrow">✦ Highlight</span>
-        <span className="hl-countdown-name">{upcoming.label}</span>
+        <span className="hl-countdown-name">{highlight.label}</span>
         <span className="hl-countdown-date">{targetDate}</span>
       </div>
-
-      {/* Right: cycling countdown timer */}
       <button
         type="button"
         className="hl-countdown-timer-btn"
         onClick={() => setMode(m => (m + 1) % modes.length)}
-        aria-label={`Countdown to ${upcoming.label}. Tap to change format.`}
+        aria-label={`Countdown to ${highlight.label}. Tap to change format.`}
       >
         <span className="eyebrow">Countdown</span>
         <span className="hl-countdown-cells">
@@ -83,5 +74,29 @@ export default function HighlightCountdown({ highlights }: { highlights: DayHigh
         </span>
       </button>
     </div>
+  );
+}
+
+export default function HighlightCountdown({ highlights }: { highlights: DayHighlight[] }) {
+  const now = useNow(1000);
+
+  const upcoming = highlights
+    .filter(h => {
+      if (!h.showCountdown) return false;
+      const target = new Date(
+        h.startTime ? `${h.date}T${h.startTime}:00` : `${h.date}T00:00:00`
+      );
+      return target.getTime() > now.getTime();
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.startTime ?? "").localeCompare(b.startTime ?? ""));
+
+  if (upcoming.length === 0) return null;
+
+  return (
+    <>
+      {upcoming.map(h => (
+        <CountdownStrip key={h.id} highlight={h} now={now} />
+      ))}
+    </>
   );
 }
