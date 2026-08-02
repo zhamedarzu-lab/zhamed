@@ -876,13 +876,14 @@ export default function Journal() {
                   const wkHl = highlights.find(h => h.date === ymd) ?? null;
                   if (!wkHl) return null;
                   const pct = (i + 0.5) / 7 * 100;
-                  const heightPct = wkHl.startTime
-                    ? (() => { const [h2, m2] = wkHl.startTime!.split(":").map(Number); return ((h2 * 60 + m2) / 1440) * 100; })()
-                    : 100;
+                  const timeFrac = wkHl.startTime
+                    ? (() => { const [h2, m2] = wkHl.startTime!.split(":").map(Number); return (h2 * 60 + m2) / 1440; })()
+                    : 0.5;
+                  const adjustedPct = (i + timeFrac) / 7 * 100;
                   return (
                     <div key={wkHl.id}
                       className="journal-grid-hl-line"
-                      style={{ left: `${pct}%`, background: wkHl.color, top: 0, bottom: 'auto', height: `${heightPct}%` }} />
+                      style={{ left: `${adjustedPct}%`, background: wkHl.color }} />
                   );
                 })}
                 {Array.from({ length: 7 }, (_, i) => {
