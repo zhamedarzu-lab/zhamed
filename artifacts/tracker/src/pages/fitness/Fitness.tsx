@@ -145,7 +145,7 @@ function WeekGrid({ exercises }: { exercises: ExerciseStat[] }) {
 
   const weekDays = useMemo(() => {
     const t = new Date(today + "T12:00:00");
-    const dow = (t.getDay() + 6) % 7; // Mon=0 … Sun=6
+    const dow = t.getDay(); // Sun=0 … Sat=6
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(t);
       d.setDate(t.getDate() - dow + i);
