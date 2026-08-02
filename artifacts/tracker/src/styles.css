@@ -929,6 +929,15 @@ a:hover {
   align-items: center;
   gap: 0.35rem;
 }
+.entry-modal-footer--confirm {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.entry-modal-confirm-msg {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
 
 /* Delete confirmation inside entry modal footer */
 .entry-modal-delete-confirm {
@@ -1403,6 +1412,19 @@ a:hover {
   transition: opacity 0.12s;
 }
 .journal-feed-card:hover .journal-feed-actions { opacity: 1; }
+.journal-feed-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  padding: 0.1rem 0;
+}
+.journal-feed-confirm-msg {
+  font-size: 0.75rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
 .journal-action-btn {
   display: flex;
   align-items: center;

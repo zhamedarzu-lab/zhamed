@@ -289,17 +289,49 @@ export type EntryModalProps = {
   onDelete: (id: number) => void;
 };
 export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalProps) {
-  const [editing, setEditing] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState(false);
-
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
+  const [editing,    setEditing]    = useState(false);
+  const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
+  const [isOpenEnd,  setIsOpenEnd]  = useState(false);
 
   const isOpener = entry.subject?.startsWith("(((");
   const isCloser = entry.subject?.startsWith(")))");
+
+  // Check if this opener is still unresolved (appears in the open loose-ends list)
+  useEffect(() => {
+    if (!isOpener) return;
+    api.get<Entry[]>("/api/journal/loose-ends")
+      .then(list => setIsOpenEnd(list.some(e => e.id === entry.id)))
+      .catch(() => setIsOpenEnd(false));
+  }, [isOpener, entry.id]);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (confirmMsg) setConfirmMsg(null);
+        else onClose();
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose, confirmMsg]);
+
+  function handleDeleteClick() {
+    if (isOpener && isOpenEnd) {
+      setConfirmMsg("This is an open loose end — delete anyway?");
+      return;
+    }
+    if (isCloser && entry.looseEndLink) {
+      setConfirmMsg("This will reopen the linked loose end — delete anyway?");
+      return;
+    }
+    onDelete(entry.id);
+    onClose();
+  }
+
+  function confirmAndDelete() {
+    onDelete(entry.id);
+    onClose();
+  }
 
   return (
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -336,42 +368,28 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalPro
                 <p className="entry-modal-link-note">Resolves loose end #{entry.looseEndLink}</p>
               )}
             </div>
-            <div className="entry-modal-footer">
-              {pendingDelete ? (
-                <div className="entry-modal-delete-confirm">
-                  <p className="entry-modal-delete-confirm-msg">
-                    {isOpener
-                      ? "This is an open loose end — delete anyway?"
-                      : "This will reopen the linked loose end — delete anyway?"}
-                  </p>
-                  <div className="entry-modal-delete-confirm-btns">
-                    <button onClick={() => setPendingDelete(false)}>Cancel</button>
-                    <button className="journal-action-btn danger" onClick={() => { onDelete(entry.id); onClose(); }}>
-                      <IcTrash /> Delete
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <button
-                    className="journal-action-btn danger"
-                    onClick={() => {
-                      if (isOpener || (isCloser && !!entry.looseEndLink)) {
-                        setPendingDelete(true);
-                      } else {
-                        onDelete(entry.id); onClose();
-                      }
-                    }}
-                    aria-label="Delete"
-                  >
-                    <IcTrash /> Delete
-                  </button>
-                  <button className="primary" onClick={() => setEditing(true)}>
-                    <IcEdit /> Edit
-                  </button>
-                </>
-              )}
-            </div>
+            {confirmMsg ? (
+              <div className="entry-modal-footer entry-modal-footer--confirm">
+                <span className="entry-modal-confirm-msg">{confirmMsg}</span>
+                <button onClick={() => setConfirmMsg(null)}>Cancel</button>
+                <button className="journal-action-btn danger" onClick={confirmAndDelete}>
+                  <IcTrash /> Delete
+                </button>
+              </div>
+            ) : (
+              <div className="entry-modal-footer">
+                <button
+                  className="journal-action-btn danger"
+                  onClick={handleDeleteClick}
+                  aria-label="Delete"
+                >
+                  <IcTrash /> Delete
+                </button>
+                <button className="primary" onClick={() => setEditing(true)}>
+                  <IcEdit /> Edit
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

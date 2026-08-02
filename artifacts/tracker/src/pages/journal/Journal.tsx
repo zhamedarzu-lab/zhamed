@@ -151,7 +151,33 @@ type EntryCardProps = {
   entryDate: string;
 };
 function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps) {
-  const [editing, setEditing] = useState(false);
+  const [editing,    setEditing]    = useState(false);
+  const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
+  const [isOpenEnd,  setIsOpenEnd]  = useState(false);
+
+  const isOpener = entry.subject?.startsWith("(((");
+  const isCloser = entry.subject?.startsWith(")))");
+
+  // Check if this opener is still unresolved
+  useEffect(() => {
+    if (!isOpener) return;
+    api.get<Entry[]>("/api/journal/loose-ends")
+      .then(list => setIsOpenEnd(list.some(e => e.id === entry.id)))
+      .catch(() => setIsOpenEnd(false));
+  }, [isOpener, entry.id]);
+
+  function handleDeleteClick() {
+    if (isOpener && isOpenEnd) {
+      setConfirmMsg("This is an open loose end — delete anyway?");
+      return;
+    }
+    if (isCloser && entry.looseEndLink) {
+      setConfirmMsg("This will reopen the linked loose end — delete anyway?");
+      return;
+    }
+    onDelete(entry.id);
+  }
+
   if (editing) return (
     <div className="journal-feed-row">
       <span className="journal-feed-time">{fmtRange(entry.startTime, entry.endTime)}</span>
@@ -173,10 +199,20 @@ function EntryCard({ entry, dim, onDelete, onUpdate, entryDate }: EntryCardProps
           {entry.subject && <p className="journal-feed-subject">{entry.subject}</p>}
           {entry.content && <p className="journal-feed-text">{entry.content}</p>}
         </div>
-        <div className="journal-feed-actions">
-          <button className="journal-action-btn" onClick={() => setEditing(true)} aria-label="Edit"><IcEdit /></button>
-          <button className="journal-action-btn danger" onClick={() => onDelete(entry.id)} aria-label="Delete"><IcTrash /></button>
-        </div>
+        {confirmMsg ? (
+          <div className="journal-feed-confirm">
+            <span className="journal-feed-confirm-msg">{confirmMsg}</span>
+            <button onClick={() => setConfirmMsg(null)}>Cancel</button>
+            <button className="journal-action-btn danger" onClick={() => onDelete(entry.id)}>
+              <IcTrash /> Delete
+            </button>
+          </div>
+        ) : (
+          <div className="journal-feed-actions">
+            <button className="journal-action-btn" onClick={() => setEditing(true)} aria-label="Edit"><IcEdit /></button>
+            <button className="journal-action-btn danger" onClick={handleDeleteClick} aria-label="Delete"><IcTrash /></button>
+          </div>
+        )}
       </div>
     </div>
   );
