@@ -1349,6 +1349,8 @@ a:hover {
 }
 .day-popup-row:last-child { border-bottom: none; }
 .day-popup-row:hover { background: var(--paper-sunk); }
+.day-popup-row--highlight .day-popup-label { font-weight: 500; }
+.day-popup-row--highlight .day-popup-time { letter-spacing: 0.01em; }
 .day-popup-dot {
   width: 8px;
   height: 8px;

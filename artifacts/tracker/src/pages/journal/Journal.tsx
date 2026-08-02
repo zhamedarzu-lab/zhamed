@@ -14,6 +14,12 @@ import HighlightCountdown from "../../components/HighlightCountdown";
 
 type View = "day" | "week" | "month";
 
+/** Format a raw "HH:MM" (24-hour) string → "h:mm am/pm" */
+function fmtHHMM(hhmm: string): string {
+  const [hh, mm] = hhmm.split(":").map(Number);
+  return `${hh % 12 || 12}:${String(mm).padStart(2, "0")} ${hh >= 12 ? "pm" : "am"}`;
+}
+
 /* ── black color visibility helper ────────────────────────────────── */
 const BLACK = "#1c1c1e";
 const BLACK_STRIPE      = "repeating-linear-gradient(45deg, #1c1c1e, #1c1c1e 4px, rgba(255,255,255,0.6) 4px, rgba(255,255,255,0.6) 5px)";
@@ -212,7 +218,20 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onHi
           <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className="day-popup-list">
-          {sorted.length === 0
+          {highlight && (
+            <button className="day-popup-row day-popup-row--highlight" onClick={() => { onClose(); onHighlight(); }}>
+              <span className="day-popup-dot" style={{ background: highlight.color, ...br(highlight.color) }} />
+              <span className="day-popup-time">
+                {highlight.startTime
+                  ? highlight.endTime
+                    ? `${fmtHHMM(highlight.startTime)} – ${fmtHHMM(highlight.endTime)}`
+                    : fmtHHMM(highlight.startTime)
+                  : "All day"}
+              </span>
+              <span className="day-popup-label">✦ {highlight.label || "Highlight"}</span>
+            </button>
+          )}
+          {sorted.length === 0 && !highlight
             ? <p className="day-popup-empty">No entries yet.</p>
             : sorted.map(e => {
                 const isCarryover = e.entryDate !== toYMD(date);
@@ -369,8 +388,13 @@ export default function Journal() {
     return `${MONTHS[focus.getMonth()]} ${focus.getFullYear()}`;
   }
 
+  // IDs of entries that back a highlight — exclude them from the timeline
+  // so the highlight overlay is the sole visual, no duplicate block at wrong position.
+  const hlEntryIdSet = new Set(highlights.map(h => h.entryId).filter((id): id is number => id !== null));
+
   const byDate = new Map<string, Entry[]>();
   for (const e of entries) {
+    if (hlEntryIdSet.has(e.id)) continue;           // skip linked entries in timeline
     const arr = byDate.get(e.entryDate) ?? []; arr.push(e); byDate.set(e.entryDate, arr);
   }
 
