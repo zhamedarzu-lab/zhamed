@@ -91,7 +91,7 @@ export default function JournalSearch() {
       return entries
         .filter(e => {
           const colorOk = !hasColors || activeColors.has(e.color);
-          return colorOk && e.subject?.startsWith("(((") && !closedOpenerIds.has(e.id);
+          return colorOk && e.subject?.trimStart().startsWith("(((") && !closedOpenerIds.has(e.id);
         })
         .sort((a, b) => b.startTime.localeCompare(a.startTime));
     }
@@ -101,7 +101,7 @@ export default function JournalSearch() {
       return entries
         .filter(e => {
           const colorOk = !hasColors || activeColors.has(e.color);
-          return colorOk && e.subject?.startsWith("(((") && closedOpenerIds.has(e.id);
+          return colorOk && e.subject?.trimStart().startsWith("(((") && closedOpenerIds.has(e.id);
         })
         .sort((a, b) => b.startTime.localeCompare(a.startTime));
     }
@@ -244,8 +244,8 @@ export default function JournalSearch() {
           <div key={date} className="jsearch-group">
             <p className="jsearch-group-date">{fmtFullDate(date)}</p>
             {group.map(e => {
-              const isOpener = e.subject?.startsWith("(((");
-              const isCloser = e.subject?.startsWith(")))");
+              const isOpener = e.subject?.trimStart().startsWith("(((");
+              const isCloser = e.subject?.trimStart().startsWith(")))");
               const isClosed = isOpener && closedOpenerIds.has(e.id);
               return (
                 <button key={e.id} className="jsearch-card" onClick={() => setSelected(e)}>
