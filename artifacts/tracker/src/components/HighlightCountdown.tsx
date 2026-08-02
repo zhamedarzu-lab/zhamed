@@ -1,6 +1,7 @@
 /**
  * HighlightCountdown — one strip per upcoming highlight that has
- * show_countdown=true, each with its own independent d/h/m/s cycling timer.
+ * show_countdown=true, each with its own independent d/h/m/s cycling timer
+ * and a progress bar from creation → target.
  */
 import { useEffect, useState } from "react";
 import type { DayHighlight } from "../pages/journal/HighlightModal";
@@ -40,6 +41,12 @@ function CountdownStrip({ highlight, now }: { highlight: DayHighlight; now: Date
       ? `${highlight.date}T${highlight.startTime}:00`
       : `${highlight.date}T00:00:00`
   );
+
+  const created  = new Date(highlight.createdAt);
+  const totalSpan = Math.max(1, target.getTime() - created.getTime());
+  const elapsed   = Math.min(totalSpan, Math.max(0, now.getTime() - created.getTime()));
+  const progressPct = (elapsed / totalSpan) * 100;
+
   const msLeft   = Math.max(0, target.getTime() - now.getTime());
   const totalSec = Math.round(msLeft / 1000);
   const modes    = getModes(totalSec);
@@ -52,27 +59,41 @@ function CountdownStrip({ highlight, now }: { highlight: DayHighlight; now: Date
 
   return (
     <div className="hl-countdown-strip" style={{ "--hc-color": highlight.color } as React.CSSProperties}>
-      <div className="hl-countdown-left">
-        <span className="eyebrow">✦ Highlight</span>
-        <span className="hl-countdown-name">{highlight.label}</span>
-        <span className="hl-countdown-date">{targetDate}</span>
-      </div>
-      <button
-        type="button"
-        className="hl-countdown-timer-btn"
-        onClick={() => setMode(m => (m + 1) % modes.length)}
-        aria-label={`Countdown to ${highlight.label}. Tap to change format.`}
-      >
-        <span className="eyebrow">Countdown</span>
-        <span className="hl-countdown-cells">
-          {cells.map(([val, label]) => (
-            <span key={label} className="hl-countdown-cell">
-              <span className="hl-countdown-num">{pad2(val as number)}</span>
-              <span className="hl-countdown-unit">{label as string}</span>
+      <div className="hl-countdown-body">
+        {/* Top row: name + timer */}
+        <div className="hl-countdown-row">
+          <div className="hl-countdown-left">
+            <span className="hl-countdown-name">
+              <span className="hl-countdown-icon">✦</span>
+              {highlight.label || "Highlight"}
             </span>
-          ))}
-        </span>
-      </button>
+            <span className="hl-countdown-date">{targetDate}</span>
+          </div>
+          <button
+            type="button"
+            className="hl-countdown-timer-btn"
+            onClick={() => setMode(m => (m + 1) % modes.length)}
+            aria-label={`Countdown to ${highlight.label}. Tap to change format.`}
+          >
+            <span className="hl-countdown-cells">
+              {cells.map(([val, label]) => (
+                <span key={label} className="hl-countdown-cell">
+                  <span className="hl-countdown-num">{pad2(val as number)}</span>
+                  <span className="hl-countdown-unit">{label as string}</span>
+                </span>
+              ))}
+            </span>
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="hl-countdown-bar-track">
+          <div
+            className="hl-countdown-bar-fill"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
     </div>
   );
 }

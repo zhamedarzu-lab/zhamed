@@ -1022,69 +1022,77 @@ a:hover {
 
 /* ── Highlight countdown strip (below month grid) ── */
 .hl-countdown-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 0.75rem;
-  padding: 0.55rem 1rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem 0.45rem;
   background: var(--paper-sunk);
   border-radius: var(--r);
   border-left: 3px solid var(--hc-color, #4eaaee);
+}
+.hl-countdown-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.hl-countdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 .hl-countdown-left {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  line-height: 1.3;
+  line-height: 1.25;
   min-width: 0;
 }
-.hl-countdown-name {
-  font-size: 1rem;
-  font-weight: 700;
+.hl-countdown-icon {
   color: var(--hc-color, #4eaaee);
+  margin-right: 0.3em;
+  font-size: 0.7em;
+}
+.hl-countdown-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: 200px;
 }
 .hl-countdown-date {
-  font-size: 0.6875rem;
+  font-size: 0.65rem;
   color: var(--ink-faint);
 }
 .hl-countdown-timer-btn {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   border: none;
   background: none;
-  padding: 0.25rem;
-  margin: -0.25rem;
+  padding: 0.2rem;
+  margin: -0.2rem;
   font: inherit;
   color: inherit;
   cursor: pointer;
   border-radius: var(--r);
-  line-height: 1.3;
-  text-align: right;
   transition: opacity 0.1s;
   flex-shrink: 0;
 }
 .hl-countdown-timer-btn:hover { opacity: 0.75; }
 .hl-countdown-cells {
   display: flex;
-  gap: 0.2rem;
-  margin: 0.15rem 0;
+  gap: 0.15rem;
 }
 .hl-countdown-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
   background: var(--paper);
-  border-radius: 8px;
-  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  padding: 0.15rem 0.28rem;
 }
 .hl-countdown-num {
-  font-size: 1.05rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--hc-color, #4eaaee);
   line-height: 1.15;
@@ -1092,13 +1100,26 @@ a:hover {
   font-variant-numeric: tabular-nums;
 }
 .hl-countdown-unit {
-  font-size: 0.5rem;
+  font-size: 0.46rem;
   font-weight: 600;
   color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-top: 0.1rem;
+  margin-top: 0.08rem;
   line-height: 1;
+}
+/* Progress bar */
+.hl-countdown-bar-track {
+  height: 3px;
+  background: var(--paper);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.hl-countdown-bar-fill {
+  height: 100%;
+  background: var(--hc-color, #4eaaee);
+  border-radius: 99px;
+  transition: width 1s linear;
 }
 
 /* ── Entry form (add / edit) ── */
