@@ -588,21 +588,6 @@ function ExerciseRow({
       >
         <div className="ft-row-left">
           <span className="ft-row-name">{stat.name}</span>
-          <div className="ft-row-meta">
-            {deltaText && (
-              <span
-                className="ft-row-delta"
-                style={{ color: deltaUp ? "#5fc97a" : "var(--stamp)" }}
-              >
-                {deltaText}
-              </span>
-            )}
-            {stat.bestDay && (
-              <span className="ft-row-best">
-                {deltaText ? " · " : ""}best {stat.bestDay.amount.toLocaleString()} {shortDate(stat.bestDay.date)}
-              </span>
-            )}
-          </div>
         </div>
 
         <div className="ft-row-right">
