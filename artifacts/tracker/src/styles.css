@@ -4812,182 +4812,225 @@ button.btn-icon {
    FITNESS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Consistency strip ─────────────────────────────────────────────── */
-.fitness-strip-wrap {
+/* ── Cycle stat (page-head right side) ─────────────────────────────── */
+.ft-cycle-stat {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
+  align-items: baseline;
+  gap: 0.2rem;
+  line-height: 1;
+}
+.ft-cycle-num {
+  font-family: var(--fig);
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #5fc97a;
+  line-height: 1;
+}
+.ft-cycle-denom {
+  font-family: var(--fig);
+  font-size: 1.1rem;
+  color: var(--ink-soft);
+}
+.ft-cycle-label {
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: 0.3rem;
+}
+
+/* ── Activity grid ──────────────────────────────────────────────────── */
+.ft-grid {
+  display: flex;
   border: 1px solid var(--rule);
   border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  background: var(--surface);
+}
+.ft-grid-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0 0.35rem;
+  gap: 0.25rem;
+  position: relative;
+  min-width: 0;
+}
+.ft-grid-col--today {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.ft-grid-col--today::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--accent);
+}
+.ft-grid-dots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 34px;
+  justify-content: flex-end;
+}
+.ft-grid-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ft-grid-dot--empty {
+  background: var(--rule-strong);
+  opacity: 0.18;
+}
+.ft-grid-day {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.ft-grid-col--today .ft-grid-day {
+  color: var(--accent);
+}
+
+/* ── Exercise list ──────────────────────────────────────────────────── */
+.ft-list {
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
   margin-bottom: 1.25rem;
 }
 
-.fitness-strip-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--ink-faint);
-  white-space: nowrap;
-  flex-shrink: 0;
+/* ── Exercise row ───────────────────────────────────────────────────── */
+.ft-row {
+  border-left: 3px solid var(--row-color, var(--rule-strong));
+  border-bottom: 1px solid var(--rule);
+}
+.ft-row:last-child {
+  border-bottom: none;
 }
 
-.fitness-strip-dots {
+.ft-row-main {
   display: flex;
-  flex: 1;
-  gap: 0.3rem;
   align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+  outline: none;
+}
+.ft-row-main:hover,
+.ft-row-main:focus-visible {
+  background: color-mix(in srgb, var(--row-color) 6%, transparent);
+}
+.ft-row--open .ft-row-main {
+  background: color-mix(in srgb, var(--row-color) 7%, transparent);
 }
 
-.fitness-dot {
+.ft-row-left {
   flex: 1;
-  aspect-ratio: 1;
-  max-width: 16px;
-  border-radius: 50%;
-  background: var(--rule-strong);
-  opacity: 0.22;
-  transition: background 0.15s, opacity 0.15s;
+  min-width: 0;
 }
-
-.fitness-dot--on {
-  background: #5fc97a;
-  opacity: 1;
-}
-
-.fitness-dot--today {
-  outline: 2px solid var(--ink-soft);
-  outline-offset: 2px;
-}
-
-/* ── Exercise card ─────────────────────────────────────────────────── */
-.fitness-card-body {
-  padding: 1rem 1rem 0.75rem;
-}
-
-.fitness-card-name-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
-}
-
-/* Pushed to the right edge, and only inked on hover so the card stays calm. */
-.fitness-card-remove {
-  margin-left: auto;
-  align-self: center;
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-.panel:hover .fitness-card-remove,
-.fitness-card-remove:focus-visible {
-  opacity: 1;
-}
-@media (hover: none) {
-  .fitness-card-remove {
-    opacity: 1;
-  }
-}
-
-.fitness-card-name {
-  font-size: 1.05rem;
-  font-weight: 600;
+.ft-row-name {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--row-color);
   line-height: 1.2;
-}
-
-.fitness-today-badge {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--ink-soft);
-  background: var(--paper-sunk);
-  border-radius: 3px;
-  padding: 0.15rem 0.45rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-/* ── Stats strip ───────────────────────────────────────────────────── */
-.fitness-stats-row {
+.ft-row-meta {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
   display: flex;
-  gap: 1.25rem;
+  align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 0.5rem;
+  gap: 0;
+}
+.ft-row-delta {
+  font-weight: 700;
+}
+.ft-row-best {
+  opacity: 0.65;
 }
 
-.fitness-stat {
+.ft-row-right {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
-}
-
-.fitness-stat-fig {
-  font-size: 1rem !important;
-}
-
-.fitness-stat-unit {
-  font-family: var(--ui);
-  font-size: 0.72rem;
-  font-weight: 400;
-  color: var(--ink-soft);
-}
-
-.fitness-delta {
-  font-size: 0.9rem !important;
-}
-
-/* ── Sparkline ─────────────────────────────────────────────────────── */
-.fitness-sparkline-wrap {
-  margin-top: 0.5rem;
-}
-
-/* ── Log footer ────────────────────────────────────────────────────── */
-.fitness-log-footer {
-  display: flex;
-  align-items: center;
-  min-height: 2.6rem;
-  padding: 0.4rem 0.75rem;
-  border-top: 1px solid var(--rule);
-  gap: 0.375rem;
-}
-
-.fitness-log-open {
-  font-size: 1.3rem;
-  line-height: 1;
-  padding: 0 0.4rem;
-  color: var(--ink-soft);
-  transition: color 0.12s;
-}
-
-.fitness-log-open:hover {
-  color: var(--ink);
-}
-
-.fitness-log-form {
-  display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.3rem;
-  width: 100%;
+  flex-shrink: 0;
+}
+.ft-row-today {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+.ft-row-total {
+  font-family: var(--fig);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+  line-height: 1;
+  transition: color 0.25s;
+}
+.ft-row-total--active {
+  color: #5fc97a;
+}
+.ft-row-unit {
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.ft-row-trail {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+.ft-row-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rule-strong);
+  opacity: 0.2;
+  flex-shrink: 0;
+}
+.ft-row-dot--on {
+  opacity: 1;
 }
 
-.fitness-amount-input {
+/* ── Log form ───────────────────────────────────────────────────────── */
+.ft-log-form {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem 0.6rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-sunk);
+}
+.ft-log-input {
   width: 4.5rem;
   flex-shrink: 0;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
 }
-
-.fitness-slots {
+.ft-slots {
   display: flex;
   gap: 0.2rem;
   flex: 1;
 }
-
-.fitness-slot-btn {
+.ft-slot-btn {
   flex: 1;
-  padding: 0.25rem 0.15rem;
-  font-size: 0.65rem;
+  padding: 0.28rem 0.1rem;
+  font-size: 0.63rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
   border: 1px solid var(--rule);
   border-radius: 3px;
   background: transparent;
@@ -4996,44 +5039,33 @@ button.btn-icon {
   transition: background 0.1s, color 0.1s, border-color 0.1s;
   white-space: nowrap;
 }
-
-.fitness-slot-btn:hover {
+.ft-slot-btn:hover {
   border-color: var(--ink-soft);
   color: var(--ink);
 }
-
-.fitness-slot-btn--active {
-  background: var(--accent);
-  border-color: var(--accent);
+.ft-slot-btn--on {
+  background: var(--row-color, var(--accent));
+  border-color: var(--row-color, var(--accent));
   color: #fff;
 }
-
-.fitness-log-submit {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
+.ft-log-submit {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.9rem;
   line-height: 1;
   flex-shrink: 0;
 }
-
-.fitness-log-cancel {
+.ft-log-cancel {
   font-size: 0.8rem;
-  padding: 0.25rem 0.3rem;
+  padding: 0.28rem 0.3rem;
   color: var(--ink-faint);
   flex-shrink: 0;
 }
 
-/* ── Mobile ────────────────────────────────────────────────────────── */
+/* ── Mobile ─────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  .fitness-log-form {
-    flex-wrap: wrap;
-  }
+  .ft-cycle-label { display: none; }
 
-  .fitness-amount-input {
-    width: 5rem;
-  }
-
-  .fitness-slots {
-    flex: 1 1 100%;
-    order: 3;
-  }
+  .ft-log-form { flex-wrap: wrap; }
+  .ft-log-input { width: 5rem; }
+  .ft-slots { flex: 1 1 100%; order: 3; }
 }

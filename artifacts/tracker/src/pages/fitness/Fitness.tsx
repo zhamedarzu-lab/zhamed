@@ -1,15 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
 import { api, useApi } from "../../lib/api";
 import { shortDate, todayIso } from "../../lib/format";
-import {
-  Panel,
-  Empty,
-  Loading,
-  Notice,
-  BalanceChart,
-  tagColor,
-  type Point,
-} from "../../components/ui";
+import { Empty, Loading, Notice, tagColor } from "../../components/ui";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,12 +47,11 @@ function currentSlot(): Slot {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Fitness() {
-  const summary = useApi<Summary>("/api/fitness/summary");
-  const [error, setError]     = useState<string | null>(null);
+  const summary  = useApi<Summary>("/api/fitness/summary");
+  const [error,   setError]   = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newUnit, setNewUnit] = useState("");
   const [addBusy, setAddBusy] = useState(false);
-
   const nameRef = useRef<HTMLInputElement>(null);
   const unitRef = useRef<HTMLInputElement>(null);
 
@@ -85,40 +76,51 @@ export default function Fitness() {
   }
 
   const activeExercises = (summary.data?.exercises ?? []).filter((e) => e.active);
+  const activeDays = (summary.data?.consistencyStrip ?? []).filter((d) => d.active).length;
 
   return (
     <>
       <div className="page-head">
         <div><h1>Fitness</h1></div>
+        {summary.data && (
+          <div className="ft-cycle-stat">
+            <span className="ft-cycle-num">{activeDays}</span>
+            <span className="ft-cycle-denom">/14</span>
+            <span className="ft-cycle-label">this cycle</span>
+          </div>
+        )}
       </div>
 
       <Notice>{error}</Notice>
       {summary.loading && <Loading />}
 
-      {/* ── Consistency strip ── */}
       {summary.data && (
-        <ConsistencyStrip strip={summary.data.consistencyStrip} />
+        <>
+          <ActivityGrid
+            strip={summary.data.consistencyStrip}
+            exercises={activeExercises}
+          />
+
+          {activeExercises.length === 0 ? (
+            <Empty title="No exercises yet">
+              <p>Add your first exercise below.</p>
+            </Empty>
+          ) : (
+            <div className="ft-list">
+              {activeExercises.map((ex) => (
+                <ExerciseRow
+                  key={ex.exerciseId}
+                  stat={ex}
+                  onChanged={summary.reload}
+                  onError={setError}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {/* ── Exercise cards ── */}
-      {!summary.loading && activeExercises.length === 0 ? (
-        <Empty title="No exercises yet">
-          <p>Add your first exercise below.</p>
-        </Empty>
-      ) : (
-        <div className="grid grid-2">
-          {activeExercises.map((ex) => (
-            <ExerciseCard
-              key={ex.exerciseId}
-              stat={ex}
-              onChanged={summary.reload}
-              onError={setError}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* ── Add exercise ── */}
+      {/* Add exercise */}
       <div
         className="panel-body bills-add-row"
         style={{ marginTop: "1.25rem", border: "1px solid var(--rule)", borderRadius: 4 }}
@@ -151,33 +153,63 @@ export default function Fitness() {
   );
 }
 
-// ─── Consistency strip ────────────────────────────────────────────────────────
+// ─── Activity grid ────────────────────────────────────────────────────────────
 
-function ConsistencyStrip({ strip }: { strip: StripDay[] }) {
+function ActivityGrid({
+  strip,
+  exercises,
+}: {
+  strip: StripDay[];
+  exercises: ExerciseStat[];
+}) {
   const today = todayIso();
+
+  const days = useMemo(
+    () =>
+      strip.map((day) => ({
+        ...day,
+        done: exercises.filter(
+          (ex) => (ex.sparkline.find((s) => s.date === day.date)?.value ?? 0) > 0,
+        ),
+      })),
+    [strip, exercises],
+  );
+
   return (
-    <div className="fitness-strip-wrap">
-      <span className="fitness-strip-label">14 days</span>
-      <div className="fitness-strip-dots">
-        {strip.map((day) => (
+    <div className="ft-grid">
+      {days.map((day) => {
+        const isToday = day.date === today;
+        const dayLetter = new Date(day.date + "T12:00:00").toLocaleDateString("en-US", {
+          weekday: "narrow",
+        });
+        return (
           <div
             key={day.date}
-            className={[
-              "fitness-dot",
-              day.active   ? "fitness-dot--on"    : "",
-              day.date === today ? "fitness-dot--today" : "",
-            ].join(" ").trim()}
-            title={shortDate(day.date)}
-          />
-        ))}
-      </div>
+            className={`ft-grid-col${isToday ? " ft-grid-col--today" : ""}`}
+          >
+            <div className="ft-grid-dots">
+              {day.done.length > 0
+                ? day.done.map((ex) => (
+                    <div
+                      key={ex.exerciseId}
+                      className="ft-grid-dot"
+                      style={{ background: tagColor(ex.name) }}
+                      title={ex.name}
+                    />
+                  ))
+                : <div className="ft-grid-dot ft-grid-dot--empty" />}
+            </div>
+            <div className="ft-grid-day">{dayLetter}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-// ─── Exercise card ────────────────────────────────────────────────────────────
+// ─── Exercise row ─────────────────────────────────────────────────────────────
 
-function ExerciseCard({
+function ExerciseRow({
   stat,
   onChanged,
   onError,
@@ -186,21 +218,21 @@ function ExerciseCard({
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const [logOpen, setLogOpen] = useState(false);
-  const [amount,  setAmount]  = useState("");
-  const [slot,    setSlot]    = useState<Slot>(currentSlot());
-  const [busy,    setBusy]    = useState(false);
+  const [open,   setOpen]   = useState(false);
+  const [amount, setAmount] = useState("");
+  const [slot,   setSlot]   = useState<Slot>(currentSlot());
+  const [busy,   setBusy]   = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const color = tagColor(stat.name);
 
   useEffect(() => {
-    if (logOpen) inputRef.current?.focus();
-  }, [logOpen]);
+    if (open) inputRef.current?.focus();
+  }, [open]);
 
-  function openLog() {
+  function openRow() {
     setSlot(currentSlot());
     setAmount("");
-    setLogOpen(true);
+    setOpen(true);
     onError(null);
   }
 
@@ -217,7 +249,7 @@ function ExerciseCard({
         amount:     n,
       });
       setAmount("");
-      setLogOpen(false);
+      setOpen(false);
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not log effort.");
@@ -226,161 +258,117 @@ function ExerciseCard({
     }
   }
 
-  async function remove() {
-    // Efforts cascade with the exercise, so say so before it happens.
-    if (!confirm(`Remove "${stat.name}"? This deletes all its logged history.`)) return;
-    setBusy(true);
-    onError(null);
-    try {
-      await api.del(`/api/fitness/exercises/${stat.exerciseId}`);
-      await onChanged();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not remove this exercise.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // Delta display
-  const both0 = stat.last7 === 0 && stat.prev7 === 0;
+  const both0   = stat.last7 === 0 && stat.prev7 === 0;
   const deltaText =
-    both0             ? null
-    : stat.prev7 === 0 ? `↑ first week`
+    both0              ? null
+    : stat.prev7 === 0 ? "first week"
     : stat.delta >= 0  ? `↑ ${stat.delta}%`
     :                    `↓ ${Math.abs(stat.delta)}%`;
-  const deltaPositive = stat.delta >= 0;
-
-  // Sparkline — only render when there's something to show
-  const sparkPoints: Point[] = stat.sparkline.map((p) => ({
-    date:  p.date,
-    value: p.value,
-  }));
-  const hasData = sparkPoints.some((p) => p.value > 0);
+  const deltaUp = stat.delta >= 0;
 
   return (
-    <Panel bodyless>
-      <div className="fitness-card-body">
-        {/* Name + today's total */}
-        <div className="fitness-card-name-row">
-          <span className="fitness-card-name" style={{ color }}>
-            {stat.name}
-          </span>
-          {stat.todayTotal > 0 && (
-            <span className="fitness-today-badge">
-              {stat.todayTotal.toLocaleString()} {stat.unit} today
-            </span>
-          )}
-          <button
-            className="quiet danger btn-icon fitness-card-remove"
-            title={`Remove ${stat.name}`}
-            aria-label={`Remove ${stat.name}`}
-            onClick={remove}
-          >
-            <svg
-              width="13" height="13" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-              strokeLinejoin="round" aria-hidden="true"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Stats strip */}
-        <div className="fitness-stats-row">
-          <div className="fitness-stat">
-            <span className="eyebrow">Last 7 days</span>
-            <span className="fig fitness-stat-fig">
-              {stat.last7.toLocaleString()}
-              <span className="fitness-stat-unit"> {stat.unit}</span>
-            </span>
-          </div>
-
-          {deltaText && (
-            <div className="fitness-stat">
-              <span className="eyebrow">vs prev 7</span>
+    <div
+      className={`ft-row${open ? " ft-row--open" : ""}`}
+      style={{ "--row-color": color } as CSSProperties}
+    >
+      {/* Main tap target */}
+      <div
+        className="ft-row-main"
+        onClick={() => { if (!open) openRow(); }}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && !open) openRow();
+        }}
+        aria-label={`Log ${stat.name}`}
+        aria-expanded={open}
+      >
+        <div className="ft-row-left">
+          <span className="ft-row-name">{stat.name}</span>
+          <div className="ft-row-meta">
+            {deltaText && (
               <span
-                className="fig fitness-stat-fig fitness-delta"
-                style={{ color: deltaPositive ? "#5fc97a" : "var(--stamp)" }}
+                className="ft-row-delta"
+                style={{ color: deltaUp ? "#5fc97a" : "var(--stamp)" }}
               >
                 {deltaText}
               </span>
-            </div>
-          )}
-
-          {stat.bestDay && (
-            <div className="fitness-stat">
-              <span className="eyebrow">Best day</span>
-              <span className="fig fitness-stat-fig">
-                {stat.bestDay.amount.toLocaleString()}
-                <span className="fitness-stat-unit"> · {shortDate(stat.bestDay.date)}</span>
+            )}
+            {stat.bestDay && (
+              <span className="ft-row-best">
+                {deltaText ? " · " : ""}best {stat.bestDay.amount.toLocaleString()} {shortDate(stat.bestDay.date)}
               </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Sparkline */}
-        {hasData && (
-          <div className="fitness-sparkline-wrap">
-            <BalanceChart points={sparkPoints} color={color} height={80} />
+        <div className="ft-row-right">
+          <div className="ft-row-today">
+            <span className={`ft-row-total${stat.todayTotal > 0 ? " ft-row-total--active" : ""}`}>
+              {stat.todayTotal > 0 ? stat.todayTotal.toLocaleString() : "—"}
+            </span>
+            <span className="ft-row-unit">{stat.unit}</span>
           </div>
-        )}
+          <div className="ft-row-trail">
+            {stat.sparkline.map((s) => (
+              <div
+                key={s.date}
+                className={`ft-row-dot${s.value > 0 ? " ft-row-dot--on" : ""}`}
+                style={s.value > 0 ? { background: color } : undefined}
+                title={
+                  s.value > 0
+                    ? `${s.value.toLocaleString()} on ${shortDate(s.date)}`
+                    : shortDate(s.date)
+                }
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Log footer */}
-      <div className="fitness-log-footer">
-        {!logOpen ? (
-          <button
-            className="quiet fitness-log-open"
-            onClick={openLog}
-            aria-label={`Log ${stat.name}`}
-          >
-            +
-          </button>
-        ) : (
-          <div className="fitness-log-form">
-            <input
-              ref={inputRef}
-              className="fitness-amount-input"
-              inputMode="decimal"
-              value={amount}
-              placeholder={stat.unit}
-              onChange={(e) => setAmount(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter")  submit();
-                if (e.key === "Escape") setLogOpen(false);
-              }}
-            />
-            <div className="fitness-slots">
-              {SLOTS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={`fitness-slot-btn${slot === s ? " fitness-slot-btn--active" : ""}`}
-                  onClick={() => setSlot(s)}
-                >
-                  {SLOT_LABELS[s]}
-                </button>
-              ))}
-            </div>
-            <button
-              className="primary fitness-log-submit"
-              onClick={submit}
-              disabled={busy || !amount.trim()}
-            >
-              ✓
-            </button>
-            <button
-              className="quiet fitness-log-cancel"
-              onClick={() => setLogOpen(false)}
-              type="button"
-              aria-label="Cancel"
-            >
-              ✕
-            </button>
+      {/* Inline log form */}
+      {open && (
+        <div className="ft-log-form">
+          <input
+            ref={inputRef}
+            className="ft-log-input"
+            inputMode="decimal"
+            value={amount}
+            placeholder={stat.unit}
+            onChange={(e) => setAmount(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter")  submit();
+              if (e.key === "Escape") setOpen(false);
+            }}
+          />
+          <div className="ft-slots">
+            {SLOTS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`ft-slot-btn${slot === s ? " ft-slot-btn--on" : ""}`}
+                onClick={() => setSlot(s)}
+              >
+                {SLOT_LABELS[s]}
+              </button>
+            ))}
           </div>
-        )}
-      </div>
-    </Panel>
+          <button
+            className="primary ft-log-submit"
+            onClick={submit}
+            disabled={busy || !amount.trim()}
+          >
+            ✓
+          </button>
+          <button
+            className="quiet ft-log-cancel"
+            onClick={() => setOpen(false)}
+            type="button"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
