@@ -4133,9 +4133,11 @@ button.btn-icon {
   flex: 1;
 }
 
-.debt-payday-select {
-  flex: 0 0 auto;
-  max-width: 108px;
+.debt-next-payday {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  opacity: 0.6;
+  flex: 1;
 }
 
 .col-swatch {

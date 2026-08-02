@@ -4,6 +4,7 @@ import { api, useApi } from "../../lib/api";
 import { dollars, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
 import { BalanceChart, Empty, Loading, Notice, Panel, type Point } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
+import { isPayday, nextPayday } from "../../lib/payday";
 
 type Account = {
   id: number;
@@ -126,14 +127,13 @@ export default function Debt() {
 
   const refreshAll = () => Promise.all([accounts.reload(), snapshots.reload(), payments.reload()]);
 
-  // Most recent first, for the payday picker.
-  const paycheckOptions = useMemo(
-    () =>
-      [...(paychecks.data ?? [])].sort(
-        (a, b) => b.month.localeCompare(a.month) || b.seq - a.seq,
-      ),
-    [paychecks.data],
-  );
+  const isPaydayToday = isPayday(new Date());
+  const currentPaycheckId = useMemo(() => {
+    const sorted = [...(paychecks.data ?? [])].sort(
+      (a, b) => b.month.localeCompare(a.month) || b.seq - a.seq,
+    );
+    return sorted[0]?.id ?? null;
+  }, [paychecks.data]);
 
   const guard = (fn: () => Promise<unknown>) => async () => {
     setError(null);
@@ -214,7 +214,8 @@ export default function Debt() {
               account={account}
               snapshots={snapshotsByAccount.get(account.id) ?? EMPTY}
               payments={paymentsByAccount.get(account.id) ?? EMPTY}
-              paycheckOptions={paycheckOptions}
+              isPaydayToday={isPaydayToday}
+              currentPaycheckId={currentPaycheckId}
               onChanged={refreshAll}
               onError={setError}
             />
@@ -245,19 +246,20 @@ function CardPanel({
   account,
   snapshots,
   payments,
-  paycheckOptions,
+  isPaydayToday,
+  currentPaycheckId,
   onChanged,
   onError,
 }: {
   account: Account;
   snapshots: Snapshot[];
   payments: Payment[];
-  paycheckOptions: PaycheckOption[];
+  isPaydayToday: boolean;
+  currentPaycheckId: number | null;
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const [balInput,   setBalInput]   = useState("");
-  const [payday,     setPayday]     = useState(""); // paycheck id, or "" for none
+  const [balInput, setBalInput] = useState("");
   const [editLimit,  setEditLimit]  = useState(false);
   const [limitInput, setLimitInput] = useState("");
   const [busy,       setBusy]       = useState(false);
@@ -302,11 +304,10 @@ function CardPanel({
         snapshotDate:  todayIso(),
         balance:       v,
         amountPaid:    applied,
-        paycheckId:    payday ? Number(payday) : null,
+        paycheckId:    currentPaycheckId,
       });
       setBalInput("");
       setApplied(0);
-      setPayday("");
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not update balance.");
@@ -464,37 +465,32 @@ function CardPanel({
 
       </div>
 
-      {/* Update balance */}
+      {/* Update balance — only on payday */}
       <div className="debt-card-footer">
         {log.length > 0 && (
           <button className="quiet bal-log-trigger" onClick={() => setShowLog(true)}>
             Log <span className="bal-log-count">{log.length}</span>
           </button>
         )}
-        <select
-          className="debt-payday-select"
-          aria-label="Tag this balance to a payday"
-          value={payday}
-          onChange={(e) => setPayday(e.target.value)}
-        >
-          <option value="">No payday</option>
-          {paycheckOptions.map((p) => (
-            <option key={p.id} value={p.id}>
-              {paydayLabel(p.month, p.seq)}
-            </option>
-          ))}
-        </select>
-        <input
-          className="debt-bal-input"
-          inputMode="decimal"
-          value={balInput}
-          placeholder="Balance…"
-          onChange={(e) => { setBalInput(e.target.value); setApplied(0); }}
-          onKeyDown={(e) => e.key === "Enter" && updateBalance()}
-        />
-        <button onClick={updateBalance} disabled={busy || !balInput.trim()}>
-          Save
-        </button>
+        {isPaydayToday ? (
+          <>
+            <input
+              className="debt-bal-input"
+              inputMode="decimal"
+              value={balInput}
+              placeholder="Balance…"
+              onChange={(e) => { setBalInput(e.target.value); setApplied(0); }}
+              onKeyDown={(e) => e.key === "Enter" && updateBalance()}
+            />
+            <button onClick={updateBalance} disabled={busy || !balInput.trim()}>
+              Save
+            </button>
+          </>
+        ) : (
+          <span className="debt-next-payday">
+            Next payday → {nextPayday(new Date()).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+          </span>
+        )}
       </div>
     </Panel>
   );
