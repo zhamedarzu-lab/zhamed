@@ -294,6 +294,7 @@ export default function JournalSearch() {
               setEntries(prev => prev.filter(e => e.id !== id));
               setSelected(null);
             }}
+            onNavigate={e => setSelected(e)}
           />
         )}
 

@@ -967,6 +967,104 @@ a:hover {
   color: var(--ink);
 }
 
+/* ── Open-end picker popup (bottom sheet) ── */
+.open-end-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.open-end-popup {
+  background: var(--paper);
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 1rem 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.open-end-popup-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  margin: 0 0 0.4rem;
+}
+.open-end-popup-status {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  padding: 0.5rem 0;
+  margin: 0;
+}
+.open-end-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.open-end-popup-item:hover {
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border-color: var(--amber);
+}
+.open-end-popup-subject {
+  flex: 1;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.open-end-popup-date {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+.open-end-popup-cancel {
+  margin-top: 0.5rem;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 0.6rem;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  width: 100%;
+}
+.open-end-popup-cancel:hover {
+  background: color-mix(in srgb, var(--ink-soft) 8%, transparent);
+}
+
+/* "View open end" link in entry modal */
+.entry-modal-open-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0.1rem 0;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--amber);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-top: 0.5rem;
+}
+
 /* Delete confirmation inside entry modal footer */
 .entry-modal-delete-confirm {
   display: flex;

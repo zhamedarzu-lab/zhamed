@@ -43,6 +43,15 @@ router.get("/loose-ends", async (_req, res) => {
   res.json(rows);
 });
 
+// GET /api/journal/entries/:id
+router.get("/entries/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [row] = await db.select().from(journalEntriesTable).where(eq(journalEntriesTable.id, id));
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(row);
+});
+
 // POST /api/journal/entries
 router.post("/entries", async (req, res) => {
   const parsed = EntryInput.safeParse(req.body);

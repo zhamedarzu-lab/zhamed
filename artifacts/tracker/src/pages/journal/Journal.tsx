@@ -554,6 +554,7 @@ export default function Journal() {
           onClose={() => setModal(null)}
           onUpdate={updateEntry}
           onDelete={deleteEntry}
+          onNavigate={e => setModal(e)}
         />
       )}
 

@@ -73,6 +73,37 @@ export const IcEdit = () => (
   </svg>
 );
 
+/* ── OpenEndPickerPopup ─────────────────────────────────────────────── */
+type OpenEndPickerPopupProps = {
+  onSelect: (entry: Entry) => void;
+  onCancel: () => void;
+};
+function OpenEndPickerPopup({ onSelect, onCancel }: OpenEndPickerPopupProps) {
+  const [openEnds, setOpenEnds] = useState<Entry[] | null>(null);
+
+  useEffect(() => {
+    api.get<Entry[]>("/api/journal/loose-ends").then(setOpenEnds).catch(() => setOpenEnds([]));
+  }, []);
+
+  return (
+    <div className="open-end-popup-backdrop" onClick={onCancel}>
+      <div className="open-end-popup" onClick={e => e.stopPropagation()}>
+        <p className="open-end-popup-label">Which open end does this close?</p>
+        {openEnds === null && <p className="open-end-popup-status">Loading…</p>}
+        {openEnds?.length === 0 && <p className="open-end-popup-status">No open ends found.</p>}
+        {openEnds?.map(e => (
+          <button key={e.id} className="open-end-popup-item" onClick={() => onSelect(e)}>
+            <span className="loose-end-badge loose-end-badge--open">◎</span>
+            <span className="open-end-popup-subject">{e.subject ?? "(no subject)"}</span>
+            <span className="open-end-popup-date">{e.entryDate}</span>
+          </button>
+        ))}
+        <button className="open-end-popup-cancel" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 /* ── EntryForm ──────────────────────────────────────────────────────── */
 type EntryFormProps = {
   entryDate: string;
@@ -94,7 +125,9 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
   const [saving,       setSaving]       = useState(false);
   const [punchMode,    setPunchMode]    = useState(false);
   const [punchNote,    setPunchNote]    = useState("");
-  const [looseEndType, setLooseEndType] = useState<'open' | 'close' | null>(initial?.looseEndType ?? null);
+  const [looseEndType,    setLooseEndType]    = useState<'open' | 'close' | null>(initial?.looseEndType ?? null);
+  const [looseEndLink,    setLooseEndLink]    = useState<number | null>(initial?.looseEndLink ?? null);
+  const [showOpenPicker,  setShowOpenPicker]  = useState(false);
 
   async function submit() {
     setSaving(true);
@@ -113,6 +146,7 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
         endTime:      endIso,
         color,
         looseEndType,
+        looseEndLink: looseEndType === 'close' ? looseEndLink : null,
       };
       const row: Entry = initial
         ? await api.patch<Entry>(`/api/journal/entries/${initial.id}`, payload)
@@ -171,6 +205,12 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
           onChange={e => setSubject(e.target.value)}
         />
       )}
+      {showOpenPicker && (
+        <OpenEndPickerPopup
+          onSelect={opener => { setLooseEndLink(opener.id); setLooseEndType('close'); setShowOpenPicker(false); }}
+          onCancel={() => setShowOpenPicker(false)}
+        />
+      )}
       {timesOpen && (
         <div className="entry-form-times">
           <label className="entry-form-time-label">
@@ -208,14 +248,17 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
           )}
           <button
             className={`entry-form-loose-btn${looseEndType === 'open' ? ' active' : ''}`}
-            onClick={() => setLooseEndType(t => t === 'open' ? null : 'open')}
+            onClick={() => { setLooseEndType(t => t === 'open' ? null : 'open'); setLooseEndLink(null); }}
             title="Open loose end"
             type="button"
           >◎</button>
           <button
             className={`entry-form-loose-btn${looseEndType === 'close' ? ' active' : ''}`}
-            onClick={() => setLooseEndType(t => t === 'close' ? null : 'close')}
-            title="Close loose end"
+            onClick={() => {
+              if (looseEndType === 'close') { setLooseEndType(null); setLooseEndLink(null); }
+              else setShowOpenPicker(true);
+            }}
+            title={looseEndType === 'close' ? 'Remove close link' : 'Close an open end'}
             type="button"
           >◉</button>
           <button
@@ -247,8 +290,9 @@ export type EntryModalProps = {
   onClose: () => void;
   onUpdate: (e: Entry) => void;
   onDelete: (id: number) => void;
+  onNavigate?: (entry: Entry) => void;
 };
-export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalProps) {
+export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: EntryModalProps) {
   const [editing,    setEditing]    = useState(false);
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
 
@@ -314,6 +358,17 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalPro
               {entry.content && <p className="entry-modal-content">{entry.content}</p>}
               {!entry.subject && !entry.content && (
                 <p className="entry-modal-empty">No content.</p>
+              )}
+              {isCloser && entry.looseEndLink && (
+                <button
+                  className="entry-modal-open-link"
+                  onClick={async () => {
+                    const opener = await api.get<Entry>(`/api/journal/entries/${entry.looseEndLink}`);
+                    onNavigate?.(opener);
+                  }}
+                >
+                  ◎ View open end →
+                </button>
               )}
             </div>
             {confirmMsg ? (
