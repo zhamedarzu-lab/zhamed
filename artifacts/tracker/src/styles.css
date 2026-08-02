@@ -1132,6 +1132,7 @@ a:hover {
   flex: 1;
   min-height: 0;
   align-content: start;
+  position: relative;
 }
 .journal-year-month {
   background: var(--paper-sunk);
@@ -2451,6 +2452,7 @@ a:hover {
 .journal-month-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  position: relative;
 }
 .journal-month-cell {
   min-height: 80px;
@@ -2481,6 +2483,19 @@ a:hover {
   border-radius: 1px;
   pointer-events: none;
   opacity: 0.55;
+}
+/* Slow-moving now-line spanning the full month or year grid */
+.journal-grid-now-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--amber);
+  border-radius: 1px;
+  pointer-events: none;
+  opacity: 0.4;
+  z-index: 1;
+  transform: translateX(-50%);
 }
 /* Highlight ring on month cells — toned down */
 .journal-month-cell.has-highlight {

@@ -955,9 +955,19 @@ export default function Journal() {
       {/* ════ MONTH VIEW ════ */}
       {view === "year" && (() => {
         const year = focus.getFullYear();
+        const isThisYear = year === new Date().getFullYear();
+        const yearStart = new Date(year, 0, 1);
+        const daysInYear = (new Date(year, 11, 31).getTime() - yearStart.getTime()) / 86400000 + 1;
+        const dayOfYear = isThisYear
+          ? Math.floor((new Date(todayYmd + "T00:00:00").getTime() - yearStart.getTime()) / 86400000)
+          : -1;
+        const yearNowPct = dayOfYear >= 0 ? (dayOfYear + nowMin / 1440) / daysInYear * 100 : -1;
         return (
           <>
             <div className="journal-year">
+              {yearNowPct >= 0 && (
+                <div className="journal-grid-now-line" style={{ left: `${yearNowPct}%` }} />
+              )}
               {Array.from({ length: 12 }, (_, mi) => {
                 const monthDate = new Date(year, mi, 1);
                 const mStart    = startOfMonth(monthDate);
@@ -1017,6 +1027,11 @@ export default function Journal() {
         const monthEnd   = endOfMonth(focus);
         const gridStart  = startOfWeek(monthStart);
         const totalDays  = Math.ceil((monthEnd.getDate() + monthStart.getDay()) / 7) * 7;
+        const isThisMonth = focus.getFullYear() === new Date().getFullYear() && focus.getMonth() === new Date().getMonth();
+        const todayGridIdx = isThisMonth
+          ? Math.round((new Date(todayYmd + "T00:00:00").getTime() - gridStart.getTime()) / 86400000)
+          : -1;
+        const monthNowPct = todayGridIdx >= 0 ? (todayGridIdx + nowMin / 1440) / totalDays * 100 : -1;
         return (
           <>
           <div className="journal-month">
@@ -1024,6 +1039,9 @@ export default function Journal() {
               {WEEKDAYS.map(w => <span key={w}>{w}</span>)}
             </div>
             <div className="journal-month-grid">
+              {monthNowPct >= 0 && (
+                <div className="journal-grid-now-line" style={{ left: `${monthNowPct}%` }} />
+              )}
               {Array.from({ length: totalDays }, (_, i) => {
                 const day = addDays(gridStart, i);
                 const ymd = toYMD(day);
