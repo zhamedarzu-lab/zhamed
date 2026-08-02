@@ -94,19 +94,6 @@ export default function PaydayCountdown() {
   const barClass  = isJournal ? "day-top-bar"  : "payday-top-bar";
   const fillClass = isJournal ? "day-top-bar-fill" : "payday-top-bar-fill";
 
-  // Suppress the width transition for one frame when switching sections so the
-  // bar snaps to the correct position instead of sliding from the old value.
-  const prevSectionRef = useRef(isJournal);
-  const [snapNow, setSnapNow] = useState(false);
-  useEffect(() => {
-    if (prevSectionRef.current !== isJournal) {
-      prevSectionRef.current = isJournal;
-      setSnapNow(true);
-      const raf = requestAnimationFrame(() => setSnapNow(false));
-      return () => cancelAnimationFrame(raf);
-    }
-  }, [isJournal]);
-
   return (
     <>
       {/* Progress bar — full-width, pinned to very top of viewport */}
@@ -118,7 +105,10 @@ export default function PaydayCountdown() {
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className={fillClass} style={{ width: `${progressPct}%`, ...(snapNow ? { transition: "none" } : {}) }} />
+        {/* key forces a new DOM node on section switch — a new element has no
+            previous width, so the CSS width transition never creeps from the
+            old section's value. */}
+        <div key={isJournal ? "j" : "f"} className={fillClass} style={{ width: `${progressPct}%` }} />
         <span className="top-bar-pct">{progressPct}%</span>
       </div>
 
