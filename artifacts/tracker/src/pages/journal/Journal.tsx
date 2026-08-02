@@ -979,8 +979,8 @@ export default function Journal() {
                       <div className="journal-month-now-bar"
                         style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
                     )}
-                    {hl && <span className="journal-month-cell-hlabel" style={{ background: hl.color, color: contrastColor(hl.color) }}>{hl.label}</span>}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
+                    {hl && <span className="journal-month-cell-hlabel" style={{ background: hl.color, color: contrastColor(hl.color) }}>{hl.label}</span>}
                     <div className="journal-month-lines">
                       {[...dayEntries]
                         .sort((a, b) => {
