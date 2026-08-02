@@ -544,58 +544,6 @@ export default function Journal() {
                       style={{ left: curHour * COL_W, width: COL_W }} />
                   )}
 
-                  {/* Highlight marker / block */}
-                  {focusHl && focusHl.startTime && (() => {
-                    const [sH, sM] = focusHl.startTime!.split(":").map(Number);
-                    const top = (sM / 60) * GRID_H;
-                    if (!focusHl.endTime) {
-                      // Single time → thin horizontal marker line + label
-                      return (
-                        <div
-                          style={{
-                            position: "absolute",
-                            left: sH * COL_W,
-                            top,
-                            width: COL_W * 2,
-                            height: 2,
-                            background: focusHl.color,
-                            opacity: 0.7,
-                            zIndex: 1,
-                            cursor: "pointer",
-                          }}
-                          onDoubleClick={() => setHlModal({ date: focusYmd, existing: focusHl })}
-                          title={`${focusHl.label} — double-click to edit`}
-                        />
-                      );
-                    }
-                    const endParts = focusHl.endTime.split(":").map(Number);
-                    const durMin   = Math.max(15, (endParts[0] - sH) * 60 + (endParts[1] - sM));
-                    const colSpan  = Math.max(1, Math.ceil((sM + durMin) / 60));
-                    return (
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: sH * COL_W,
-                          top,
-                          width: colSpan * COL_W,
-                          height: Math.max(20, (Math.min(durMin, 60 - sM) / 60) * GRID_H),
-                          background: focusHl.color,
-                          opacity: 0.28,
-                          borderRadius: 3,
-                          cursor: "pointer",
-                          zIndex: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          paddingLeft: 4,
-                          overflow: "hidden",
-                        }}
-                        onDoubleClick={() => setHlModal({ date: focusYmd, existing: focusHl })}
-                        title={`${focusHl.label} — double-click to edit`}
-                      >
-                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: contrastColor(focusHl.color), whiteSpace: "nowrap", opacity: 0.9 }}>{focusHl.label}</span>
-                      </div>
-                    );
-                  })()}
 
                   {/* NOW — horizontal line + pulsing dot at exact (hour, minute) */}
                   {isToday && (
@@ -766,44 +714,6 @@ export default function Journal() {
                           <span className="journal-week-now-dot" aria-hidden="true" />
                         </div>
                       )}
-                      {/* Timed highlight marker / block */}
-                      {colHl && colHl.startTime && (() => {
-                        const [sH, sM] = colHl.startTime!.split(":").map(Number);
-                        const startMin = sH * 60 + sM;
-                        const topPct   = `${(startMin / 1440) * 100}%`;
-                        if (!colHl.endTime) {
-                          // Single time → thin horizontal line marker
-                          return (
-                            <div
-                              style={{
-                                position: "absolute", top: topPct, height: "2px",
-                                left: 0, right: 0,
-                                background: colHl.color, opacity: 0.75, zIndex: 1,
-                                cursor: "pointer",
-                              }}
-                              onDoubleClick={() => setHlModal({ date: ymd, existing: colHl })}
-                              title={`${colHl.label} — double-click to edit`}
-                            />
-                          );
-                        }
-                        const endParts = colHl.endTime.split(":").map(Number);
-                        const endMin   = endParts[0] * 60 + endParts[1];
-                        const heightPct = `${(Math.max(15, endMin - startMin) / 1440) * 100}%`;
-                        return (
-                          <div
-                            style={{
-                              position: "absolute", top: topPct, height: heightPct, left: 0, right: 0,
-                              background: colHl.color, opacity: 0.28, borderRadius: 2, zIndex: 0,
-                              cursor: "pointer", overflow: "hidden",
-                              display: "flex", alignItems: "flex-start", padding: "2px 3px",
-                            }}
-                            onDoubleClick={() => setHlModal({ date: ymd, existing: colHl })}
-                            title={`${colHl.label} — double-click to edit`}
-                          >
-                            <span style={{ fontSize: "0.55rem", fontWeight: 700, color: contrastColor(colHl.color), lineHeight: 1, whiteSpace: "nowrap" }}>{colHl.label}</span>
-                          </div>
-                        );
-                      })()}
                       {dayEntries.map(e => {
                         const isCarryover = e.entryDate !== ymd;
                         // Carryovers started yesterday — pin to top of this column
