@@ -2450,10 +2450,12 @@ a:hover {
   color: var(--ink-soft);
   padding: 0.5rem 0;
 }
+.journal-month-grid-wrap {
+  position: relative;
+}
 .journal-month-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  position: relative;
 }
 .journal-month-cell {
   min-height: 80px;

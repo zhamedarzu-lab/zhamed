@@ -1051,10 +1051,11 @@ export default function Journal() {
             <div className="journal-month-header">
               {WEEKDAYS.map(w => <span key={w}>{w}</span>)}
             </div>
-            <div className="journal-month-grid">
+            <div className="journal-month-grid-wrap">
               {monthNowPct >= 0 && (
                 <div className="journal-grid-now-line" style={{ left: `${monthNowPct}%` }} />
               )}
+            <div className="journal-month-grid">
               {Array.from({ length: totalDays }, (_, i) => {
                 const day = addDays(gridStart, i);
                 const ymd = toYMD(day);
@@ -1093,6 +1094,7 @@ export default function Journal() {
                 );
               })}
             </div>
+            </div>{/* journal-month-grid-wrap */}
           </div>
           <HighlightCountdown highlights={highlights} />
         </>
