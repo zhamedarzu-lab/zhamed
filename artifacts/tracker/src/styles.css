@@ -2399,7 +2399,10 @@ a:hover {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hl-color, #4eaaee) 45%, transparent);
 }
 .journal-month-cell-hlabel {
-  display: block;
+  position: absolute;
+  bottom: 3px;
+  left: 4px;
+  right: 4px;
   font-size: 0.5rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -2410,7 +2413,7 @@ a:hover {
   white-space: nowrap;
   pointer-events: none;
   border-radius: 3px;
-  padding: 2px 3px;
+  padding: 1px 3px;
 }
 
 .journal-month-cell-num {
