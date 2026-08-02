@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { api, useApi } from "../../lib/api";
 import { shortDate, todayIso } from "../../lib/format";
 import { Empty, Loading, Notice, tagColor } from "../../components/ui";
@@ -93,6 +94,10 @@ export default function Fitness() {
         <>
           <WeekGrid exercises={activeExercises} />
 
+          {activeExercises.length > 0 && (
+            <CombinedChart exercises={activeExercises} />
+          )}
+
           {activeExercises.length === 0 ? (
             <Empty title="No exercises yet">
               <p>Add your first exercise below.</p>
@@ -154,6 +159,68 @@ export default function Fitness() {
         </div>
       )}
     </>
+  );
+}
+
+// ─── Combined chart ───────────────────────────────────────────────────────────
+
+const DAY_LABELS = ["S","M","T","W","T","F","S"];
+
+function CombinedChart({ exercises }: { exercises: ExerciseStat[] }) {
+  const data = useMemo(() => {
+    if (!exercises.length) return [];
+    const days = exercises[0].sparkline;
+    return days.map(({ date }) => {
+      const d = new Date(date + "T12:00:00");
+      const label = `${DAY_LABELS[d.getDay()]}\n${d.getDate()}`;
+      const entry: Record<string, string | number> = { date, label };
+      for (const ex of exercises) {
+        const pt = ex.sparkline.find(s => s.date === date);
+        entry[ex.name] = (pt && pt.value > 0) ? 1 : 0;
+      }
+      return entry;
+    });
+  }, [exercises]);
+
+  if (!data.length) return null;
+
+  return (
+    <div className="ft-combined-chart">
+      <ResponsiveContainer width="100%" height={90}>
+        <BarChart data={data} barCategoryGap="25%" margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <XAxis
+            dataKey="label"
+            tick={{ fill: "var(--ink-faint)", fontSize: 9 }}
+            tickLine={false}
+            axisLine={false}
+            interval={0}
+          />
+          <Tooltip
+            cursor={{ fill: "rgba(255,255,255,0.05)" }}
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null;
+              const active_ = payload.filter(p => (p.value as number) > 0);
+              if (!active_.length) return null;
+              return (
+                <div className="ft-chart-tip">
+                  <div className="ft-chart-tip-date">{label}</div>
+                  {active_.map(p => (
+                    <div key={p.name as string} className="ft-chart-tip-row">
+                      <span className="ft-chart-tip-dot" style={{ background: p.fill as string }} />
+                      {p.name as string}
+                    </div>
+                  ))}
+                </div>
+              );
+            }}
+          />
+          {exercises.map(ex => (
+            <Bar key={ex.exerciseId} dataKey={ex.name} stackId="a"
+              fill={ex.color ?? tagColor(ex.name)} radius={0} isAnimationActive={false} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
