@@ -1,8 +1,8 @@
 /**
  * HighlightModal — create / edit / delete a day highlight.
- * Supports whole-day, single time, or block time.
+ * Simplified: label → optional note → color swatch on tap → time controls.
  */
-import React, { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import { ENTRY_COLORS, toISOWithDate } from "./EntryModal";
 
@@ -38,13 +38,16 @@ function inferTimeType(h: DayHighlight | null): TimeType {
 export default function HighlightModal({ date, existing, onClose, onSave, onDelete }: Props) {
   const [label,         setLabel]         = useState(existing?.label ?? "");
   const [note,          setNote]          = useState(existing?.note  ?? "");
+  const [noteOpen,      setNoteOpen]      = useState(!!(existing?.note));
   const [color,         setColor]         = useState(existing?.color ?? "#4eaaee");
+  const [swatchOpen,    setSwatchOpen]    = useState(false);
   const [showCountdown, setShowCountdown] = useState(existing?.showCountdown ?? false);
   const [timeType,      setTimeType]      = useState<TimeType>(() => inferTimeType(existing));
   const [startTime,     setStartTime]     = useState(existing?.startTime ?? "");
   const [endTime,       setEndTime]       = useState(existing?.endTime   ?? "");
   const [saving,        setSaving]        = useState(false);
   const [deleting,      setDeleting]      = useState(false);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -52,12 +55,16 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
+  // Focus note textarea when it opens
+  useEffect(() => {
+    if (noteOpen) noteRef.current?.focus();
+  }, [noteOpen]);
+
   async function save() {
     setSaving(true);
     try {
       const hlStart = timeType !== "allday" && startTime ? startTime : null;
       const hlEnd   = timeType === "block"  && endTime   ? endTime   : null;
-      // Compute entry times in the client's local timezone (same as regular journal entries)
       const entryStartTimeISO = toISOWithDate(date, hlStart ?? "12:00");
       const entryEndTimeISO   = hlEnd ? toISOWithDate(date, hlEnd) : null;
       const payload = {
@@ -114,33 +121,40 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
               value={label}
               autoFocus
               onChange={e => setLabel(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && label.trim()) void save(); }}
+              onKeyDown={e => { if (e.key === "Enter" && label.trim() && !noteOpen) void save(); }}
             />
 
-            {/* Note */}
-            <textarea
-              className="highlight-form-input highlight-note-input"
-              placeholder="Note…"
-              value={note}
-              rows={3}
-              onChange={e => setNote(e.target.value)}
-            />
+            {/* Note — expandable */}
+            {noteOpen ? (
+              <textarea
+                ref={noteRef}
+                className="highlight-form-input highlight-note-input"
+                placeholder="Note…"
+                value={note}
+                rows={3}
+                onChange={e => setNote(e.target.value)}
+              />
+            ) : (
+              <button
+                type="button"
+                className="highlight-add-note-btn"
+                onClick={() => setNoteOpen(true)}
+              >
+                + Note
+              </button>
+            )}
 
-            {/* Colors */}
-            <div className="entry-form-colors">
-              {ENTRY_COLORS.filter(c => c.hex !== "#1c1c1e").map(c => (
-                <button
-                  key={c.hex}
-                  className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
-                  style={{ background: c.hex }}
-                  aria-label={c.label}
-                  onClick={() => setColor(c.hex)}
-                />
-              ))}
-            </div>
-
-            {/* Time type + countdown on one row */}
+            {/* Controls row: color dot + time tabs + countdown */}
             <div className="highlight-controls-row">
+              {/* Color dot — tap to toggle swatch */}
+              <button
+                type="button"
+                className="highlight-color-dot"
+                style={{ background: color }}
+                aria-label="Pick color"
+                onClick={() => setSwatchOpen(v => !v)}
+              />
+
               <div className="highlight-time-tabs">
                 {(["allday", "time", "block"] as TimeType[]).map(t => (
                   <button
@@ -157,6 +171,7 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
                   </button>
                 ))}
               </div>
+
               <button
                 type="button"
                 className={`highlight-toggle${showCountdown ? " on" : ""}`}
@@ -164,11 +179,26 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
                 aria-pressed={showCountdown}
                 title="Show countdown in month view"
               >
-                {showCountdown ? "🔔 On" : "🔔"}
+                🔔
               </button>
             </div>
 
-            {/* Time inputs — key on timeType forces remount on tab switch, clearing browser-held values */}
+            {/* Color swatch — shown when dot is tapped */}
+            {swatchOpen && (
+              <div className="entry-form-colors highlight-swatch-expanded">
+                {ENTRY_COLORS.filter(c => c.hex !== "#1c1c1e").map(c => (
+                  <button
+                    key={c.hex}
+                    className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+                    style={{ background: c.hex }}
+                    aria-label={c.label}
+                    onClick={() => { setColor(c.hex); setSwatchOpen(false); }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Time inputs */}
             {timeType !== "allday" && (
               <div className="highlight-time-row">
                 <input
@@ -198,11 +228,7 @@ export default function HighlightModal({ date, existing, onClose, onSave, onDele
 
         <div className="entry-modal-footer">
           {existing && (
-            <button
-              className="journal-action-btn danger"
-              onClick={remove}
-              disabled={deleting}
-            >
+            <button className="journal-action-btn danger" onClick={remove} disabled={deleting}>
               {deleting ? "Removing…" : "Remove"}
             </button>
           )}

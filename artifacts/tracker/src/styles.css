@@ -1201,6 +1201,35 @@ a:hover {
   border-color: var(--amber);
   font-weight: 700;
 }
+/* Color dot — tappable circle that opens the swatch */
+.highlight-color-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.18);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.highlight-color-dot:hover { transform: scale(1.15); }
+/* Swatch when expanded */
+.highlight-swatch-expanded {
+  padding-top: 0.25rem;
+}
+/* + Note button */
+.highlight-add-note-btn {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  opacity: 0.7;
+  transition: opacity 0.12s;
+}
+.highlight-add-note-btn:hover { opacity: 1; }
 /* Time inputs row */
 .highlight-time-row {
   display: flex;
