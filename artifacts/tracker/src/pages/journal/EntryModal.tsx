@@ -14,6 +14,7 @@ export type Entry = {
   endTime: string | null;
   color: string;
   looseEndLink: number | null;
+  looseEndType: 'open' | 'close' | null;
   createdAt: string;
 };
 
@@ -72,47 +73,6 @@ export const IcEdit = () => (
   </svg>
 );
 
-/* ── LooseEndPicker ─────────────────────────────────────────────────── */
-type LooseEndPickerProps = {
-  selected: number | null;
-  onChange: (id: number | null) => void;
-};
-function LooseEndPicker({ selected, onChange }: LooseEndPickerProps) {
-  const [openEnds, setOpenEnds] = useState<Entry[] | null>(null);
-
-  useEffect(() => {
-    api.get<Entry[]>("/api/journal/loose-ends").then(setOpenEnds).catch(() => setOpenEnds([]));
-  }, []);
-
-  if (openEnds === null) return <p className="loose-end-picker-loading">Loading open loose ends…</p>;
-  if (openEnds.length === 0) return <p className="loose-end-picker-empty">No open loose ends found.</p>;
-
-  return (
-    <div className="loose-end-picker">
-      <p className="loose-end-picker-label">Resolves which loose end?</p>
-      <div className="loose-end-picker-list">
-        {openEnds.map(e => {
-          const title = e.subject?.replace(/^\(\(\(\s*/, "") ?? "(untitled)";
-          const age = Math.floor((Date.now() - new Date(e.startTime).getTime()) / 86_400_000);
-          const ageLabel = age === 0 ? "today" : age === 1 ? "1 day ago" : `${age} days ago`;
-          return (
-            <button
-              key={e.id}
-              className={`loose-end-picker-item${selected === e.id ? " selected" : ""}`}
-              onClick={() => onChange(selected === e.id ? null : e.id)}
-              type="button"
-            >
-              <span className="loose-end-picker-dot" style={{ background: e.color }} />
-              <span className="loose-end-picker-title">{title}</span>
-              <span className="loose-end-picker-age">{ageLabel}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 /* ── EntryForm ──────────────────────────────────────────────────────── */
 type EntryFormProps = {
   entryDate: string;
@@ -134,15 +94,7 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
   const [saving,       setSaving]       = useState(false);
   const [punchMode,    setPunchMode]    = useState(false);
   const [punchNote,    setPunchNote]    = useState("");
-  const [looseEndLink, setLooseEndLink] = useState<number | null>(initial?.looseEndLink ?? null);
-
-  // Detect closer prefix
-  const isCloser = subject.includes(")))");
-
-  // When a new ))) is typed and picker wasn't visible before, auto-show subject field
-  useEffect(() => {
-    if (isCloser && !showSubject) setShowSubject(true);
-  }, [isCloser]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [looseEndType, setLooseEndType] = useState<'open' | 'close' | null>(initial?.looseEndType ?? null);
 
   async function submit() {
     setSaving(true);
@@ -160,7 +112,7 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
         startTime:    startIso,
         endTime:      endIso,
         color,
-        looseEndLink: isCloser ? (looseEndLink ?? null) : null,
+        looseEndType,
       };
       const row: Entry = initial
         ? await api.patch<Entry>(`/api/journal/entries/${initial.id}`, payload)
@@ -219,10 +171,6 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
           onChange={e => setSubject(e.target.value)}
         />
       )}
-      {/* Loose-end picker — shown when subject starts with ))) */}
-      {showSubject && isCloser && (
-        <LooseEndPicker selected={looseEndLink} onChange={setLooseEndLink} />
-      )}
       {timesOpen && (
         <div className="entry-form-times">
           <label className="entry-form-time-label">
@@ -259,6 +207,18 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
             </button>
           )}
           <button
+            className={`entry-form-loose-btn${looseEndType === 'open' ? ' active' : ''}`}
+            onClick={() => setLooseEndType(t => t === 'open' ? null : 'open')}
+            title="Open loose end"
+            type="button"
+          >◎</button>
+          <button
+            className={`entry-form-loose-btn${looseEndType === 'close' ? ' active' : ''}`}
+            onClick={() => setLooseEndType(t => t === 'close' ? null : 'close')}
+            title="Close loose end"
+            type="button"
+          >◉</button>
+          <button
             className={`entry-form-subject-toggle${showSubject ? " active" : ""}`}
             onClick={() => setShowSubject(o => !o)}
             aria-label="Add subject"
@@ -291,18 +251,9 @@ export type EntryModalProps = {
 export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalProps) {
   const [editing,    setEditing]    = useState(false);
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
-  const [isOpenEnd,  setIsOpenEnd]  = useState(false);
 
-  const isOpener = entry.subject?.includes("(((");
-  const isCloser = entry.subject?.includes(")))");
-
-  // Check if this opener is still unresolved (appears in the open loose-ends list)
-  useEffect(() => {
-    if (!isOpener) return;
-    api.get<Entry[]>("/api/journal/loose-ends")
-      .then(list => setIsOpenEnd(list.some(e => e.id === entry.id)))
-      .catch(() => setIsOpenEnd(false));
-  }, [isOpener, entry.id]);
+  const isOpener = entry.looseEndType === 'open';
+  const isCloser = entry.looseEndType === 'close';
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -316,12 +267,12 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalPro
   }, [onClose, confirmMsg]);
 
   function handleDeleteClick() {
-    if (isOpener && isOpenEnd) {
+    if (isOpener) {
       setConfirmMsg("This is an open loose end — delete anyway?");
       return;
     }
-    if (isCloser && entry.looseEndLink) {
-      setConfirmMsg("This will reopen the linked loose end — delete anyway?");
+    if (isCloser) {
+      setConfirmMsg("This will remove this loose end closure — delete anyway?");
       return;
     }
     onDelete(entry.id);
@@ -363,9 +314,6 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalPro
               {entry.content && <p className="entry-modal-content">{entry.content}</p>}
               {!entry.subject && !entry.content && (
                 <p className="entry-modal-empty">No content.</p>
-              )}
-              {isCloser && entry.looseEndLink && (
-                <p className="entry-modal-link-note">Resolves loose end #{entry.looseEndLink}</p>
               )}
             </div>
             {confirmMsg ? (

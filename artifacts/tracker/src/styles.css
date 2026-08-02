@@ -1364,6 +1364,27 @@ a:hover {
   align-items: center;
   gap: 0.5rem;
 }
+.entry-form-loose-btn {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.entry-form-loose-btn:hover {
+  border-color: var(--ink-soft);
+  color: var(--ink);
+}
+.entry-form-loose-btn.active {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+}
+
 .entry-form-subject-toggle,
 .entry-form-time-toggle {
   background: none;

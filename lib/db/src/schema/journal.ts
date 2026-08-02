@@ -9,6 +9,7 @@ export const journalEntriesTable = pgTable("journal_entries", {
   endTime:      timestamp("end_time",   { withTimezone: true }),
   color:        text("color").notNull().default("#e0b04e"),
   looseEndLink: integer("loose_end_link").references((): any => journalEntriesTable.id),
+  looseEndType: text("loose_end_type"),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

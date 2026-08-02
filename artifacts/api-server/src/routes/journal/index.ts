@@ -14,6 +14,7 @@ const EntryInput = z.object({
   endTime:      z.string().datetime({ offset: true }).nullable().optional(),
   color:        z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   looseEndLink: z.number().int().nullable().optional(),
+  looseEndType: z.enum(["open", "close"]).nullable().optional(),
 });
 
 // GET /api/journal/entries?from=YYYY-MM-DD&to=YYYY-MM-DD
@@ -32,29 +33,13 @@ router.get("/entries", async (req, res) => {
   res.json(rows);
 });
 
-// GET /api/journal/loose-ends — all open (((  entries with no closer pointing at them
+// GET /api/journal/loose-ends — all open-end entries
 router.get("/loose-ends", async (_req, res) => {
-  // Find all entry IDs that are referenced as a closer (loose_end_link IS NOT NULL)
-  const closerLinks = await db
-    .select({ linkedId: journalEntriesTable.looseEndLink })
+  const rows = await db
+    .select()
     .from(journalEntriesTable)
-    .where(sql`${journalEntriesTable.looseEndLink} IS NOT NULL`);
-  const closedIds = closerLinks.map(r => r.linkedId as number);
-
-  // Open loose ends: subject starts with '(((' and no entry closes them
-  const baseCondition = like(journalEntriesTable.subject, "(((%" as string);
-  const rows = closedIds.length > 0
-    ? await db
-        .select()
-        .from(journalEntriesTable)
-        .where(and(baseCondition, notInArray(journalEntriesTable.id, closedIds)))
-        .orderBy(desc(journalEntriesTable.startTime))
-    : await db
-        .select()
-        .from(journalEntriesTable)
-        .where(baseCondition)
-        .orderBy(desc(journalEntriesTable.startTime));
-
+    .where(eq(journalEntriesTable.looseEndType, "open"))
+    .orderBy(desc(journalEntriesTable.startTime));
   res.json(rows);
 });
 
@@ -62,7 +47,7 @@ router.get("/loose-ends", async (_req, res) => {
 router.post("/entries", async (req, res) => {
   const parsed = EntryInput.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
-  const { subject, content, entryDate, startTime, endTime, looseEndLink } = parsed.data;
+  const { subject, content, entryDate, startTime, endTime, looseEndLink, looseEndType } = parsed.data;
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const [row] = await db
@@ -75,6 +60,7 @@ router.post("/entries", async (req, res) => {
       endTime:      endTime   ? new Date(endTime)   : null,
       color:        parsed.data.color ?? "#e0b04e",
       looseEndLink: looseEndLink ?? null,
+      looseEndType: looseEndType ?? null,
     })
     .returning();
   res.status(201).json(row);
@@ -93,6 +79,7 @@ router.patch("/entries/:id", async (req, res) => {
   if (parsed.data.endTime      !== undefined) patch.endTime      = parsed.data.endTime ? new Date(parsed.data.endTime) : null;
   if (parsed.data.color        !== undefined) patch.color        = parsed.data.color;
   if (parsed.data.looseEndLink !== undefined) patch.looseEndLink = parsed.data.looseEndLink ?? null;
+  if (parsed.data.looseEndType !== undefined) patch.looseEndType = parsed.data.looseEndType ?? null;
   if (!Object.keys(patch).length) { res.status(400).json({ error: "Nothing to update" }); return; }
   const [row] = await db
     .update(journalEntriesTable)

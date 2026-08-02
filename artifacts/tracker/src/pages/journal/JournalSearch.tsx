@@ -71,15 +71,6 @@ export default function JournalSearch() {
     });
   }
 
-  // Compute which opener IDs have been closed (client-side, from loaded entries)
-  const closedOpenerIds = useMemo(() => {
-    const s = new Set<number>();
-    for (const e of entries) {
-      if (e.looseEndLink !== null && e.looseEndLink !== undefined) s.add(e.looseEndLink);
-    }
-    return s;
-  }, [entries]);
-
   const filterMode = detectMode(query);
 
   const results = useMemo(() => {
@@ -87,21 +78,19 @@ export default function JournalSearch() {
     const hasColors = activeColors.size > 0;
 
     if (filterMode === "open-ends") {
-      // All (((  entries with no closer
       return entries
         .filter(e => {
           const colorOk = !hasColors || activeColors.has(e.color);
-          return colorOk && e.subject?.includes("(((") && !closedOpenerIds.has(e.id);
+          return colorOk && e.looseEndType === "open";
         })
         .sort((a, b) => b.startTime.localeCompare(a.startTime));
     }
 
     if (filterMode === "closed-ends") {
-      // All entries that close a loose end ())) anywhere in subject)
       return entries
         .filter(e => {
           const colorOk = !hasColors || activeColors.has(e.color);
-          return colorOk && e.subject?.includes(")))");
+          return colorOk && e.looseEndType === "close";
         })
         .sort((a, b) => b.startTime.localeCompare(a.startTime));
     }
@@ -119,7 +108,7 @@ export default function JournalSearch() {
         return colorOk && textOk;
       })
       .sort((a, b) => b.startTime.localeCompare(a.startTime));
-  }, [query, entries, activeColors, filterMode, closedOpenerIds]);
+  }, [query, entries, activeColors, filterMode]);
 
   // Group results by date
   const groups = useMemo(() => {
@@ -244,9 +233,8 @@ export default function JournalSearch() {
           <div key={date} className="jsearch-group">
             <p className="jsearch-group-date">{fmtFullDate(date)}</p>
             {group.map(e => {
-              const isOpener = e.subject?.includes("(((");
-              const isCloser = e.subject?.includes(")))");
-              const isClosed = isOpener && closedOpenerIds.has(e.id);
+              const isOpener = e.looseEndType === "open";
+              const isCloser = e.looseEndType === "close";
               return (
                 <button key={e.id} className="jsearch-card" onClick={() => setSelected(e)}>
                   <div className="jsearch-card-accent" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)" } : {}) }} />
@@ -254,8 +242,8 @@ export default function JournalSearch() {
                     <p className="jsearch-card-time">{fmtRange(e.startTime, e.endTime)}</p>
                     {e.subject && (
                       <p className="jsearch-card-subject">
-                        {isOpener && <span className={`loose-end-badge loose-end-badge--${isClosed ? "closed" : "open"}`} title={isClosed ? "Closed loose end" : "Open loose end"}>{isClosed ? "◉" : "◎"}</span>}
-                        {isCloser && <span className="loose-end-badge loose-end-badge--closer" title="Closes a loose end">◉</span>}
+                        {isOpener && <span className="loose-end-badge loose-end-badge--open" title="Open loose end">◎</span>}
+                        {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉</span>}
                         {" "}
                         <Highlight text={e.subject} query={filterMode === "normal" ? q : ""} />
                       </p>
