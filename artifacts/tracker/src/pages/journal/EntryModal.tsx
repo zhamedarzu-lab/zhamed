@@ -137,7 +137,7 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
   const [looseEndLink, setLooseEndLink] = useState<number | null>(initial?.looseEndLink ?? null);
 
   // Detect closer prefix
-  const isCloser = subject.trimStart().startsWith(")))");
+  const isCloser = subject.includes(")))");
 
   // When a new ))) is typed and picker wasn't visible before, auto-show subject field
   useEffect(() => {
@@ -293,8 +293,8 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete }: EntryModalPro
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
   const [isOpenEnd,  setIsOpenEnd]  = useState(false);
 
-  const isOpener = entry.subject?.trimStart().startsWith("(((");
-  const isCloser = entry.subject?.trimStart().startsWith(")))");
+  const isOpener = entry.subject?.includes("(((");
+  const isCloser = entry.subject?.includes(")))");
 
   // Check if this opener is still unresolved (appears in the open loose-ends list)
   useEffect(() => {
