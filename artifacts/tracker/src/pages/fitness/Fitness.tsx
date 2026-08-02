@@ -286,11 +286,13 @@ function ExerciseRow({
       {/* Main tap target */}
       <div
         className="ft-row-main"
-        onClick={() => { if (!open) openRow(); }}
+        onClick={() => { if (open) setOpen(false); else openRow(); }}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && !open) openRow();
+          if (e.key === "Enter" || e.key === " ") {
+            if (open) setOpen(false); else openRow();
+          }
         }}
         aria-label={`Log ${stat.name}`}
         aria-expanded={open}
