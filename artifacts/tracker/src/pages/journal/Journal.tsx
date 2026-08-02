@@ -635,6 +635,34 @@ export default function Journal() {
                     return <React.Fragment key={e.id}>{slices}</React.Fragment>;
                   })}
 
+                  {/* Highlight entry block — timed highlights only */}
+                  {focusHl && focusHl.startTime && (() => {
+                    const [sH, sM] = focusHl.startTime!.split(":").map(Number);
+                    const top = (sM / 60) * GRID_H;
+                    const durMin = focusHl.endTime
+                      ? (() => { const [eH, eM] = focusHl.endTime!.split(":").map(Number); return (eH - sH) * 60 + (eM - sM); })()
+                      : 0;
+                    const heightPx = durMin > 0
+                      ? Math.max(22, (Math.min(durMin, 60 - sM) / 60) * GRID_H)
+                      : 22;
+                    const isFuture = isToday && (sH * 60 + sM) > nowMin;
+                    return (
+                      <div
+                        className={`journal-hday-entry journal-hday-entry--highlight${isFuture ? " is-future" : ""}`}
+                        style={{ left: sH * COL_W + 2, top, width: COL_W - 4, height: heightPx, "--entry-color": focusHl.color } as React.CSSProperties}
+                        onClick={() => setHlModal({ date: focusYmd, existing: focusHl })}
+                        role="button" tabIndex={0}
+                        onKeyDown={ev => ev.key === "Enter" && setHlModal({ date: focusYmd, existing: focusHl })}>
+                        <p className="journal-hday-entry-label">✦ {focusHl.label || "Highlight"}</p>
+                        <p className="journal-hday-entry-time">
+                          {focusHl.endTime
+                            ? `${fmtHHMM(focusHl.startTime!)} – ${fmtHHMM(focusHl.endTime)}`
+                            : fmtHHMM(focusHl.startTime!)}
+                        </p>
+                      </div>
+                    );
+                  })()}
+
                   {/* Entries — placed at (startHour col, startMinute row) */}
                   {dayEntries.map(e => {
                     const isCarryover = e.entryDate !== focusYmd;
@@ -685,8 +713,22 @@ export default function Journal() {
           </div>
 
           {/* Entry list below grid */}
-          {dayEntries.length > 0 && (
+          {(dayEntries.length > 0 || focusHl) && (
             <div className="journal-hday-list">
+              {focusHl && (
+                <button className="journal-hday-list-row journal-hday-list-row--highlight"
+                  onClick={() => setHlModal({ date: focusYmd, existing: focusHl })}>
+                  <span className="journal-hday-list-dot" style={{ background: focusHl.color, ...br(focusHl.color) } as React.CSSProperties} />
+                  <span className="journal-hday-list-time">
+                    {focusHl.startTime
+                      ? focusHl.endTime
+                        ? `${fmtHHMM(focusHl.startTime)} – ${fmtHHMM(focusHl.endTime)}`
+                        : fmtHHMM(focusHl.startTime)
+                      : "All day"}
+                  </span>
+                  <span className="journal-hday-list-label">✦ {focusHl.label || "Highlight"}</span>
+                </button>
+              )}
               {dayEntries.map(e => {
                 const isCarryover = e.entryDate !== focusYmd;
                 return (
@@ -769,31 +811,23 @@ export default function Journal() {
                           <span className="journal-week-now-dot" aria-hidden="true" />
                         </div>
                       )}
-                      {/* Highlight overlay — single time: thin line; block: vertical band */}
+                      {/* Highlight entry block in week column */}
                       {colHl && colHl.startTime && (() => {
                         const [sH, sM] = colHl.startTime!.split(":").map(Number);
                         const startMin = sH * 60 + sM;
                         const topPct = `${(startMin / 1440) * 100}%`;
-                        if (!colHl.endTime) {
-                          return (
-                            <div style={{
-                              position: "absolute", top: topPct, height: "3px",
-                              left: 0, right: 0,
-                              background: colHl.color, opacity: 0.8,
-                              borderRadius: 1, pointerEvents: "none", zIndex: 2,
-                            }} />
-                          );
-                        }
-                        const [eH, eM] = colHl.endTime.split(":").map(Number);
-                        const endMin = eH * 60 + eM;
+                        const durMin = colHl.endTime
+                          ? (() => { const [eH, eM] = colHl.endTime!.split(":").map(Number); return eH * 60 + eM - startMin; })()
+                          : 0;
+                        const heightVal = durMin > 0 ? `${(durMin / 1440) * 100}%` : "3%";
                         return (
-                          <div style={{
-                            position: "absolute", top: topPct,
-                            height: `${(Math.max(15, endMin - startMin) / 1440) * 100}%`,
-                            left: 0, right: 0,
-                            background: colHl.color, opacity: 0.25,
-                            pointerEvents: "none", zIndex: 0,
-                          }} />
+                          <div className="journal-week-line journal-week-line--highlight"
+                            style={{ top: topPct, height: heightVal, background: colHl.color }}
+                            onClick={() => setHlModal({ date: ymd, existing: colHl })}
+                            role="button" tabIndex={0}
+                            onKeyDown={ev => ev.key === "Enter" && setHlModal({ date: ymd, existing: colHl })}>
+                            <span className="journal-week-line-label">✦ {colHl.label || ""}</span>
+                          </div>
                         );
                       })()}
                       {dayEntries.map(e => {
