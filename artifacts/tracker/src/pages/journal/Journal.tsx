@@ -994,18 +994,38 @@ export default function Journal() {
                       </button>
                       {expanded && (
                         <>
-                          {hl && (
-                            <button className="journal-week-list-row journal-week-list-row--highlight"
-                              onClick={() => setHlModal({ date: ymd, existing: hl })}>
-                              <span className="journal-week-list-dot" style={{ background: hl.color, ...br(hl.color) } as React.CSSProperties} />
-                              <span className="journal-week-list-time">
-                                {hl.startTime
-                                  ? hl.endTime ? `${fmtHHMM(hl.startTime)} – ${fmtHHMM(hl.endTime)}` : fmtHHMM(hl.startTime)
-                                  : "All day"}
-                              </span>
-                              <span className="journal-week-list-label">✦ {hl.label || "Highlight"}</span>
-                            </button>
-                          )}
+                          {hl && (() => {
+                            const hlStartMin = hl.startTime
+                              ? (() => { const [h2,m2] = hl.startTime!.split(":").map(Number); return h2*60+m2; })()
+                              : null;
+                            const hlEndMin = hl.endTime
+                              ? (() => { const [h2,m2] = hl.endTime!.split(":").map(Number); return h2*60+m2; })()
+                              : null;
+                            return (
+                              <button className="journal-week-list-row journal-week-list-row--highlight"
+                                onClick={() => setHlModal({ date: ymd, existing: hl })}>
+                                <span className="journal-week-list-dot" style={{ background: hl.color, ...br(hl.color) } as React.CSSProperties} />
+                                <span className="journal-week-list-time">
+                                  {hl.startTime
+                                    ? hl.endTime ? `${fmtHHMM(hl.startTime)} – ${fmtHHMM(hl.endTime)}` : fmtHHMM(hl.startTime)
+                                    : "All day"}
+                                </span>
+                                <span className="journal-week-list-label">✦ {hl.label || "Highlight"}</span>
+                                {hlStartMin !== null && (
+                                  <span className="journal-week-list-sweep" aria-hidden="true">
+                                    <span className="journal-week-list-sweep-pip"
+                                      style={{
+                                        left: `${(hlStartMin/1440)*100}%`,
+                                        background: hl.color,
+                                        width: hlEndMin !== null
+                                          ? `${Math.max(2, ((hlEndMin - hlStartMin)/1440)*100)}%`
+                                          : undefined,
+                                      }} />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })()}
                           {group.map(e => {
                             const isCarryover = e.entryDate !== ymd;
                             const isOpener = e.looseEndType === 'open';
@@ -1150,6 +1170,14 @@ export default function Journal() {
                       <div className="journal-month-now-bar"
                         style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
                     )}
+                    {hl && hl.startTime && (() => {
+                      const [sH, sM] = hl.startTime.split(":").map(Number);
+                      const pct = Math.min(100, ((sH * 60 + sM) / 1440) * 100);
+                      return (
+                        <div className="journal-month-hl-tick"
+                          style={{ left: `${pct}%`, background: hl.color }} />
+                      );
+                    })()}
                     {hl && <span className="journal-month-cell-hlabel" style={{ background: hl.color, color: contrastColor(hl.color) }}>{hl.label}</span>}
                     <span className="journal-month-cell-num">{day.getDate()}</span>
                     <div className="journal-month-lines">

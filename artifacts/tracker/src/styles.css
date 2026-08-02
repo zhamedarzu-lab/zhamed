@@ -2738,6 +2738,25 @@ a:hover {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+/* Time sweep bar on highlight rows in week list */
+.journal-week-list-sweep {
+  flex: 1;
+  position: relative;
+  height: 3px;
+  background: var(--rule);
+  border-radius: 2px;
+  overflow: visible;
+  align-self: center;
+}
+.journal-week-list-sweep-pip {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  height: 7px;
+  min-width: 4px;
+  border-radius: 2px;
+  opacity: 0.85;
+}
 
 /* ── MONTH VIEW ── */
 .journal-month {
@@ -2798,6 +2817,17 @@ a:hover {
   border-radius: 1px;
   pointer-events: none;
   opacity: 0.55;
+}
+/* Highlight time tick in month cell — same mechanism as now-bar but highlight-colored */
+.journal-month-hl-tick {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  pointer-events: none;
+  opacity: 0.7;
+  transform: translateX(-50%);
 }
 /* Slow-moving now-line spanning the full month or year grid */
 .journal-grid-now-line {
