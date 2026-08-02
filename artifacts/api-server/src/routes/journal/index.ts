@@ -72,6 +72,13 @@ router.post("/entries", async (req, res) => {
       looseEndType: looseEndType ?? null,
     })
     .returning();
+  // Resolve the linked opener — once closed, it stays off the Open Ends list
+  if (looseEndType === "close" && looseEndLink) {
+    await db
+      .update(journalEntriesTable)
+      .set({ looseEndType: null })
+      .where(eq(journalEntriesTable.id, looseEndLink));
+  }
   res.status(201).json(row);
 });
 
@@ -95,6 +102,13 @@ router.patch("/entries/:id", async (req, res) => {
     .set(patch)
     .where(eq(journalEntriesTable.id, id))
     .returning();
+  // Resolve the linked opener — once closed, it stays off the Open Ends list
+  if (row.looseEndType === "close" && row.looseEndLink) {
+    await db
+      .update(journalEntriesTable)
+      .set({ looseEndType: null })
+      .where(eq(journalEntriesTable.id, row.looseEndLink));
+  }
   res.json(row);
 });
 

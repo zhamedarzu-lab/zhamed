@@ -347,13 +347,13 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
         ) : (
           <>
             <div className="entry-modal-body">
-              <p className="entry-modal-time">{fmtRange(entry.startTime, entry.endTime)}</p>
+              <p className="entry-modal-time">
+                {isOpener && <span className="loose-end-badge loose-end-badge--open" title="Open loose end">◎ </span>}
+                {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉ </span>}
+                {fmtRange(entry.startTime, entry.endTime)}
+              </p>
               {entry.subject && (
-                <h2 className="entry-modal-subject">
-                  {isOpener && <span className="loose-end-badge loose-end-badge--open" title="Opens a loose end">◎</span>}
-                  {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉</span>}
-                  {entry.subject}
-                </h2>
+                <h2 className="entry-modal-subject">{entry.subject}</h2>
               )}
               {entry.content && <p className="entry-modal-content">{entry.content}</p>}
               {!entry.subject && !entry.content && (
