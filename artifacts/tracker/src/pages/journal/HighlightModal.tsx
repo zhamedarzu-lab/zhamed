@@ -14,6 +14,7 @@ export type DayHighlight = {
   showCountdown: boolean;
   startTime: string | null;
   endTime:   string | null;
+  entryId:   number | null;
   createdAt: string;
 };
 

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, date, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, date, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 
 export const journalEntriesTable = pgTable("journal_entries", {
   id:        serial("id").primaryKey(),
@@ -22,6 +22,7 @@ export const dayHighlightsTable = pgTable("day_highlights", {
   showCountdown: boolean("show_countdown").notNull().default(false),
   startTime:     text("start_time"),
   endTime:       text("end_time"),
+  entryId:       integer("entry_id"),
   createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

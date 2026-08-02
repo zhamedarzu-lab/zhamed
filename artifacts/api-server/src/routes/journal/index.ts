@@ -92,6 +92,20 @@ const HighlightInput = z.object({
   endTime:       z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
 });
 
+/** Build journal entry values from highlight fields. */
+function hlEntryValues(data: { date: string; label: string; color: string; startTime?: string | null; endTime?: string | null }) {
+  const startTime = new Date(`${data.date}T${data.startTime ?? "00:00"}:00`);
+  const endTime   = data.endTime ? new Date(`${data.date}T${data.endTime}:00`) : null;
+  return {
+    subject:   data.label,
+    content:   "",
+    entryDate: data.date,
+    startTime,
+    endTime,
+    color:     data.color,
+  };
+}
+
 // GET /api/journal/highlights
 router.get("/highlights", async (_req, res) => {
   const rows = await db
@@ -101,38 +115,61 @@ router.get("/highlights", async (_req, res) => {
   res.json(rows);
 });
 
-// POST /api/journal/highlights
+// POST /api/journal/highlights — also creates a linked journal entry
 router.post("/highlights", async (req, res) => {
   const parsed = HighlightInput.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+
+  // Create the linked journal entry first
+  const [entry] = await db
+    .insert(journalEntriesTable)
+    .values(hlEntryValues(parsed.data))
+    .returning();
+
+  // Create the highlight with the entry linked
   const [row] = await db
     .insert(dayHighlightsTable)
-    .values(parsed.data)
+    .values({ ...parsed.data, entryId: entry.id })
     .returning();
+
   res.status(201).json(row);
 });
 
-// PUT /api/journal/highlights/:id
+// PUT /api/journal/highlights/:id — full replace, syncs linked entry
 router.put("/highlights/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parsed = HighlightInput.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+
+  // Get current highlight to find linked entry
+  const [existing] = await db.select().from(dayHighlightsTable).where(eq(dayHighlightsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+  let entryId = existing.entryId;
+  const ev = hlEntryValues(parsed.data);
+  if (entryId) {
+    await db.update(journalEntriesTable).set(ev).where(eq(journalEntriesTable.id, entryId));
+  } else {
+    const [entry] = await db.insert(journalEntriesTable).values(ev).returning();
+    entryId = entry.id;
+  }
+
   const [row] = await db
     .update(dayHighlightsTable)
-    .set(parsed.data)
+    .set({ ...parsed.data, entryId })
     .where(eq(dayHighlightsTable.id, id))
     .returning();
-  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
 });
 
-// PATCH /api/journal/highlights/:id
+// PATCH /api/journal/highlights/:id — partial update, syncs linked entry
 router.patch("/highlights/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parsed = HighlightInput.partial().safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
+
   const patch: Record<string, unknown> = {};
   if (parsed.data.date          !== undefined) patch.date          = parsed.data.date;
   if (parsed.data.label         !== undefined) patch.label         = parsed.data.label;
@@ -141,19 +178,47 @@ router.patch("/highlights/:id", async (req, res) => {
   if (parsed.data.startTime     !== undefined) patch.startTime     = parsed.data.startTime ?? null;
   if (parsed.data.endTime       !== undefined) patch.endTime       = parsed.data.endTime   ?? null;
   if (!Object.keys(patch).length) { res.status(400).json({ error: "Nothing to update" }); return; }
+
+  // Get current row so we can sync the entry
+  const [existing] = await db.select().from(dayHighlightsTable).where(eq(dayHighlightsTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Merge patched fields with existing to produce full entry values
+  const merged = {
+    date:      (parsed.data.date      ?? existing.date),
+    label:     (parsed.data.label     ?? existing.label),
+    color:     (parsed.data.color     ?? existing.color),
+    startTime: parsed.data.startTime  !== undefined ? parsed.data.startTime : existing.startTime,
+    endTime:   parsed.data.endTime    !== undefined ? parsed.data.endTime   : existing.endTime,
+  };
+  const ev = hlEntryValues(merged);
+
+  let entryId = existing.entryId;
+  if (entryId) {
+    await db.update(journalEntriesTable).set(ev).where(eq(journalEntriesTable.id, entryId));
+  } else {
+    const [entry] = await db.insert(journalEntriesTable).values(ev).returning();
+    entryId = entry.id;
+    patch.entryId = entryId;
+  }
+
   const [row] = await db
     .update(dayHighlightsTable)
     .set(patch)
     .where(eq(dayHighlightsTable.id, id))
     .returning();
-  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
 });
 
-// DELETE /api/journal/highlights/:id
+// DELETE /api/journal/highlights/:id — also deletes the linked entry
 router.delete("/highlights/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [existing] = await db.select().from(dayHighlightsTable).where(eq(dayHighlightsTable.id, id));
+  if (existing?.entryId) {
+    await db.delete(journalEntriesTable).where(eq(journalEntriesTable.id, existing.entryId));
+  }
   await db.delete(dayHighlightsTable).where(eq(dayHighlightsTable.id, id));
   res.status(204).end();
 });
