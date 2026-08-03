@@ -20,8 +20,10 @@ export const exercisesTable = pgTable("exercises", {
   color:      varchar("color", { length: 7 }),
   active:     boolean("active").notNull().default(true),
   sortOrder:  integer("sort_order").notNull().default(0),
-  goalAmount: numeric("goal_amount", { precision: 10, scale: 2 }),
-  goalPeriod: text("goal_period").$type<"day" | "week" | "month">(),
+  goalAmount:    numeric("goal_amount", { precision: 10, scale: 2 }),
+  goalPeriod:    text("goal_period").$type<"day" | "week" | "month">(),
+  goalDeadline:  text("goal_deadline"),   // YYYY-MM-DD — set goal to hit by a specific date
+  goalStartDate: text("goal_start_date"), // YYYY-MM-DD — when the deadline goal tracking began
 });
 
 export const effortsTable = pgTable(

@@ -18,13 +18,15 @@ router.get("/exercises", async (_req, res): Promise<void> => {
 });
 
 const ExerciseInput = z.object({
-  name:       z.string().min(1).max(200).trim(),
-  unit:       z.string().min(1).max(50).trim(),
-  color:      z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
-  active:     z.boolean().optional(),
-  sortOrder:  z.number().int().optional(),
-  goalAmount: z.number().positive().nullable().optional(),
-  goalPeriod: z.enum(["day", "week", "month"]).nullable().optional(),
+  name:          z.string().min(1).max(200).trim(),
+  unit:          z.string().min(1).max(50).trim(),
+  color:         z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  active:        z.boolean().optional(),
+  sortOrder:     z.number().int().optional(),
+  goalAmount:    z.number().positive().nullable().optional(),
+  goalPeriod:    z.enum(["day", "week", "month"]).nullable().optional(),
+  goalDeadline:  z.string().regex(DATE_RE).nullable().optional(),
+  goalStartDate: z.string().regex(DATE_RE).nullable().optional(),
 });
 
 router.post("/exercises", async (req, res): Promise<void> => {
@@ -51,8 +53,10 @@ router.patch("/exercises/:id", async (req, res): Promise<void> => {
   if (data.color      !== undefined) update.color      = data.color;
   if (data.active     !== undefined) update.active     = data.active;
   if (data.sortOrder  !== undefined) update.sortOrder  = data.sortOrder;
-  if (data.goalAmount !== undefined) update.goalAmount = data.goalAmount !== null ? String(data.goalAmount) : null;
-  if (data.goalPeriod !== undefined) update.goalPeriod = data.goalPeriod;
+  if (data.goalAmount    !== undefined) update.goalAmount    = data.goalAmount !== null ? String(data.goalAmount) : null;
+  if (data.goalPeriod    !== undefined) update.goalPeriod    = data.goalPeriod ?? null;
+  if (data.goalDeadline  !== undefined) update.goalDeadline  = data.goalDeadline  ?? null;
+  if (data.goalStartDate !== undefined) update.goalStartDate = data.goalStartDate ?? null;
 
   if (Object.keys(update).length > 0) {
     await db.update(exercisesTable).set(update).where(eq(exercisesTable.id, id));
@@ -168,14 +172,25 @@ router.get("/summary", async (req, res): Promise<void> => {
   // Calendar month start
   const monthStart = today.slice(0, 8) + "01";
 
-  // Query window covers 14-day sparkline AND full week AND full month
-  const queryFrom = [d14ago, weekStart, monthStart].sort()[0];
+  // Fetch exercises first so we can extend the query window to cover deadline goalStartDates
+  const exercises = await db
+    .select()
+    .from(exercisesTable)
+    .orderBy(asc(exercisesTable.sortOrder), asc(exercisesTable.name));
 
-  const [exercises, efforts] = await Promise.all([
-    db.select().from(exercisesTable).orderBy(asc(exercisesTable.sortOrder), asc(exercisesTable.name)),
-    db.select().from(effortsTable)
+  // Query window: 14-day sparkline, full week, full month, and any goal start dates
+  const goalStartDates = exercises.map(ex => ex.goalStartDate).filter((d): d is string => !!d);
+  const queryFrom = [...[d14ago, weekStart, monthStart], ...goalStartDates].sort()[0]!;
+
+  // Fetch windowed efforts (for periods/sparkline/deadlines) and all-time efforts
+  // (for best-day) in parallel — both are independent once queryFrom is known.
+  const [efforts, allEfforts] = await Promise.all([
+    db.select()
+      .from(effortsTable)
       .where(gte(effortsTable.date, queryFrom))
       .orderBy(asc(effortsTable.date)),
+    db.select({ exerciseId: effortsTable.exerciseId, date: effortsTable.date, amount: effortsTable.amount })
+      .from(effortsTable),
   ]);
 
   // Consistency strip: which of the last 14 days had any effort
@@ -185,11 +200,6 @@ router.get("/summary", async (req, res): Promise<void> => {
     const d = offsetDate(today, -i);
     consistencyStrip.push({ date: d, active: activeDates.has(d) });
   }
-
-  // All-time efforts for best-day calculation
-  const allEfforts = await db
-    .select({ exerciseId: effortsTable.exerciseId, date: effortsTable.date, amount: effortsTable.amount })
-    .from(effortsTable);
 
   const allTimeByExDate = new Map<number, Map<string, number>>();
   for (const e of allEfforts) {
@@ -252,18 +262,29 @@ router.get("/summary", async (req, res): Promise<void> => {
       sparkline.push({ date: d, value: byDate.get(d) ?? 0 });
     }
 
+    // Deadline total: sum of efforts from goalStartDate through today
+    let deadlineTotal = 0;
+    if (ex.goalStartDate) {
+      for (const [d, v] of byDate) {
+        if (d >= ex.goalStartDate && d <= today) deadlineTotal += v;
+      }
+    }
+
     return {
-      exerciseId: ex.id,
-      name:       ex.name,
-      unit:       ex.unit,
-      color:      ex.color ?? null,
-      active:     ex.active,
-      sortOrder:  ex.sortOrder,
-      goalAmount: ex.goalAmount !== null && ex.goalAmount !== undefined ? Number(ex.goalAmount) : null,
-      goalPeriod: ex.goalPeriod ?? null,
+      exerciseId:    ex.id,
+      name:          ex.name,
+      unit:          ex.unit,
+      color:         ex.color ?? null,
+      active:        ex.active,
+      sortOrder:     ex.sortOrder,
+      goalAmount:    ex.goalAmount !== null && ex.goalAmount !== undefined ? Number(ex.goalAmount) : null,
+      goalPeriod:    ex.goalPeriod ?? null,
+      goalDeadline:  ex.goalDeadline  ?? null,
+      goalStartDate: ex.goalStartDate ?? null,
       todayTotal,
       weekTotal,
       monthTotal,
+      deadlineTotal,
       last7,
       prev7,
       delta,

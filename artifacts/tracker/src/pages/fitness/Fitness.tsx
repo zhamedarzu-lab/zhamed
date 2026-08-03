@@ -18,11 +18,14 @@ type ExerciseStat = {
   color: string | null;
   active: boolean;
   sortOrder: number;
-  goalAmount: number | null;
-  goalPeriod: GoalPeriod | null;
-  todayTotal: number;
-  weekTotal: number;
-  monthTotal: number;
+  goalAmount:    number | null;
+  goalPeriod:    GoalPeriod | null;
+  goalDeadline:  string | null;
+  goalStartDate: string | null;
+  todayTotal:    number;
+  weekTotal:     number;
+  monthTotal:    number;
+  deadlineTotal: number;
   last7: number;
   prev7: number;
   delta: number;
@@ -764,6 +767,12 @@ function EditModal({
 
 const PERIOD_LABELS: Record<GoalPeriod, string> = { day: "Daily", week: "Weekly", month: "Monthly" };
 
+function tomorrowIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function GoalModal({
   stat,
   color,
@@ -777,9 +786,15 @@ function GoalModal({
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const [amount, setAmount] = useState(stat.goalAmount !== null ? String(stat.goalAmount) : "");
-  const [period, setPeriod] = useState<GoalPeriod>(stat.goalPeriod ?? "week");
-  const [busy,   setBusy]   = useState(false);
+  const hasDeadline = !!stat.goalDeadline;
+  const [mode,     setMode]     = useState<"period" | "deadline">(hasDeadline ? "deadline" : "period");
+  const [amount,   setAmount]   = useState(stat.goalAmount !== null ? String(stat.goalAmount) : "");
+  const [period,   setPeriod]   = useState<GoalPeriod>(stat.goalPeriod ?? "week");
+  const [deadline, setDeadline] = useState(stat.goalDeadline ?? tomorrowIso());
+  const [busy,     setBusy]     = useState(false);
+
+  const canSave = !!amount && parseFloat(amount) > 0 &&
+    (mode === "period" || (mode === "deadline" && !!deadline));
 
   async function save() {
     const parsed = parseFloat(amount);
@@ -787,7 +802,21 @@ function GoalModal({
     setBusy(true);
     onError(null);
     try {
-      await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, { goalAmount: parsed, goalPeriod: period });
+      if (mode === "period") {
+        await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, {
+          goalAmount:    parsed,
+          goalPeriod:    period,
+          goalDeadline:  null,
+          goalStartDate: null,
+        });
+      } else {
+        await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, {
+          goalAmount:    parsed,
+          goalPeriod:    null,
+          goalDeadline:  deadline,
+          goalStartDate: todayIso(),
+        });
+      }
       await onChanged();
       onClose();
     } catch (err) {
@@ -801,7 +830,9 @@ function GoalModal({
     setBusy(true);
     onError(null);
     try {
-      await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, { goalAmount: null, goalPeriod: null });
+      await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, {
+        goalAmount: null, goalPeriod: null, goalDeadline: null, goalStartDate: null,
+      });
       await onChanged();
       onClose();
     } catch (err) {
@@ -820,6 +851,24 @@ function GoalModal({
         </div>
 
         <div className="ft-goal-fields">
+          {/* Mode toggle */}
+          <div className="ft-goal-mode-tabs">
+            <button
+              type="button"
+              className={`ft-goal-mode-tab${mode === "period" ? " ft-goal-mode-tab--active" : ""}`}
+              onClick={() => setMode("period")}
+            >
+              Rolling period
+            </button>
+            <button
+              type="button"
+              className={`ft-goal-mode-tab${mode === "deadline" ? " ft-goal-mode-tab--active" : ""}`}
+              onClick={() => setMode("deadline")}
+            >
+              By a date
+            </button>
+          </div>
+
           <input
             className="ft-goal-amount"
             type="number"
@@ -831,22 +880,36 @@ function GoalModal({
             onChange={(e) => setAmount(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") void save(); if (e.key === "Escape") onClose(); }}
           />
-          <div className="ft-goal-periods">
-            {(["day", "week", "month"] as GoalPeriod[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`ft-goal-period-btn${period === p ? " ft-goal-period-btn--active" : ""}`}
-                onClick={() => setPeriod(p)}
-              >
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
-          </div>
+
+          {mode === "period" ? (
+            <div className="ft-goal-periods">
+              {(["day", "week", "month"] as GoalPeriod[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`ft-goal-period-btn${period === p ? " ft-goal-period-btn--active" : ""}`}
+                  onClick={() => setPeriod(p)}
+                >
+                  {PERIOD_LABELS[p]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="ft-goal-deadline-row">
+              <label className="ft-goal-deadline-label">Complete by</label>
+              <input
+                className="ft-goal-deadline-input"
+                type="date"
+                min={tomorrowIso()}
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
         <div className="ft-goal-actions">
-          <button className="primary" onClick={save} disabled={busy || !amount || parseFloat(amount) <= 0}>
+          <button className="primary" onClick={save} disabled={busy || !canSave}>
             Save
           </button>
           {stat.goalAmount !== null && (
@@ -975,43 +1038,72 @@ function Numpad({
 // ─── GoalBar ──────────────────────────────────────────────────────────────────
 
 function GoalBar({ stat }: { stat: ExerciseStat }) {
-  if (!stat.goalAmount || !stat.goalPeriod) return null;
+  if (!stat.goalAmount) return null;
 
-  const goal   = stat.goalAmount;
-  const period = stat.goalPeriod;
-  const total  = period === "day" ? stat.todayTotal : period === "week" ? stat.weekTotal : stat.monthTotal;
+  const goal           = stat.goalAmount;
+  const isDeadlineMode = !!stat.goalDeadline;
 
-  const fillPct = Math.min(total / goal, 1) * 100;
+  let total: number;
+  let pace: number;
+  let expired = false;
+
+  if (isDeadlineMode) {
+    total = stat.deadlineTotal;
+    const now   = new Date();
+    const start = new Date((stat.goalStartDate ?? todayIso()) + "T12:00:00Z");
+    const end   = new Date(stat.goalDeadline!  + "T12:00:00Z");
+    const totalMs   = Math.max(end.getTime() - start.getTime(), 1);
+    const elapsedMs = now.getTime() - start.getTime();
+    pace    = Math.min(Math.max(elapsedMs / totalMs, 0), 1);
+    expired = now > end;
+  } else if (stat.goalPeriod) {
+    const period = stat.goalPeriod;
+    total = period === "day" ? stat.todayTotal : period === "week" ? stat.weekTotal : stat.monthTotal;
+    const now = new Date();
+    if (period === "day") {
+      pace = (now.getHours() + now.getMinutes() / 60) / 24;
+    } else if (period === "week") {
+      pace = (now.getDay() * 24 + now.getHours() + now.getMinutes() / 60) / 168;
+    } else {
+      const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      pace = ((now.getDate() - 1) + (now.getHours() + now.getMinutes() / 60) / 24) / dim;
+    }
+  } else {
+    return null;
+  }
+
+  const fillPct  = Math.min(total / goal, 1) * 100;
+  const pacePct  = Math.min(pace * 100, 100);
   const complete = total >= goal;
 
-  // Fraction of the current period that has elapsed (0–1) — client local time
-  const now = new Date();
-  let pace: number;
-  if (period === "day") {
-    pace = (now.getHours() + now.getMinutes() / 60) / 24;
-  } else if (period === "week") {
-    // Sunday = 0, Saturday = 6; week is 168 h
-    pace = (now.getDay() * 24 + now.getHours() + now.getMinutes() / 60) / 168;
+  // Tooltip text
+  let title: string;
+  if (isDeadlineMode) {
+    const deadlineDate = new Date(stat.goalDeadline! + "T12:00:00Z");
+    const daysLeft     = Math.ceil((deadlineDate.getTime() - Date.now()) / 86_400_000);
+    if (complete)      title = `Goal complete! ${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit}`;
+    else if (expired)  title = `Deadline passed · ${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit}`;
+    else               title = `${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit} · ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
   } else {
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    pace = ((now.getDate() - 1) + (now.getHours() + now.getMinutes() / 60) / 24) / daysInMonth;
+    const lbl = stat.goalPeriod === "day" ? "today" : stat.goalPeriod === "week" ? "this week" : "this month";
+    title = complete
+      ? `Goal complete! ${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit} ${lbl}`
+      : `${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit} ${lbl} · ${Math.round(pacePct)}% of period elapsed`;
   }
-  const pacePct = Math.min(pace * 100, 100);
-
-  const periodLabel = period === "day" ? "today" : period === "week" ? "this week" : "this month";
-  const title = complete
-    ? `Goal complete! ${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit} ${periodLabel}`
-    : `${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit} ${periodLabel} · ${Math.round(pacePct)}% of period elapsed`;
 
   return (
     <div
-      className={`ft-goal-bar${complete ? " ft-goal-bar--complete" : ""}`}
+      className={[
+        "ft-goal-bar",
+        complete          ? "ft-goal-bar--complete" : "",
+        expired && !complete ? "ft-goal-bar--expired"  : "",
+      ].filter(Boolean).join(" ")}
       title={title}
       aria-label={title}
     >
       <div className="ft-goal-bar-track">
         <div className="ft-goal-bar-fill" style={{ width: `${fillPct}%` }} />
-        {!complete && <div className="ft-goal-bar-pace" style={{ left: `${pacePct}%` }} />}
+        {!complete && !expired && <div className="ft-goal-bar-pace" style={{ left: `${pacePct}%` }} />}
       </div>
     </div>
   );

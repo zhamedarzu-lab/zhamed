@@ -5245,6 +5245,60 @@ button.btn-icon {
   margin-right: auto;
 }
 
+/* Mode toggle tabs */
+.ft-goal-mode-tabs {
+  display: flex;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ft-goal-mode-tab {
+  flex: 1;
+  padding: 0.5rem 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  transition: background 0.12s, color 0.12s;
+}
+.ft-goal-mode-tab--active {
+  background: var(--rule-strong);
+  color: var(--ink);
+}
+
+/* Deadline date row */
+.ft-goal-deadline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.ft-goal-deadline-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ft-goal-deadline-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  color-scheme: dark;
+}
+.ft-goal-deadline-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* The card face — sits above action buttons, translates over them */
 .ft-swipe-card {
   position: relative;
@@ -5277,6 +5331,12 @@ button.btn-icon {
   width: 100% !important;
   transition: none;
 }
+/* Expired deadline — desaturated fill */
+.ft-goal-bar--expired .ft-goal-bar-fill {
+  background: var(--ink-faint);
+  opacity: 0.45;
+}
+
 /* Pace tick — shows where you should be to hit goal on time */
 .ft-goal-bar-pace {
   position: absolute;
