@@ -741,7 +741,7 @@ function Numpad({
     }
   }
 
-  const keys = ["7","8","9","4","5","6","1","2","3",".","0","⌫"];
+  const keys = ["7","8","9","4","5","6","1","2","3","0","⌫"];
   const n = parseFloat(value);
   const canSubmit = !!value && Number.isFinite(n) && n > 0;
 
@@ -765,7 +765,11 @@ function Numpad({
           {keys.map((k) => (
             <button
               key={k}
-              className={`ft-numpad-key${k === "⌫" ? " ft-numpad-key--backspace" : ""}`}
+              className={[
+                "ft-numpad-key",
+                k === "⌫" ? "ft-numpad-key--backspace" : "",
+                k === "0"  ? "ft-numpad-key--zero"      : "",
+              ].filter(Boolean).join(" ")}
               onPointerDown={(e) => { e.preventDefault(); press(k); }}
             >
               {k}

@@ -5244,6 +5244,10 @@ button.btn-icon {
   outline: none;
 }
 
+.ft-numpad-key--zero {
+  grid-column: span 2;
+}
+
 .ft-numpad-key--backspace {
   font-size: 1rem;
   color: var(--ink-faint);
