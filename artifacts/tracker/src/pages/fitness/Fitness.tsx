@@ -41,10 +41,14 @@ type Summary = {
 
 function currentSlot() {
   const h = new Date().getHours();
-  if (h >= 5  && h < 12) return "morning";
-  if (h >= 12 && h < 17) return "noon";
-  if (h >= 17 && h < 21) return "evening";
-  return "night";
+  if (h >=  5 && h <  8) return "early morning";
+  if (h >=  8 && h < 11) return "morning";
+  if (h >= 11 && h < 12) return "after morning";
+  if (h >= 12 && h < 13) return "noon";
+  if (h >= 13 && h < 17) return "afternoon";
+  if (h >= 17 && h < 20) return "evening";
+  if (h >= 20 && h < 23) return "night";
+  return "midnight";
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
