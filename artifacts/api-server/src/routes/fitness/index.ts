@@ -83,17 +83,22 @@ router.put("/exercises/reorder", async (req, res): Promise<void> => {
 
 // ─── Efforts ─────────────────────────────────────────────────────────────────
 
-const SLOTS = ["morning", "before_noon", "noon", "afternoon", "evening", "night"] as const;
+const SLOTS = [
+  "early morning", "morning", "before_noon", "after morning",
+  "noon", "afternoon", "evening", "night", "midnight",
+] as const;
 type Slot = typeof SLOTS[number];
 
 function autoSlot(): Slot {
   const h = new Date().getHours();
-  if (h >= 5  && h < 9)  return "morning";
-  if (h >= 9  && h < 12) return "before_noon";
+  if (h >=  5 && h <  8) return "early morning";
+  if (h >=  8 && h < 11) return "morning";
+  if (h >= 11 && h < 12) return "after morning";
   if (h >= 12 && h < 13) return "noon";
   if (h >= 13 && h < 17) return "afternoon";
-  if (h >= 17 && h < 21) return "evening";
-  return "night";
+  if (h >= 17 && h < 20) return "evening";
+  if (h >= 20 && h < 23) return "night";
+  return "midnight";
 }
 
 router.get("/efforts", async (req, res): Promise<void> => {
@@ -123,7 +128,7 @@ const EffortInput = z.object({
   exerciseId: z.number().int().positive(),
   date:       z.string().regex(DATE_RE),
   amount:     z.number().positive(),
-  slot:       z.enum(["morning","before_noon","noon","afternoon","evening","night"]).optional(),
+  slot:       z.enum(["early morning","morning","before_noon","after morning","noon","afternoon","evening","night","midnight"]).optional(),
 });
 
 router.post("/efforts", async (req, res): Promise<void> => {

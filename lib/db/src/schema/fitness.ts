@@ -11,7 +11,10 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
-export const slotEnum = pgEnum("slot", ["morning", "before_noon", "noon", "afternoon", "evening", "night"]);
+export const slotEnum = pgEnum("slot", [
+  "early morning", "morning", "before_noon", "after morning",
+  "noon", "afternoon", "evening", "night", "midnight",
+]);
 
 export const exercisesTable = pgTable("exercises", {
   id:         serial("id").primaryKey(),
