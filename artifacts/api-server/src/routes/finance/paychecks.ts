@@ -258,4 +258,25 @@ router.delete("/paychecks/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
+/**
+ * Distinct notes, for the editor's autocomplete. Exists so the editor does not
+ * have to download every paycheck ever recorded — with its allocations and
+ * extras — just to collect a list of strings it already has names for.
+ * Allocation and extra-income notes are kept apart because the editor offers
+ * them in different fields.
+ */
+router.get("/notes", async (_req, res): Promise<void> => {
+  const [allocRows, extraRows] = await Promise.all([
+    db.selectDistinct({ note: allocationsTable.note }).from(allocationsTable),
+    db.selectDistinct({ note: extraIncomeTable.note }).from(extraIncomeTable),
+  ]);
+
+  const clean = (rows: Array<{ note: string }>) =>
+    [...new Set(rows.map((r) => r.note.trim()).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b),
+    );
+
+  res.json({ allocations: clean(allocRows), extraIncome: clean(extraRows) });
+});
+
 export default router;
