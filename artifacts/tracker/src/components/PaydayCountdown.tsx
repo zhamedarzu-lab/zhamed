@@ -97,7 +97,7 @@ export default function PaydayCountdown() {
   return (
     <>
       {/* Progress bar — full-width, pinned to very top of viewport */}
-      <div
+      {!isFitness && <div
         className={barClass}
         role="progressbar"
         aria-label={isJournal ? "Progress through the current day" : "Progress through the current pay cycle"}
@@ -110,7 +110,7 @@ export default function PaydayCountdown() {
             old section's value. */}
         <div key={isJournal ? "j" : "f"} className={fillClass} style={{ width: `${progressPct}%` }} />
         <span className="top-bar-pct">{progressPct}%</span>
-      </div>
+      </div>}
 
       {/* Countdown widget — finance only */}
       {isFinance && (
