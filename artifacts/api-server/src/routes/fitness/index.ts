@@ -133,8 +133,11 @@ router.delete("/efforts/:id", async (req, res): Promise<void> => {
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
-router.get("/summary", async (_req, res): Promise<void> => {
-  const today = todayIso();
+router.get("/summary", async (req, res): Promise<void> => {
+  const todayParam = typeof req.query.today === "string" && DATE_RE.test(req.query.today)
+    ? req.query.today
+    : null;
+  const today = todayParam ?? todayIso();
 
   // Rolling windows
   const d14ago = offsetDate(today, -13);

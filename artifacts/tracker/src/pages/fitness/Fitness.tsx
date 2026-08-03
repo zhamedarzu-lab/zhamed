@@ -42,7 +42,7 @@ function currentSlot() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Fitness() {
-  const summary  = useApi<Summary>("/api/fitness/summary");
+  const summary  = useApi<Summary>(`/api/fitness/summary?today=${todayIso()}`);
   const [error,    setError]    = useState<string | null>(null);
   const [addOpen,       setAddOpen]       = useState(false);
   const [newName,       setNewName]       = useState("");
