@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const slotEnum = pgEnum("slot", [
-  "early morning", "morning", "before_noon", "after morning",
+  "early morning", "morning", "after morning",
   "noon", "afternoon", "evening", "night", "midnight",
 ]);
 

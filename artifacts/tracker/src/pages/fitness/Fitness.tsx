@@ -418,7 +418,6 @@ const SLOT_LABELS: Record<string, string> = {
   "early morning": "Early Morning",
   morning:         "Morning",
   "after morning": "After Morning",
-  before_noon:     "Before Noon",
   noon:            "Noon",
   afternoon:       "Afternoon",
   evening:         "Evening",

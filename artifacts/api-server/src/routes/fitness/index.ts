@@ -84,7 +84,7 @@ router.put("/exercises/reorder", async (req, res): Promise<void> => {
 // ─── Efforts ─────────────────────────────────────────────────────────────────
 
 const SLOTS = [
-  "early morning", "morning", "before_noon", "after morning",
+  "early morning", "morning", "after morning",
   "noon", "afternoon", "evening", "night", "midnight",
 ] as const;
 type Slot = typeof SLOTS[number];
@@ -128,7 +128,7 @@ const EffortInput = z.object({
   exerciseId: z.number().int().positive(),
   date:       z.string().regex(DATE_RE),
   amount:     z.number().positive(),
-  slot:       z.enum(["early morning","morning","before_noon","after morning","noon","afternoon","evening","night","midnight"]).optional(),
+  slot:       z.enum(["early morning","morning","after morning","noon","afternoon","evening","night","midnight"]).optional(),
 });
 
 router.post("/efforts", async (req, res): Promise<void> => {
