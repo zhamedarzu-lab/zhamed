@@ -4986,15 +4986,16 @@ button.btn-icon {
   pointer-events: none;
   z-index: 2;
 }
-/* Pace target — same color as the fill; becomes a split circle when the dot catches up */
+/* Pace target — accent color with dark outline so it reads against the track */
 .ft-overall-bar-pace {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 2px;
+  width: 3px;
   height: 14px;
   background: var(--accent);
   border-radius: 1px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
   pointer-events: none;
   z-index: 1;
 }
