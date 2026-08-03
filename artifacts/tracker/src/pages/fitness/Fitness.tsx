@@ -213,9 +213,10 @@ function WeekGrid({ exercises }: { exercises: ExerciseStat[] }) {
     () =>
       weekDays.map((date) => ({
         date,
-        done: exercises.filter(
-          (ex) => (ex.sparkline.find((s) => s.date === date)?.value ?? 0) > 0,
-        ),
+        done: exercises.filter((ex) => {
+          if (date === today) return ex.todayTotal > 0;
+          return (ex.sparkline.find((s) => s.date === date)?.value ?? 0) > 0;
+        }),
       })),
     [weekDays, exercises],
   );
