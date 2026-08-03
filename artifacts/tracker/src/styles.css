@@ -5120,20 +5120,130 @@ button.btn-icon {
   border-left: 3px solid var(--row-color, var(--rule-strong));
 }
 
-/* ── Inline rep input (double-tap) ──────────────────────────────────── */
-.ft-inline-input {
+/* ── Numpad overlay + bottom sheet ──────────────────────────────────── */
+.ft-numpad-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 200;
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 1rem 0.55rem;
-  border-top: 1px solid var(--rule);
-  background: var(--paper-sunk);
-  animation: ft-inline-in 0.18s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  align-items: flex-end;
 }
 
-@keyframes ft-inline-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: none; }
+.ft-numpad-sheet {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--paper);
+  border-radius: 18px 18px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: slideUpSheet 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to   { transform: translateY(0);    opacity: 1;   }
+}
+
+.ft-numpad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 3px solid var(--row-color, var(--rule-strong));
+}
+
+.ft-numpad-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.ft-numpad-close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.1s;
+}
+.ft-numpad-close:hover { color: var(--ink); }
+
+.ft-numpad-display {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.9rem 1.5rem 0.6rem;
+  min-height: 3.8rem;
+}
+
+.ft-numpad-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.ft-numpad-unit {
+  font-size: 1rem;
+  color: var(--ink-faint);
+}
+
+.ft-numpad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border-top: 1px solid var(--rule);
+}
+
+.ft-numpad-key {
+  background: var(--paper);
+  border: none;
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--ink);
+  padding: 0.95rem 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: background 0.07s;
+}
+.ft-numpad-key:active,
+.ft-numpad-key:focus-visible {
+  background: var(--rule);
+  outline: none;
+}
+
+.ft-numpad-key--backspace {
+  font-size: 1.25rem;
+  color: var(--ink-faint);
+}
+
+.ft-numpad-submit {
+  display: block;
+  width: calc(100% - 2rem);
+  margin: 0.75rem 1rem 1rem;
+  padding: 0.85rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.ft-numpad-submit:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /* ── Combined chart ─────────────────────────────────────────────────── */

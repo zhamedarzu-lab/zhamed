@@ -84,8 +84,8 @@ export default function Fitness() {
     }
   }
 
-  const [openId,   setOpenId]   = useState<number | null>(null);
-  const [swipeId,  setSwipeId]  = useState<number | null>(null);
+  const [numpadStat, setNumpadStat] = useState<ExerciseStat | null>(null);
+  const [swipeId,    setSwipeId]    = useState<number | null>(null);
 
   const activeExercises = (summary.data?.exercises ?? []).filter((e) => e.active);
   const activeDays = (summary.data?.consistencyStrip ?? []).filter((d) => d.active).length;
@@ -113,10 +113,9 @@ export default function Fitness() {
                 <ExerciseRow
                   key={ex.exerciseId}
                   stat={ex}
-                  isOpen={openId === ex.exerciseId}
-                  onOpen={setOpenId}
                   isSwipeOpen={swipeId === ex.exerciseId}
                   onSwipeOpen={setSwipeId}
+                  onOpenNumpad={setNumpadStat}
                   onChanged={summary.reload}
                   onError={setError}
                 />
@@ -124,6 +123,16 @@ export default function Fitness() {
             </div>
           )}
         </>
+      )}
+
+      {/* Numpad overlay */}
+      {numpadStat && (
+        <Numpad
+          stat={numpadStat}
+          onClose={() => setNumpadStat(null)}
+          onChanged={summary.reload}
+          onError={setError}
+        />
       )}
 
       {/* Add exercise */}
@@ -611,25 +620,127 @@ function EditModal({
 
 // ─── Exercise row ─────────────────────────────────────────────────────────────
 
-function ExerciseRow({
+// ─── Numpad ───────────────────────────────────────────────────────────────────
+
+function appendDigit(cur: string, key: string): string {
+  if (key === "." && cur.includes(".")) return cur;
+  if (cur === "0" && key !== ".") return key;
+  return cur + key;
+}
+
+function Numpad({
   stat,
-  isOpen,
-  onOpen,
-  isSwipeOpen,
-  onSwipeOpen,
+  onClose,
   onChanged,
   onError,
 }: {
   stat: ExerciseStat;
-  isOpen: boolean;
-  onOpen: (id: number | null) => void;
-  isSwipeOpen: boolean;
-  onSwipeOpen: (id: number | null) => void;
+  onClose: () => void;
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const [amount,      setAmount]      = useState("");
-  const [busy,        setBusy]        = useState(false);
+  const [value, setValue] = useState("");
+  const [busy,  setBusy]  = useState(false);
+  const color = stat.color ?? tagColor(stat.name);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape")    { onClose(); return; }
+      if (e.key === "Backspace") { setValue((v) => v.slice(0, -1)); return; }
+      if (e.key === "Enter")     { void handleSubmit(); return; }
+      if (/^[0-9.]$/.test(e.key)) setValue((v) => appendDigit(v, e.key));
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  function press(key: string) {
+    if (key === "⌫") { setValue((v) => v.slice(0, -1)); return; }
+    setValue((v) => appendDigit(v, key));
+  }
+
+  async function handleSubmit() {
+    const n = parseFloat(value);
+    if (!value || !Number.isFinite(n) || n <= 0) return;
+    setBusy(true);
+    onError(null);
+    try {
+      await api.post("/api/fitness/efforts", {
+        exerciseId: stat.exerciseId,
+        date:       todayIso(),
+        amount:     n,
+      });
+      onClose();
+      await onChanged();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not log effort.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const keys = ["7","8","9","4","5","6","1","2","3",".","0","⌫"];
+  const n = parseFloat(value);
+  const canSubmit = !!value && Number.isFinite(n) && n > 0;
+
+  return (
+    <div className="ft-numpad-overlay" onPointerDown={onClose}>
+      <div
+        className="ft-numpad-sheet"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="ft-numpad-header" style={{ "--row-color": color } as CSSProperties}>
+          <span className="ft-numpad-name">{stat.name}</span>
+          <button className="ft-numpad-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+
+        <div className="ft-numpad-display">
+          <span className="ft-numpad-value">{value || "0"}</span>
+          <span className="ft-numpad-unit">{stat.unit}</span>
+        </div>
+
+        <div className="ft-numpad-grid">
+          {keys.map((k) => (
+            <button
+              key={k}
+              className={`ft-numpad-key${k === "⌫" ? " ft-numpad-key--backspace" : ""}`}
+              onPointerDown={(e) => { e.preventDefault(); press(k); }}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+
+        <button
+          className="ft-numpad-submit"
+          onClick={handleSubmit}
+          disabled={busy || !canSubmit}
+        >
+          {busy ? "Logging…" : canSubmit ? `Log ${value} ${stat.unit}` : `Log ${stat.unit}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── ExerciseRow ──────────────────────────────────────────────────────────────
+
+function ExerciseRow({
+  stat,
+  isSwipeOpen,
+  onSwipeOpen,
+  onOpenNumpad,
+  onChanged,
+  onError,
+}: {
+  stat: ExerciseStat;
+  isSwipeOpen: boolean;
+  onSwipeOpen: (id: number | null) => void;
+  onOpenNumpad: (stat: ExerciseStat) => void;
+  onChanged: () => Promise<unknown>;
+  onError: (m: string | null) => void;
+}) {
   const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
   const [showHistory, setShowHistory] = useState(false);
   const [showEdit,    setShowEdit]    = useState(false);
@@ -641,7 +752,6 @@ function ExerciseRow({
   const touchCurX     = useRef(0);
   const isHoriz       = useRef(false);
   const lastTapTime   = useRef(0);
-  const inputRef      = useRef<HTMLInputElement>(null);
 
   const color = stat.color ?? tagColor(stat.name);
 
@@ -649,10 +759,6 @@ function ExerciseRow({
   useEffect(() => {
     if (!isSwipeOpen) setSwipeDir(null);
   }, [isSwipeOpen]);
-
-  useEffect(() => {
-    if (isOpen) inputRef.current?.focus();
-  }, [isOpen]);
 
   const LEFT_SNAP  = -140; // card shifts left → reveals edit + delete on right
   const RIGHT_SNAP =   90; // card shifts right → reveals history on left
@@ -699,17 +805,15 @@ function ExerciseRow({
       const gap = now - lastTapTime.current;
 
       if (gap < 300 && gap > 0) {
-        // Double-tap → open inline input (or close if already open)
+        // Double-tap → open numpad
         if (swipeDir !== null) { setSwipeDir(null); onSwipeOpen(null); }
-        onOpen(isOpen ? null : stat.exerciseId);
+        onOpenNumpad(stat);
         lastTapTime.current = 0; // reset so triple-tap doesn't re-fire
       } else {
-        // Single tap → close swipe/input if open, otherwise do nothing
+        // Single tap → close swipe if open, otherwise do nothing
         if (swipeDir !== null) {
           setSwipeDir(null);
           onSwipeOpen(null);
-        } else if (isOpen) {
-          onOpen(null);
         }
         lastTapTime.current = now;
       }
@@ -748,27 +852,6 @@ function ExerciseRow({
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not delete exercise.");
-    }
-  }
-
-  async function submit() {
-    const n = parseFloat(amount);
-    if (!amount.trim() || !Number.isFinite(n) || n <= 0) return;
-    setBusy(true);
-    onError(null);
-    try {
-      await api.post("/api/fitness/efforts", {
-        exerciseId: stat.exerciseId,
-        date:       todayIso(),
-        amount:     n,
-      });
-      setAmount("");
-      onOpen(null);
-      await onChanged();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not log effort.");
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -841,20 +924,15 @@ function ExerciseRow({
             role="button"
             tabIndex={0}
             aria-label={`${stat.name} — click to log`}
-            aria-expanded={isOpen}
             onClick={() => {
-              // Desktop / pointer fallback: single click toggles inline input
+              // Desktop / pointer fallback: single click opens numpad
               if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
                 if (swipeDir !== null) { setSwipeDir(null); onSwipeOpen(null); }
-                if (isOpen) { onOpen(null); setAmount(""); }
-                else         { onOpen(stat.exerciseId); onSwipeOpen(null); }
+                onOpenNumpad(stat);
               }
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                if (isOpen) { onOpen(null); setAmount(""); }
-                else         onOpen(stat.exerciseId);
-              }
+              if (e.key === "Enter" || e.key === " ") onOpenNumpad(stat);
             }}
           >
             <div className="ft-row-left">
@@ -909,42 +987,6 @@ function ExerciseRow({
             </div>
           </div>
 
-          {/* Inline rep input — revealed by double-tap */}
-          {isOpen && (
-            <div
-              className="ft-inline-input"
-              onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onTouchEnd={(e) => e.stopPropagation()}
-            >
-              <input
-                ref={inputRef}
-                className="ft-log-input"
-                inputMode="decimal"
-                value={amount}
-                placeholder={stat.unit}
-                onChange={(e) => setAmount(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter")  submit();
-                  if (e.key === "Escape") { onOpen(null); setAmount(""); }
-                }}
-              />
-              <button
-                className="primary ft-log-submit"
-                onClick={submit}
-                disabled={busy || !amount.trim()}
-              >
-                ✓
-              </button>
-              <button
-                className="quiet"
-                onClick={() => { onOpen(null); setAmount(""); }}
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
