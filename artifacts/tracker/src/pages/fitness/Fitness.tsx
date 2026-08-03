@@ -208,6 +208,7 @@ export default function Fitness() {
       {summary.data && (
         <>
           <WeekGrid exercises={displayOrder} />
+          <OverallGoalBar exercises={localOrder} />
 
           {displayOrder.length === 0 ? (
             <Empty title="No exercises yet">
@@ -1030,6 +1031,66 @@ function Numpad({
         >
           {busy ? "Logging…" : canSubmit ? `Log ${value} ${stat.unit}` : `Log ${stat.unit}`}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── OverallGoalBar ───────────────────────────────────────────────────────────
+
+function OverallGoalBar({ exercises }: { exercises: ExerciseStat[] }) {
+  const now = new Date();
+
+  type GoalPoint = { fill: number; pace: number };
+  const points: GoalPoint[] = [];
+
+  for (const ex of exercises) {
+    if (!ex.goalAmount) continue;
+    const goal = ex.goalAmount;
+    let total: number;
+    let pace: number;
+
+    if (ex.goalDeadline) {
+      total = ex.deadlineTotal;
+      const start   = new Date((ex.goalStartDate ?? todayIso()) + "T12:00:00Z");
+      const end     = new Date(ex.goalDeadline + "T12:00:00Z");
+      const totalMs = Math.max(end.getTime() - start.getTime(), 1);
+      pace  = Math.min(Math.max((now.getTime() - start.getTime()) / totalMs, 0), 1);
+    } else if (ex.goalPeriod) {
+      total = ex.goalPeriod === "day" ? ex.todayTotal : ex.goalPeriod === "week" ? ex.weekTotal : ex.monthTotal;
+      if (ex.goalPeriod === "day") {
+        pace = (now.getHours() + now.getMinutes() / 60) / 24;
+      } else if (ex.goalPeriod === "week") {
+        pace = (now.getDay() * 24 + now.getHours() + now.getMinutes() / 60) / 168;
+      } else {
+        const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        pace = ((now.getDate() - 1) + (now.getHours() + now.getMinutes() / 60) / 24) / dim;
+      }
+    } else {
+      continue;
+    }
+
+    points.push({ fill: Math.min(total / goal, 1), pace: Math.min(pace, 1) });
+  }
+
+  if (points.length === 0) return null;
+
+  const avgFill    = points.reduce((s, p) => s + p.fill, 0) / points.length;
+  const avgPace    = points.reduce((s, p) => s + p.pace, 0) / points.length;
+  const onPaceCount = points.filter(p => p.fill >= p.pace).length;
+  const complete   = avgFill >= 1;
+  const fillPct    = avgFill * 100;
+  const pacePct    = Math.min(avgPace * 100, 100);
+
+  return (
+    <div className="ft-overall-bar">
+      <div className="ft-overall-bar-header">
+        <span className="ft-overall-bar-label">Overall goals</span>
+        <span className="ft-overall-bar-tally">{onPaceCount} / {points.length} on pace</span>
+      </div>
+      <div className={`ft-overall-bar-track${complete ? " ft-overall-bar-track--complete" : ""}`}>
+        <div className="ft-overall-bar-fill" style={{ width: `${fillPct}%` }} />
+        {!complete && <div className="ft-overall-bar-pace" style={{ left: `${pacePct}%` }} />}
       </div>
     </div>
   );
