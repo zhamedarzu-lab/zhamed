@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { nextPayday, cycleProgress } from "../lib/payday";
+import { useApi } from "../lib/api";
+import { todayIso } from "../lib/format";
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
@@ -21,11 +23,69 @@ const fmtClock = (d: Date) => {
 /** Same day arithmetic as the journal top bar: minutes elapsed of 1440. */
 const dayPct = (d: Date) => ((d.getHours() * 60 + d.getMinutes()) / 1440) * 100;
 
+type GoalPeriod = "day" | "week" | "month";
+type ExerciseStat = {
+  goalAmount:    number | null;
+  goalPeriod:    GoalPeriod | null;
+  goalDeadline:  string | null;
+  goalStartDate: string | null;
+  todayTotal:    number;
+  weekTotal:     number;
+  monthTotal:    number;
+  deadlineTotal: number;
+};
+type FitnessSummary = { exercises: ExerciseStat[] };
+
+function fitnessGoalPct(exercises: ExerciseStat[], now: Date): { pct: number; onPace: number; total: number } | null {
+  const fills: number[] = [];
+  let onPace = 0;
+
+  for (const ex of exercises) {
+    if (!ex.goalAmount) continue;
+    const goal = ex.goalAmount;
+    let filled: number;
+    let pace: number;
+
+    if (ex.goalDeadline) {
+      filled = ex.deadlineTotal / goal;
+      const start   = new Date((ex.goalStartDate ?? todayIso()) + "T12:00:00Z");
+      const end     = new Date(ex.goalDeadline + "T12:00:00Z");
+      const totalMs = Math.max(end.getTime() - start.getTime(), 1);
+      pace  = Math.min(Math.max((now.getTime() - start.getTime()) / totalMs, 0), 1);
+    } else if (ex.goalPeriod) {
+      const raw = ex.goalPeriod === "day" ? ex.todayTotal : ex.goalPeriod === "week" ? ex.weekTotal : ex.monthTotal;
+      filled = raw / goal;
+      if (ex.goalPeriod === "day") {
+        pace = (now.getHours() + now.getMinutes() / 60) / 24;
+      } else if (ex.goalPeriod === "week") {
+        pace = (now.getDay() * 24 + now.getHours() + now.getMinutes() / 60) / 168;
+      } else {
+        const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        pace = ((now.getDate() - 1) + (now.getHours() + now.getMinutes() / 60) / 24) / dim;
+      }
+    } else {
+      continue;
+    }
+
+    fills.push(Math.min(filled, 1));
+    if (filled >= pace) onPace++;
+  }
+
+  if (fills.length === 0) return null;
+  const avg = fills.reduce((s, v) => s + v, 0) / fills.length;
+  return { pct: avg * 100, onPace, total: fills.length };
+}
+
 export default function Home() {
-  const now = useNow(1000);
-  const payday = nextPayday(now);
-  const cyclePct = cycleProgress(now) * 100;
-  const todayPct = dayPct(now);
+  const now     = useNow(1000);
+  const payday  = nextPayday(now);
+  const cyclePct  = cycleProgress(now) * 100;
+  const todayPct  = dayPct(now);
+
+  const fitSummary = useApi<FitnessSummary>(`/api/fitness/summary?today=${todayIso()}`);
+  const fitGoal    = fitSummary.data
+    ? fitnessGoalPct(fitSummary.data.exercises, now)
+    : null;
 
   const panes = [
     {
@@ -50,8 +110,8 @@ export default function Home() {
       label: "Fitness",
       path: "/fitness",
       accent: "#e07d3a",
-      pct: null,
-      caption: null,
+      pct: fitGoal ? fitGoal.pct : null,
+      caption: fitGoal ? `${fitGoal.onPace} / ${fitGoal.total} on pace` : null,
     },
   ];
 
@@ -89,11 +149,16 @@ export default function Home() {
                 aria-label={
                   pane.label === "Finance"
                     ? "Progress through the current pay cycle"
-                    : "Progress through the current day"
+                    : pane.label === "Journal"
+                    ? "Progress through the current day"
+                    : "Overall fitness goal progress"
                 }
               >
                 <div className="home-pane-bar-fill" style={{ width: `${pane.pct}%` }} />
               </div>
+            )}
+            {pane.caption && (
+              <span className="home-pane-caption">{pane.caption}</span>
             )}
           </Link>
         ))}

@@ -19,6 +19,7 @@
   --stamp: #d44e44;
   --carbon: #7aa8e8;
   --amber: #e0b04e;
+  --hover: color-mix(in srgb, var(--rule) 22%, var(--paper));
   --accent: #5fc97a;
 
   --ui: "Archivo", system-ui, -apple-system, sans-serif;
@@ -452,7 +453,7 @@ a:hover {
   transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
 .journal-nav-btn:hover {
-  background: var(--rule);
+  background: var(--hover);
   border-color: var(--ink-soft);
   color: var(--ink);
 }
@@ -500,7 +501,7 @@ a:hover {
 .journal-add-btn:hover {
   color: var(--ink);
   border-color: var(--ink-soft);
-  background: var(--paper-sunk);
+  background: var(--hover);
 }
 
 /* Journal → Search link in topbar */
@@ -523,7 +524,7 @@ a:hover {
 .journal-search-link:hover {
   color: var(--ink);
   border-color: var(--ink-soft);
-  background: var(--rule);
+  background: var(--hover);
 }
 
 /* ── Dedicated search page ──────────────────────────────────────────── */
@@ -1749,7 +1750,7 @@ a:hover {
   color: inherit;
 }
 .day-popup-row:last-child { border-bottom: none; }
-.day-popup-row:hover { background: var(--paper-sunk); }
+.day-popup-row:hover { background: var(--hover); }
 .day-popup-row--highlight .day-popup-label { font-weight: 500; }
 .day-popup-row--highlight .day-popup-time { letter-spacing: 0.01em; }
 .day-popup-dot {
@@ -2374,7 +2375,7 @@ a:hover {
   transition: border-color 0.15s, background 0.15s;
 }
 .journal-feed-card:hover {
-  background: color-mix(in srgb, var(--entry-color, transparent) 4%, var(--paper-sunk));
+  background: color-mix(in srgb, var(--entry-color, transparent) 4%, var(--hover));
   border-color: var(--rule-strong);
   border-left-color: var(--entry-color, var(--rule-strong));
 }
@@ -2829,7 +2830,7 @@ a:hover {
   position: relative;
   /* no overflow:hidden — tooltips need to escape the cell */
 }
-.journal-month-cell:hover { background: var(--paper-sunk); }
+.journal-month-cell:hover { background: var(--hover); }
 .journal-month-cell:nth-child(7n) { border-right: none; }
 .journal-month-cell.out-of-month .journal-month-cell-num,
 .journal-month-cell.out-of-month .journal-month-lines {
@@ -2955,7 +2956,7 @@ a:hover {
 }
 
 .payday-field-btn:active {
-  opacity: 0.75;
+  opacity: 0.88;
 }
 
 .payday-field-btn:focus-visible {
@@ -3270,7 +3271,7 @@ tbody tr:last-child td {
 }
 
 tbody tr:hover td {
-  background: var(--paper-sunk);
+  background: var(--hover);
 }
 
 .num {
@@ -3354,7 +3355,7 @@ button {
   transition: background 0.12s ease;
 }
 button:hover:not(:disabled) {
-  background: var(--paper-sunk);
+  background: var(--hover);
 }
 button:disabled {
   opacity: 0.45;
@@ -3367,7 +3368,7 @@ button.primary {
   color: var(--ledger);
 }
 button.primary:hover:not(:disabled) {
-  background: #0d1712;
+  background: #141c18;
 }
 
 button.quiet {
@@ -3377,7 +3378,7 @@ button.quiet {
   padding: 0.25rem 0.4rem;
 }
 button.quiet:hover:not(:disabled) {
-  background: var(--paper-sunk);
+  background: var(--hover);
   color: var(--ink);
 }
 
@@ -4708,7 +4709,7 @@ button.btn-icon {
   white-space: nowrap;
 }
 .jle-tab:hover {
-  background: var(--rule);
+  background: var(--hover);
   color: var(--ink);
 }
 .jle-tab.active {
@@ -4819,7 +4820,7 @@ button.btn-icon {
   transition: background 0.1s, color 0.1s, border-color 0.1s;
 }
 .jsearch-shortcut-chip:hover {
-  background: var(--rule);
+  background: var(--hover);
   color: var(--ink);
 }
 .jsearch-shortcut-chip.active {
@@ -5254,23 +5255,23 @@ button.btn-icon {
   justify-content: center;
   transition: filter 0.1s;
 }
-.ft-swipe-btn:active { filter: brightness(0.85); }
+.ft-swipe-btn:active { filter: brightness(0.93); }
 
 .ft-swipe-btn--edit {
-  background: var(--carbon);
-  color: #0a1a2a;
+  background: #3d6e9e;
+  color: #ddeeff;
 }
 .ft-swipe-btn--delete {
-  background: var(--stamp);
-  color: #fff;
+  background: #7a2e28;
+  color: #ffd8d6;
 }
 .ft-swipe-btn--history {
-  background: var(--amber);
-  color: #1a1000;
+  background: #7a6020;
+  color: #ffeec0;
 }
 .ft-swipe-btn--goal {
-  background: var(--accent);
-  color: #fff;
+  background: #2e7048;
+  color: #c8f0d8;
 }
 
 /* ── Goal modal ─────────────────────────────────────────────── */
@@ -5559,7 +5560,7 @@ button.btn-icon {
 }
 .ft-numpad-key:active,
 .ft-numpad-key:focus-visible {
-  background: var(--rule);
+  background: var(--hover);
   outline: none;
 }
 
