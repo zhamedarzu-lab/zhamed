@@ -5013,17 +5013,15 @@ button.btn-icon {
   pointer-events: none;
   z-index: 2;
 }
-/* Pace target — bright accent with strong outline so it pops off the track */
+/* Pace target — tall vertical line in accent color */
 .ft-overall-bar-pace {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 3px;
-  height: 14px;
+  width: 2px;
+  height: 20px;
   background: var(--accent);
-  filter: brightness(1.9);
   border-radius: 1px;
-  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.7);
   pointer-events: none;
   z-index: 1;
 }
