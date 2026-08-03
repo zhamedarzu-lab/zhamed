@@ -4929,6 +4929,8 @@ button.btn-icon {
   position: relative;
   will-change: transform;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .ft-row:last-child {
   border-bottom: none;
