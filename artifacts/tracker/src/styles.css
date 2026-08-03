@@ -4472,21 +4472,30 @@ button.btn-icon {
     height: 32px;
   }
 
-  /* Action row: wrap so buttons don't overflow */
+  /* Action row: wrap so left group and right buttons stack */
   .entry-form-actions {
     flex-wrap: wrap;
     row-gap: 0.5rem;
   }
 
-  /* Color strip takes its own full row so swatches aren't squeezed next to buttons */
+  /* Left group fills full width and wraps its children:
+     Row 1 → ◎ ◉ (loose-end-group, natural width, first in DOM)
+     Row 2 → color swatches (100% width, wraps to next line) */
+  .entry-form-left {
+    width: 100%;
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  /* Colors take their own full row; reset order so DOM order (after ◎ ◉) is respected */
   .entry-form-colors {
     width: 100%;
     flex-wrap: wrap;
     gap: 0.5rem;
-    order: -1; /* colors on top, buttons below */
+    order: 0;
   }
 
-  /* Buttons: taller tap targets */
+  /* Buttons: full row, right-aligned, taller tap targets */
   .entry-form-action-right {
     width: 100%;
     justify-content: flex-end;
