@@ -166,9 +166,6 @@ export default function Home() {
                 )}
               </div>
             )}
-            {pane.caption && (
-              <span className="home-pane-caption">{pane.caption}</span>
-            )}
           </Link>
         ))}
       </nav>
