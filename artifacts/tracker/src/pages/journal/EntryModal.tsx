@@ -20,17 +20,21 @@ export type Entry = {
 
 /* ── colors ─────────────────────────────────────────────────────────── */
 export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
-  { hex: "#c0392b", label: "Red",    hint: "Bad habits"    },
-  { hex: "#e08c3a", label: "Orange", hint: "Food & drink"  },
-  { hex: "#c49a2a", label: "Yellow", hint: "Fitness"       },
-  { hex: "#2ea84e", label: "Green",  hint: "Green"         },
-  { hex: "#2878c8", label: "Blue",   hint: "Social"        },
-  { hex: "#e04e8a", label: "Pink",   hint: "Pink"          },
-  { hex: "#9b4ee0", label: "Purple", hint: "Purple"        },
-  { hex: "#f5f5f5", label: "White",  hint: "Work"          },
-  { hex: "#8a9aaa", label: "Gray",   hint: "Sleep"         },
-  { hex: "#1c1c1e", label: "Black",  hint: "Black"         },
-  { hex: "#7c4a1e", label: "Brown",  hint: "Brown"         },
+  { hex: "#e05555", label: "Red",         hint: "Bad habits"    },
+  { hex: "#c0392b", label: "Dark Red",    hint: "Dark Red"      },
+  { hex: "#e08c3a", label: "Orange",      hint: "Food & drink"  },
+  { hex: "#e0b04e", label: "Yellow",      hint: "Fitness"       },
+  { hex: "#c49a2a", label: "Dark Yellow", hint: "Dark Yellow"   },
+  { hex: "#4ecb71", label: "Green",       hint: "Green"         },
+  { hex: "#2ea84e", label: "Dark Green",  hint: "Dark Green"    },
+  { hex: "#4eaaee", label: "Blue",        hint: "Social"        },
+  { hex: "#2878c8", label: "Dark Blue",   hint: "Dark Blue"     },
+  { hex: "#e04e8a", label: "Pink",        hint: "Pink"          },
+  { hex: "#9b4ee0", label: "Purple",      hint: "Purple"        },
+  { hex: "#f5f5f5", label: "White",       hint: "Work"          },
+  { hex: "#8a9aaa", label: "Gray",        hint: "Sleep"         },
+  { hex: "#1c1c1e", label: "Black",       hint: "Black"         },
+  { hex: "#7c4a1e", label: "Brown",       hint: "Brown"         },
 ];
 
 export function toYMD(d: Date) {
