@@ -243,7 +243,13 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
         </div>
       )}
       <div className="entry-form-actions">
-        <div className="entry-form-left">
+        <div className="entry-form-colors">
+          {ENTRY_COLORS.map(c => (
+            <button key={c.hex} className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+              style={{ background: c.hex }} aria-label={c.label} onClick={() => setColor(c.hex)} />
+          ))}
+        </div>
+        <div className="entry-form-action-right">
           <div className="entry-form-loose-end-group">
             <button
               className={`entry-form-loose-btn${looseEndType === 'open' ? ' active' : ''}`}
@@ -261,14 +267,6 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
               type="button"
             >◉</button>
           </div>
-          <div className="entry-form-colors">
-            {ENTRY_COLORS.map(c => (
-              <button key={c.hex} className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
-                style={{ background: c.hex }} aria-label={c.label} onClick={() => setColor(c.hex)} />
-            ))}
-          </div>
-        </div>
-        <div className="entry-form-action-right">
           {onPunch && !punchMode && (
             <button className="entry-form-punch-btn" onClick={() => setPunchMode(true)} type="button">
               Punch

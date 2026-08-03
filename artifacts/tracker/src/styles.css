@@ -1559,15 +1559,11 @@ a:hover {
   justify-content: space-between;
   gap: 0.75rem;
 }
-.entry-form-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
 .entry-form-loose-end-group {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  margin-right: auto; /* pushes Punch/S/🕐/Cancel/Add to the right */
 }
 .entry-form-action-right {
   display: flex;
@@ -4478,27 +4474,17 @@ button.btn-icon {
     row-gap: 0.5rem;
   }
 
-  /* Left group fills full width and wraps its children:
-     Row 1 → ◎ ◉ (loose-end-group, natural width, first in DOM)
-     Row 2 → color swatches (100% width, wraps to next line) */
-  .entry-form-left {
-    width: 100%;
-    flex-wrap: wrap;
-    row-gap: 0.5rem;
-  }
-
-  /* Colors take their own full row; reset order so DOM order (after ◎ ◉) is respected */
+  /* Colors take their own full row on top */
   .entry-form-colors {
     width: 100%;
     flex-wrap: wrap;
     gap: 0.5rem;
-    order: 0;
+    order: -1;
   }
 
-  /* Buttons: full row, right-aligned, taller tap targets */
+  /* Bottom row: ◎ ◉ left-anchored (via margin-right:auto), other buttons right */
   .entry-form-action-right {
     width: 100%;
-    justify-content: flex-end;
     gap: 0.5rem;
   }
   .entry-form-action-right button,
