@@ -787,8 +787,6 @@ function GoalModal({
           <button className="quiet" onClick={onClose}>✕</button>
         </div>
 
-        <p className="ft-goal-hint">How much do you want to hit, and how often?</p>
-
         <div className="ft-goal-fields">
           <input
             className="ft-goal-amount"
