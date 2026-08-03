@@ -5024,6 +5024,7 @@ button.btn-icon {
   width: 2px;
   margin-left: -1px;
   background: var(--accent);
+  opacity: 0.35;
   pointer-events: none;
   z-index: 10;
 }
