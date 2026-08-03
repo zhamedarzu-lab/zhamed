@@ -5287,144 +5287,100 @@ button.btn-icon {
 }
 
 /* ── Goal modal ─────────────────────────────────────────────── */
-.ft-goal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.82);
-  display: flex;
-  align-items: flex-end;   /* sheet from bottom on mobile */
-  justify-content: center;
-  z-index: 200;
-  padding: 1rem;
+/* Goal sheet — reuses the numpad shell, just wider + extra rows */
+.ft-goal-sheet {
+  width: 312px;
 }
-@media (min-width: 500px) {
-  .ft-goal-overlay { align-items: center; }
-}
-.ft-goal-modal {
-  background: var(--paper);
-  border: 1px solid var(--rule-strong);
-  border-radius: 22px;
-  width: 100%;
-  max-width: 360px;
-  padding: 1.25rem 1.25rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-.ft-goal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.ft-goal-title {
-  font-size: 0.95rem;
+
+.ft-goal-sheet-badge {
+  font-size: 0.6875rem;
   font-weight: 700;
-}
-.ft-goal-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.ft-goal-amount {
-  width: 100%;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid var(--rule-strong);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-.ft-goal-amount:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.ft-goal-periods {
-  display: flex;
-  gap: 0.4rem;
-}
-.ft-goal-period-btn {
-  flex: 1;
-  padding: 0.5rem 0;
-  border: 1px solid var(--rule-strong);
-  border-radius: 12px;
-  background: var(--surface);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--ink-faint);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-}
-.ft-goal-period-btn--active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-.ft-goal-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-.ft-goal-clear {
-  color: var(--stamp);
   margin-right: auto;
+  padding-left: 0.4rem;
 }
 
-/* Mode toggle tabs */
-.ft-goal-mode-tabs {
-  display: flex;
-  border: 1px solid var(--rule-strong);
-  border-radius: 12px;
-  overflow: hidden;
+/* 4-tab period strip */
+.ft-goal-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
 }
-.ft-goal-mode-tab {
-  flex: 1;
-  padding: 0.5rem 0;
-  background: transparent;
+
+.ft-goal-tab {
+  background: var(--paper);
   border: none;
-  cursor: pointer;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--ink-faint);
-  transition: background 0.12s, color 0.12s;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: background 0.1s, color 0.1s;
 }
-.ft-goal-mode-tab--active {
-  background: var(--rule-strong);
-  color: var(--ink);
+.ft-goal-tab:active { background: var(--hover); }
+
+.ft-goal-tab--active {
+  background: color-mix(in srgb, var(--tab-color, var(--accent)) 18%, var(--paper));
+  color: var(--tab-color, var(--accent));
 }
 
-/* Deadline date row */
-.ft-goal-deadline-row {
+/* "By date" date input row */
+.ft-goal-date-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  padding: 0.45rem 0.875rem 0;
 }
-.ft-goal-deadline-label {
+
+.ft-goal-date-label {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--ink-faint);
-  white-space: nowrap;
   flex-shrink: 0;
 }
-.ft-goal-deadline-input {
+
+.ft-goal-date-input {
   flex: 1;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.6rem;
   border: 1px solid var(--rule-strong);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   box-sizing: border-box;
   color-scheme: dark;
 }
-.ft-goal-deadline-input:focus {
+.ft-goal-date-input:focus {
   outline: none;
   border-color: var(--accent);
 }
+
+/* Remove goal — quiet destructive link below submit */
+.ft-goal-remove {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0 0.55rem;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+  text-align: center;
+  transition: color 0.1s;
+}
+.ft-goal-remove:hover { color: var(--stamp); }
+.ft-goal-remove:disabled { opacity: 0.4; cursor: default; }
 
 /* The card face — sits above action buttons, translates over them */
 .ft-swipe-card {

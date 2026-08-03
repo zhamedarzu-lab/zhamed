@@ -767,13 +767,20 @@ function EditModal({
 
 // ─── Goal modal ───────────────────────────────────────────────────────────────
 
-const PERIOD_LABELS: Record<GoalPeriod, string> = { day: "Daily", week: "Weekly", month: "Monthly" };
-
 function tomorrowIso(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+type GoalMode = GoalPeriod | "date";
+
+const GOAL_TABS: { key: GoalMode; label: string }[] = [
+  { key: "day",   label: "Day"     },
+  { key: "week",  label: "Week"    },
+  { key: "month", label: "Month"   },
+  { key: "date",  label: "By date" },
+];
 
 function GoalModal({
   stat,
@@ -788,32 +795,47 @@ function GoalModal({
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const hasDeadline = !!stat.goalDeadline;
-  const [mode,     setMode]     = useState<"period" | "deadline">(hasDeadline ? "deadline" : "period");
-  const [amount,   setAmount]   = useState(stat.goalAmount !== null ? String(stat.goalAmount) : "");
-  const [period,   setPeriod]   = useState<GoalPeriod>(stat.goalPeriod ?? "week");
+  const initMode: GoalMode = stat.goalDeadline ? "date" : (stat.goalPeriod ?? "week");
+  const [mode,     setMode]     = useState<GoalMode>(initMode);
+  const [value,    setValue]    = useState(stat.goalAmount !== null ? String(stat.goalAmount) : "");
   const [deadline, setDeadline] = useState(stat.goalDeadline ?? tomorrowIso());
   const [busy,     setBusy]     = useState(false);
 
-  const canSave = !!amount && parseFloat(amount) > 0 &&
-    (mode === "period" || (mode === "deadline" && !!deadline));
+  const n = parseFloat(value);
+  const canSave = !!value && Number.isFinite(n) && n > 0 && (mode !== "date" || !!deadline);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape")    { onClose(); return; }
+      if (e.key === "Backspace") { setValue((v) => v.slice(0, -1)); return; }
+      if (e.key === "Enter")     { void save(); return; }
+      if (/^[0-9.]$/.test(e.key)) setValue((v) => appendDigit(v, e.key));
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, mode, deadline]);
+
+  function press(key: string) {
+    if (key === "⌫") { setValue((v) => v.slice(0, -1)); return; }
+    setValue((v) => appendDigit(v, key));
+  }
 
   async function save() {
-    const parsed = parseFloat(amount);
-    if (isNaN(parsed) || parsed <= 0) return;
+    if (!canSave) return;
     setBusy(true);
     onError(null);
     try {
-      if (mode === "period") {
+      if (mode !== "date") {
         await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, {
-          goalAmount:    parsed,
-          goalPeriod:    period,
+          goalAmount:    n,
+          goalPeriod:    mode,
           goalDeadline:  null,
           goalStartDate: null,
         });
       } else {
         await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, {
-          goalAmount:    parsed,
+          goalAmount:    n,
           goalPeriod:    null,
           goalDeadline:  deadline,
           goalStartDate: todayIso(),
@@ -828,7 +850,7 @@ function GoalModal({
     }
   }
 
-  async function clear() {
+  async function remove() {
     setBusy(true);
     onError(null);
     try {
@@ -838,89 +860,105 @@ function GoalModal({
       await onChanged();
       onClose();
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not clear goal.");
+      onError(err instanceof Error ? err.message : "Could not remove goal.");
     } finally {
       setBusy(false);
     }
   }
 
+  const submitLabel = (() => {
+    if (busy) return "Saving…";
+    if (!canSave) return "Set goal";
+    if (mode === "date") {
+      const d = new Date(deadline + "T12:00:00Z");
+      const fmt = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return `${value} ${stat.unit} by ${fmt}`;
+    }
+    return `${value} ${stat.unit} / ${mode}`;
+  })();
+
+  const keys = ["7","8","9","4","5","6","1","2","3","0","⌫"];
+
   return (
-    <div className="ft-goal-overlay" onClick={onClose}>
-      <div className="ft-goal-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="ft-goal-header">
-          <span className="ft-goal-title" style={{ color }}>Goal · {stat.name}</span>
-          <button className="quiet" onClick={onClose}>✕</button>
+    <div className="ft-numpad-overlay" onPointerDown={onClose}>
+      <div
+        className="ft-numpad-sheet ft-goal-sheet"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="ft-numpad-header" style={{ "--row-color": color } as CSSProperties}>
+          <span className="ft-numpad-name">{stat.name}</span>
+          <span className="ft-goal-sheet-badge">goal</span>
+          <button className="ft-numpad-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
-        <div className="ft-goal-fields">
-          {/* Mode toggle */}
-          <div className="ft-goal-mode-tabs">
+        {/* Big number display */}
+        <div className="ft-numpad-display">
+          <span className="ft-numpad-value">{value || "0"}</span>
+          <span className="ft-numpad-unit">{stat.unit}</span>
+        </div>
+
+        {/* Period / mode tabs */}
+        <div className="ft-goal-tabs">
+          {GOAL_TABS.map((t) => (
             <button
+              key={t.key}
               type="button"
-              className={`ft-goal-mode-tab${mode === "period" ? " ft-goal-mode-tab--active" : ""}`}
-              onClick={() => setMode("period")}
+              className={`ft-goal-tab${mode === t.key ? " ft-goal-tab--active" : ""}`}
+              style={mode === t.key ? { "--tab-color": color } as CSSProperties : undefined}
+              onPointerDown={(e) => { e.preventDefault(); setMode(t.key); }}
             >
-              Rolling period
+              {t.label}
             </button>
-            <button
-              type="button"
-              className={`ft-goal-mode-tab${mode === "deadline" ? " ft-goal-mode-tab--active" : ""}`}
-              onClick={() => setMode("deadline")}
-            >
-              By a date
-            </button>
+          ))}
+        </div>
+
+        {/* Date input — only for "date" mode */}
+        {mode === "date" && (
+          <div className="ft-goal-date-row">
+            <span className="ft-goal-date-label">by</span>
+            <input
+              className="ft-goal-date-input"
+              type="date"
+              min={tomorrowIso()}
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
           </div>
+        )}
 
-          <input
-            className="ft-goal-amount"
-            type="number"
-            min="0"
-            step="any"
-            placeholder={`Amount (${stat.unit})`}
-            value={amount}
-            autoFocus
-            onChange={(e) => setAmount(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") void save(); if (e.key === "Escape") onClose(); }}
-          />
-
-          {mode === "period" ? (
-            <div className="ft-goal-periods">
-              {(["day", "week", "month"] as GoalPeriod[]).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`ft-goal-period-btn${period === p ? " ft-goal-period-btn--active" : ""}`}
-                  onClick={() => setPeriod(p)}
-                >
-                  {PERIOD_LABELS[p]}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="ft-goal-deadline-row">
-              <label className="ft-goal-deadline-label">Complete by</label>
-              <input
-                className="ft-goal-deadline-input"
-                type="date"
-                min={tomorrowIso()}
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="ft-goal-actions">
-          <button className="primary" onClick={save} disabled={busy || !canSave}>
-            Save
-          </button>
-          {stat.goalAmount !== null && (
-            <button className="quiet ft-goal-clear" onClick={clear} disabled={busy}>
-              Clear goal
+        {/* Numpad */}
+        <div className="ft-numpad-grid">
+          {keys.map((k) => (
+            <button
+              key={k}
+              className={[
+                "ft-numpad-key",
+                k === "⌫" ? "ft-numpad-key--backspace" : "",
+                k === "0"  ? "ft-numpad-key--zero"      : "",
+              ].filter(Boolean).join(" ")}
+              onPointerDown={(e) => { e.preventDefault(); press(k); }}
+            >
+              {k}
             </button>
-          )}
-          <button className="quiet" onClick={onClose}>Cancel</button>
+          ))}
         </div>
+
+        {/* Submit */}
+        <button
+          className="ft-numpad-submit"
+          onClick={save}
+          disabled={busy || !canSave}
+        >
+          {submitLabel}
+        </button>
+
+        {/* Remove (only if a goal exists) */}
+        {stat.goalAmount !== null && (
+          <button className="ft-goal-remove" onClick={remove} disabled={busy}>
+            Remove goal
+          </button>
+        )}
       </div>
     </div>
   );
