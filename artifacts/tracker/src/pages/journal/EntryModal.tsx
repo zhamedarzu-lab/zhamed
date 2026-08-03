@@ -22,7 +22,8 @@ export type Entry = {
 export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
   { hex: "#e82020", label: "Red",         hint: "Bad habits"    },
   { hex: "#8b1a1a", label: "Dark Red",    hint: "Dark Red"      },
-  { hex: "#e08c3a", label: "Orange",      hint: "Food & drink"  },
+  { hex: "#e55c00", label: "Orange",      hint: "Food & drink"  },
+  { hex: "#7c4a1e", label: "Brown",       hint: "Brown"         },
   { hex: "#e0b04e", label: "Yellow",      hint: "Fitness"       },
   { hex: "#c49a2a", label: "Dark Yellow", hint: "Dark Yellow"   },
   { hex: "#1fcc55", label: "Green",       hint: "Green"         },
@@ -34,7 +35,6 @@ export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
   { hex: "#f5f5f5", label: "White",       hint: "Work"          },
   { hex: "#8a9aaa", label: "Gray",        hint: "Sleep"         },
   { hex: "#1c1c1e", label: "Black",       hint: "Black"         },
-  { hex: "#7c4a1e", label: "Brown",       hint: "Brown"         },
 ];
 
 export function toYMD(d: Date) {
