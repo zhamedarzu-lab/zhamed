@@ -825,6 +825,20 @@ function ExerciseRow({
   const touchCurX     = useRef(0);
   const isHoriz       = useRef(false);
   const lastTapTime   = useRef(0);
+  const cardRef       = useRef<HTMLDivElement>(null);
+
+  // Non-passive touchmove listener — React's onTouchMove is passive so
+  // e.preventDefault() inside it is silently ignored by the browser.
+  // Attaching directly lets us block scroll once a horizontal swipe is confirmed.
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    function onMove(e: TouchEvent) {
+      if (isHoriz.current) e.preventDefault();
+    }
+    el.addEventListener("touchmove", onMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onMove);
+  }, []);
 
   const color = stat.color ?? tagColor(stat.name);
 
@@ -985,6 +999,7 @@ function ExerciseRow({
 
         {/* Card face — translates over the action buttons */}
         <div
+          ref={cardRef}
           className="ft-swipe-card"
           style={{
             transform:  `translateX(${translateX}px)`,
