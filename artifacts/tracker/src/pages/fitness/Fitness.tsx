@@ -669,9 +669,7 @@ function ExerciseRow({
             />
             <button className="primary ft-log-submit" onClick={submit}
               disabled={busy || !amount.trim()}>✓</button>
-            <button type="button" className="quiet ft-history-btn ft-drawer-right"
-              onClick={openEdit} title="Edit exercise">edit</button>
-            <button type="button" className="quiet ft-history-btn ft-row-delete"
+            <button type="button" className="quiet ft-history-btn ft-row-delete ft-drawer-right"
               onClick={deleteExercise} title={`Delete ${stat.name}`}>🗑</button>
           </div>
 
