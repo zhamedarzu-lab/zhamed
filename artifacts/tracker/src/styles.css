@@ -4974,27 +4974,29 @@ button.btn-icon {
   width: 100% !important;
   transition: none;
 }
-/* "You are here" marker — bright, slightly thicker */
+/* "You are here" — white circle, sits above the pace tick */
 .ft-overall-bar-you {
   position: absolute;
-  top: -4px;
-  bottom: -4px;
-  width: 3px;
-  margin-left: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   background: #fff;
-  border-radius: 1px;
   pointer-events: none;
+  z-index: 2;
 }
-/* Pace target — dimmer so the two can be read apart */
+/* Pace target — same color as the fill; becomes a split circle when the dot catches up */
 .ft-overall-bar-pace {
   position: absolute;
-  top: -3px;
-  bottom: -3px;
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: 2px;
-  margin-left: -1px;
-  background: rgba(255, 255, 255, 0.45);
+  height: 14px;
+  background: var(--accent);
   border-radius: 1px;
   pointer-events: none;
+  z-index: 1;
 }
 
 /* ── Exercise list ──────────────────────────────────────────────────── */
