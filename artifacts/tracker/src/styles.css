@@ -4974,19 +4974,20 @@ button.btn-icon {
   width: 100% !important;
   transition: none;
 }
-/* "You are here" — white circle, sits above the pace tick */
+/* "You are here" — hollow white circle, sits above the pace tick */
 .ft-overall-bar-you {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  background: #fff;
+  background: transparent;
+  border: 2.5px solid #fff;
   pointer-events: none;
   z-index: 2;
 }
-/* Pace target — accent color with dark outline so it reads against the track */
+/* Pace target — bright accent with strong outline so it pops off the track */
 .ft-overall-bar-pace {
   position: absolute;
   top: 50%;
@@ -4994,8 +4995,9 @@ button.btn-icon {
   width: 3px;
   height: 14px;
   background: var(--accent);
+  filter: brightness(1.9);
   border-radius: 1px;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.7);
   pointer-events: none;
   z-index: 1;
 }
