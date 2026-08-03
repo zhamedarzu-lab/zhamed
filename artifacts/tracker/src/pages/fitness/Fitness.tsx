@@ -1261,7 +1261,6 @@ function ExerciseRow({
   const touchStartY   = useRef(0);
   const touchCurX     = useRef(0);
   const isHoriz       = useRef(false);
-  const lastTapTime   = useRef(0);
   const cardRef       = useRef<HTMLDivElement>(null);
 
   // Non-passive touchmove listener — React's onTouchMove is passive so
@@ -1324,22 +1323,10 @@ function ExerciseRow({
     const dx = touchCurX.current - touchStartX.current;
 
     if (!isHoriz.current) {
-      // ── Tap ──────────────────────────────────────────────────────────
-      const now = Date.now();
-      const gap = now - lastTapTime.current;
-
-      if (gap < 300 && gap > 0) {
-        // Double-tap → open numpad
-        if (swipeDir !== null) { setSwipeDir(null); onSwipeOpen(null); }
-        onOpenNumpad(stat);
-        lastTapTime.current = 0; // reset so triple-tap doesn't re-fire
-      } else {
-        // Single tap → close swipe if open, otherwise do nothing
-        if (swipeDir !== null) {
-          setSwipeDir(null);
-          onSwipeOpen(null);
-        }
-        lastTapTime.current = now;
+      // ── Tap — close swipe if open, otherwise do nothing ─────────────
+      if (swipeDir !== null) {
+        setSwipeDir(null);
+        onSwipeOpen(null);
       }
       return;
     }
@@ -1485,6 +1472,15 @@ function ExerciseRow({
             </div>
 
             <div className="ft-row-right">
+              {/* + button — always visible, opens numpad */}
+              <button
+                type="button"
+                className="ft-row-add-btn"
+                aria-label={`Log ${stat.name}`}
+                onTouchEnd={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onOpenNumpad(stat); }}
+              >+</button>
+
               {/* Desktop-only action buttons — hidden on touch, visible on hover */}
               <div className="ft-row-desktop-actions">
                 <button
