@@ -634,6 +634,7 @@ function ExerciseRow({
   const [showHistory, setShowHistory] = useState(false);
   const [showEdit,    setShowEdit]    = useState(false);
   const [swipeDir,    setSwipeDir]    = useState<"left" | "right" | null>(null);
+  const [liveOffset,  setLiveOffset]  = useState<number | null>(null); // non-null while finger is down
 
   const touchStartX   = useRef(0);
   const touchStartY   = useRef(0);
@@ -653,13 +654,13 @@ function ExerciseRow({
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
-  const LEFT_SNAP = -140; // card shifts left → reveals edit + delete on right
-  const RIGHT_SNAP = 90;  // card shifts right → reveals history on left
-  const THRESHOLD  = 60;
+  const LEFT_SNAP  = -140; // card shifts left → reveals edit + delete on right
+  const RIGHT_SNAP =   90; // card shifts right → reveals history on left
+  const THRESHOLD  =   60;
 
-  const translateX =
-    swipeDir === "left"  ? LEFT_SNAP  :
-    swipeDir === "right" ? RIGHT_SNAP : 0;
+  // Base position from snapped state; liveOffset adds the live finger delta on top
+  const snapBase   = swipeDir === "left" ? LEFT_SNAP : swipeDir === "right" ? RIGHT_SNAP : 0;
+  const translateX = liveOffset !== null ? snapBase + liveOffset : snapBase;
 
   // ── Touch handlers ──────────────────────────────────────────────────
 
@@ -668,18 +669,28 @@ function ExerciseRow({
     touchStartY.current = e.touches[0].clientY;
     touchCurX.current   = e.touches[0].clientX;
     isHoriz.current     = false;
+    setLiveOffset(null);
   }
 
   function handleTouchMove(e: React.TouchEvent) {
     touchCurX.current = e.touches[0].clientX;
-    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
-    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    const rawDx = e.touches[0].clientX - touchStartX.current;
+    const dx    = Math.abs(rawDx);
+    const dy    = Math.abs(e.touches[0].clientY - touchStartY.current);
     if (dx > 5 || dy > 5) {
       if (dy <= dx * 1.2) isHoriz.current = true;
+    }
+    if (isHoriz.current) {
+      // Clamp so card doesn't fly way past the action zones (soft rubber-band)
+      const raw     = snapBase + rawDx;
+      const clamped = Math.max(LEFT_SNAP - 24, Math.min(RIGHT_SNAP + 24, raw));
+      setLiveOffset(clamped - snapBase);
     }
   }
 
   function handleTouchEnd() {
+    // Zeroing liveOffset re-enables the CSS transition → snaps to new swipeDir
+    setLiveOffset(null);
     const dx = touchCurX.current - touchStartX.current;
 
     if (!isHoriz.current) {
@@ -817,7 +828,10 @@ function ExerciseRow({
         {/* Card face — translates over the action buttons */}
         <div
           className="ft-swipe-card"
-          style={{ transform: `translateX(${translateX}px)` }}
+          style={{
+            transform:  `translateX(${translateX}px)`,
+            transition: liveOffset !== null ? "none" : undefined,
+          }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
