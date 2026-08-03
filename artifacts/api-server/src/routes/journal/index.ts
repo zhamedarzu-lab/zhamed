@@ -9,7 +9,7 @@ const router = Router();
 const EntryInput = z.object({
   subject:      z.string().nullable().optional(),
   content:      z.string().default(""),
-  entryDate:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  entryDate:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/),  // required — client must send local date
   startTime:    z.string().datetime({ offset: true }).optional(),
   endTime:      z.string().datetime({ offset: true }).nullable().optional(),
   color:        z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
@@ -59,13 +59,12 @@ router.post("/entries", async (req, res) => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.flatten() }); return; }
   const { subject, content, entryDate, startTime, endTime, looseEndLink, looseEndType } = parsed.data;
   const now = new Date();
-  const today = now.toISOString().slice(0, 10);
   const [row] = await db
     .insert(journalEntriesTable)
     .values({
       subject:      subject ?? null,
       content,
-      entryDate:    entryDate ?? today,
+      entryDate,                                    // always from client (local date)
       startTime:    startTime ? new Date(startTime) : now,
       endTime:      endTime   ? new Date(endTime)   : null,
       color:        parsed.data.color ?? "#e0b04e",
@@ -130,6 +129,10 @@ function hlEntryValues(data: {
   startTime?: string | null; endTime?: string | null;
   entryStartTimeISO?: string | null; entryEndTimeISO?: string | null;
 }) {
+  // Prefer client-supplied ISO strings (carry local timezone offset).
+  // The bare-string fallbacks parse as local time on the server (UTC), so they
+  // will be off for non-UTC users — but the client always sends the ISO forms,
+  // so these fallbacks are here only as a safety net.
   const startTime = data.entryStartTimeISO
     ? new Date(data.entryStartTimeISO)
     : new Date(`${data.date}T${data.startTime ?? "12:00"}:00`);
