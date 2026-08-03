@@ -913,6 +913,7 @@ function Numpad({
         exerciseId: stat.exerciseId,
         date:       todayIso(),
         amount:     n,
+        slot:       currentSlot(),
       });
       onClose();
       await onChanged();

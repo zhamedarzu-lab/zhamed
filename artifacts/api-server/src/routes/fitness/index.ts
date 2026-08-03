@@ -119,6 +119,7 @@ const EffortInput = z.object({
   exerciseId: z.number().int().positive(),
   date:       z.string().regex(DATE_RE),
   amount:     z.number().positive(),
+  slot:       z.enum(["morning","before_noon","noon","afternoon","evening","night"]).optional(),
 });
 
 router.post("/efforts", async (req, res): Promise<void> => {
@@ -133,7 +134,7 @@ router.post("/efforts", async (req, res): Promise<void> => {
     .values({
       exerciseId: data.exerciseId,
       date:       data.date,
-      slot:       autoSlot(),
+      slot:       data.slot ?? autoSlot(),
       amount:     String(data.amount),
     })
     .returning();
