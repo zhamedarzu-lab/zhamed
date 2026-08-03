@@ -152,45 +152,6 @@ a:hover {
   border-bottom: 2px solid var(--stamp);
 }
 
-/* Hover dropdown */
-.wordmark-nav {
-  display: flex;
-  flex-direction: column;
-  position: absolute;
-  top: 100%;
-  left: -0.75rem;
-  padding-top: 10px;
-  min-width: 130px;
-  z-index: 100;
-}
-.wordmark-nav::after {
-  content: "";
-  position: absolute;
-  inset: 10px 0 0 0;
-  background: var(--paper);
-  border: 1px solid var(--rule-strong);
-  border-radius: 14px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-  z-index: -1;
-}
-.wordmark-nav a {
-  display: block;
-  padding: 0.5rem 0.9rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--ink-soft);
-  text-decoration: none;
-  transition: color 0.12s, background 0.12s;
-}
-.wordmark-nav a:hover {
-  color: var(--ink);
-  background: var(--paper-sunk);
-}
-.wordmark-nav a.active {
-  color: var(--ink);
-  font-weight: 700;
-}
-
 /* ═══════════════════════════════════════════════ LOGIN ══ */
 
 .login-shell {
@@ -4731,26 +4692,6 @@ button.btn-icon {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ft-row-meta {
-  margin-top: 0.2rem;
-  font-size: 0.7rem;
-  color: var(--ink-faint);
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0;
-}
-.ft-row-delta {
-  font-weight: 700;
-  text-decoration: none;
-  -webkit-text-decoration: none;
-}
-.ft-row-best {
-  opacity: 0.65;
-  text-decoration: none;
-  -webkit-text-decoration: none;
-}
-
 .ft-row-right {
   display: flex;
   flex-direction: column;
@@ -5306,17 +5247,6 @@ button.btn-icon {
 }
 
 /* ── History button (inside log form) ──────────────────────────────── */
-.ft-history-btn {
-  font-size: 1rem;
-  padding: 0.15rem 0.35rem;
-  color: var(--ink-faint);
-  flex-shrink: 0;
-  transition: color 0.12s;
-}
-.ft-history-btn:hover {
-  color: var(--ink);
-}
-
 /* ── History modal ──────────────────────────────────────────────────── */
 .ft-history-overlay {
   position: fixed;
