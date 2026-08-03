@@ -19,6 +19,7 @@
   --stamp: #d44e44;
   --carbon: #7aa8e8;
   --amber: #e0b04e;
+  --accent: #5fc97a;
 
   --ui: "Archivo", system-ui, -apple-system, sans-serif;
   --fig: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
@@ -4945,6 +4946,8 @@ button.btn-icon {
   border: 1px solid var(--rule);
   border-radius: 14px;
   margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
 }
 .ft-overall-bar-header {
   display: flex;
@@ -5013,17 +5016,16 @@ button.btn-icon {
   pointer-events: none;
   z-index: 2;
 }
-/* Pace target — tall vertical line in accent color */
+/* Pace target — full-height accent line spanning the whole card */
 .ft-overall-bar-pace {
   position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  bottom: 0;
   width: 2px;
-  height: 20px;
+  margin-left: -1px;
   background: var(--accent);
-  border-radius: 1px;
   pointer-events: none;
-  z-index: 1;
+  z-index: 10;
 }
 
 /* ── Exercise list ──────────────────────────────────────────────────── */
