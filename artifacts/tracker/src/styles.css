@@ -5045,10 +5045,6 @@ button.btn-icon {
   overflow: hidden;
   min-height: 0;
 }
-.ft-log-form--hidden,
-.ft-edit-form--hidden {
-  display: none;
-}
 
 /* ── Combined chart ─────────────────────────────────────────────────── */
 .ft-combined-chart {
@@ -5283,6 +5279,10 @@ button.btn-icon {
 }
 
 /* ── Edit form ──────────────────────────────────────────────────────── */
+.ft-log-form--hidden,
+.ft-edit-form--hidden {
+  display: none;
+}
 .ft-edit-form {
   display: flex;
   align-items: center;
