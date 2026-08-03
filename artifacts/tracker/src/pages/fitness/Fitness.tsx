@@ -88,9 +88,10 @@ export default function Fitness() {
   const [swipeId,    setSwipeId]    = useState<number | null>(null);
 
   // ── Drag-to-reorder ──────────────────────────────────────────────────
+  type DragState = { fromId: number; overId: number; startY: number; currentY: number; rowHeight: number };
   const [localOrder, setLocalOrder] = useState<ExerciseStat[]>([]);
-  const dragRef = useRef<{ fromId: number; overId: number } | null>(null);
-  const [dragIds, setDragIds] = useState<{ fromId: number; overId: number } | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const [dragState, setDragState] = useState<DragState | null>(null);
 
   // Sync from server (skip while a drag is in flight to avoid jank)
   useEffect(() => {
@@ -98,40 +99,58 @@ export default function Fitness() {
     setLocalOrder((summary.data?.exercises ?? []).filter((e) => e.active));
   }, [summary.data]);
 
-  // Visual order during drag: item moves from fromId's slot to overId's slot
+  // Reordered list — used only for WeekGrid (stable DOM uses localOrder)
   const displayOrder = useMemo(() => {
-    if (!dragIds || dragIds.fromId === dragIds.overId) return localOrder;
-    const fromIdx = localOrder.findIndex((e) => e.exerciseId === dragIds.fromId);
-    const overIdx = localOrder.findIndex((e) => e.exerciseId === dragIds.overId);
+    if (!dragState || dragState.fromId === dragState.overId) return localOrder;
+    const fromIdx = localOrder.findIndex((e) => e.exerciseId === dragState.fromId);
+    const overIdx = localOrder.findIndex((e) => e.exerciseId === dragState.overId);
     if (fromIdx === -1 || overIdx === -1) return localOrder;
     const arr = [...localOrder];
     const [item] = arr.splice(fromIdx, 1);
     arr.splice(overIdx, 0, item);
     return arr;
-  }, [localOrder, dragIds]);
+  }, [localOrder, dragState]);
 
-  function handleDragStart(exerciseId: number) {
-    setSwipeId(null); // close any open swipe
-    dragRef.current = { fromId: exerciseId, overId: exerciseId };
-    setDragIds({ fromId: exerciseId, overId: exerciseId });
+  // CSS translateY for each row — dragging item follows finger; others slide into gap
+  function getTranslateY(exerciseId: number, ds: DragState | null): number {
+    if (!ds) return 0;
+    const { fromId, overId, startY, currentY, rowHeight } = ds;
+    if (exerciseId === fromId) return currentY - startY;
+    const fromIdx = localOrder.findIndex((e) => e.exerciseId === fromId);
+    const overIdx = localOrder.findIndex((e) => e.exerciseId === overId);
+    const myIdx  = localOrder.findIndex((e) => e.exerciseId === exerciseId);
+    if (fromIdx === -1 || overIdx === -1 || myIdx === -1) return 0;
+    if (fromIdx < overIdx && myIdx > fromIdx && myIdx <= overIdx) return -rowHeight;
+    if (fromIdx > overIdx && myIdx >= overIdx && myIdx < fromIdx) return  rowHeight;
+    return 0;
+  }
+
+  function handleDragStart(exerciseId: number, clientY: number, rowHeight: number) {
+    setSwipeId(null);
+    const state: DragState = { fromId: exerciseId, overId: exerciseId, startY: clientY, currentY: clientY, rowHeight };
+    dragRef.current = state;
+    setDragState({ ...state });
+    document.documentElement.style.overflow = "hidden"; // lock page scroll
   }
 
   function handleDragMove(clientX: number, clientY: number) {
     if (!dragRef.current) return;
+    dragRef.current.currentY = clientY;
     const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
     const rowEl = el?.closest("[data-exercise-id]") as HTMLElement | null;
-    if (!rowEl) return;
-    const overId = parseInt(rowEl.dataset.exerciseId ?? "", 10);
-    if (isNaN(overId) || overId === dragRef.current.overId) return;
-    dragRef.current.overId = overId;
-    setDragIds({ ...dragRef.current });
+    if (rowEl) {
+      const overId = parseInt(rowEl.dataset.exerciseId ?? "", 10);
+      if (!isNaN(overId)) dragRef.current.overId = overId;
+    }
+    setDragState({ ...dragRef.current });
   }
 
   function handleDragEnd() {
     if (!dragRef.current) return;
+    document.documentElement.style.overflow = ""; // restore scroll
     const { fromId, overId } = dragRef.current;
     dragRef.current = null;
-    setDragIds(null);
+    setDragState(null);
     if (fromId === overId) return;
     const fromIdx = localOrder.findIndex((e) => e.exerciseId === fromId);
     const overIdx = localOrder.findIndex((e) => e.exerciseId === overId);
@@ -162,7 +181,7 @@ export default function Fitness() {
             </Empty>
           ) : (
             <div className="ft-list">
-              {displayOrder.map((ex) => (
+              {localOrder.map((ex) => (
                 <ExerciseRow
                   key={ex.exerciseId}
                   stat={ex}
@@ -171,8 +190,9 @@ export default function Fitness() {
                   onOpenNumpad={setNumpadStat}
                   onChanged={summary.reload}
                   onError={setError}
-                  isDragging={dragIds?.fromId === ex.exerciseId}
-                  onDragStart={() => handleDragStart(ex.exerciseId)}
+                  isDragging={dragState?.fromId === ex.exerciseId}
+                  translateY={getTranslateY(ex.exerciseId, dragState)}
+                  onDragStart={(clientY, rowHeight) => handleDragStart(ex.exerciseId, clientY, rowHeight)}
                   onDragMove={handleDragMove}
                   onDragEnd={handleDragEnd}
                 />
@@ -795,6 +815,7 @@ function ExerciseRow({
   onChanged,
   onError,
   isDragging,
+  translateY,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -806,7 +827,8 @@ function ExerciseRow({
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
   isDragging: boolean;
-  onDragStart: () => void;
+  translateY: number;
+  onDragStart: (clientY: number, rowHeight: number) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: () => void;
 }) {
@@ -939,7 +961,7 @@ function ExerciseRow({
   return (
     <div
       className={`ft-row${isDragging ? " ft-row--dragging" : ""}`}
-      style={{ "--row-color": color } as CSSProperties}
+      style={{ "--row-color": color, transform: translateY !== 0 ? `translateY(${translateY}px)` : undefined } as CSSProperties}
       data-exercise-id={stat.exerciseId}
     >
 
@@ -1029,7 +1051,9 @@ function ExerciseRow({
                 e.preventDefault();
                 e.stopPropagation();
                 e.currentTarget.setPointerCapture(e.pointerId);
-                onDragStart();
+                const rowEl = e.currentTarget.closest("[data-exercise-id]") as HTMLElement | null;
+                const rowHeight = rowEl?.getBoundingClientRect().height ?? 64;
+                onDragStart(e.clientY, rowHeight);
               }}
               onPointerMove={(e) => {
                 if (e.buttons === 0) return;
