@@ -4919,7 +4919,6 @@ button.btn-icon {
 
 /* ── Exercise row ───────────────────────────────────────────────────── */
 .ft-row {
-  border-left: 3px solid var(--row-color, var(--rule-strong));
   border-bottom: 1px solid var(--rule);
 }
 .ft-row:last-child {
@@ -4936,12 +4935,8 @@ button.btn-icon {
   transition: background 0.1s;
   outline: none;
 }
-.ft-row-main:hover,
 .ft-row-main:focus-visible {
   background: color-mix(in srgb, var(--row-color) 6%, transparent);
-}
-.ft-row--open .ft-row-main {
-  background: color-mix(in srgb, var(--row-color) 7%, transparent);
 }
 
 .ft-row-left {
@@ -5024,26 +5019,121 @@ button.btn-icon {
   white-space: nowrap;
 }
 
-.ft-row-delete:hover {
+/* ── Desktop fallback action buttons (hover devices only) ───────────── */
+.ft-row-desktop-actions {
+  display: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ft-row-desktop-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+    margin-right: 0.5rem;
+  }
+  .ft-row:hover .ft-row-desktop-actions,
+  .ft-row:focus-within .ft-row-desktop-actions {
+    opacity: 1;
+  }
+}
+.ft-desktop-action-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+  padding: 0.2rem 0.35rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+  line-height: 1;
+}
+.ft-desktop-action-btn:hover {
+  color: var(--ink);
+  background: var(--rule);
+}
+.ft-desktop-action-btn--delete:hover {
   color: var(--stamp);
 }
-.ft-drawer-right {
-  margin-left: auto;
+
+/* ── Swipe track ────────────────────────────────────────────────────── */
+.ft-swipe-track {
+  position: relative;
+  overflow: hidden;
 }
 
-/* ── Drawer slide animation ─────────────────────────────────────────── */
-.ft-drawer-wrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+/* Action zone revealed on LEFT swipe — buttons sit at the right edge */
+.ft-swipe-actions-right {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: stretch;
+  width: 140px;
 }
-.ft-drawer-wrap--open {
-  grid-template-rows: 1fr;
+
+/* Action zone revealed on RIGHT swipe — button sits at the left edge */
+.ft-swipe-actions-left {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  display: flex;
+  align-items: stretch;
+  width: 90px;
 }
-.ft-drawer-inner {
-  overflow: hidden;
-  min-height: 0;
+
+/* Shared swipe button */
+.ft-swipe-btn {
+  flex: 1;
+  border: none;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.1s;
+}
+.ft-swipe-btn:active { filter: brightness(0.85); }
+
+.ft-swipe-btn--edit {
+  background: var(--carbon);
+  color: #0a1a2a;
+}
+.ft-swipe-btn--delete {
+  background: var(--stamp);
+  color: #fff;
+}
+.ft-swipe-btn--history {
+  background: var(--amber);
+  color: #1a1000;
+}
+
+/* The card face — sits above action buttons, translates over them */
+.ft-swipe-card {
+  position: relative;
+  z-index: 1;
+  background: var(--paper);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Solid bg so actions don't show through */
+  border-left: 3px solid var(--row-color, var(--rule-strong));
+}
+
+/* ── Inline rep input (double-tap) ──────────────────────────────────── */
+.ft-inline-input {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem 0.55rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-sunk);
+  animation: ft-inline-in 0.18s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes ft-inline-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* ── Combined chart ─────────────────────────────────────────────────── */
@@ -5257,15 +5347,7 @@ button.btn-icon {
   font-weight: 700;
 }
 
-/* ── Log form ───────────────────────────────────────────────────────── */
-.ft-log-form {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 1rem 0.6rem;
-  border-top: 1px solid var(--rule);
-  background: var(--paper-sunk);
-}
+/* ── Log input (shared by inline input row) ─────────────────────────── */
 .ft-log-input {
   width: 4.5rem;
   flex-shrink: 0;
@@ -5278,22 +5360,48 @@ button.btn-icon {
   flex-shrink: 0;
 }
 
-/* ── Edit form ──────────────────────────────────────────────────────── */
-.ft-log-form--hidden,
-.ft-edit-form--hidden {
-  display: none;
+/* ── Edit modal ─────────────────────────────────────────────────────── */
+.ft-edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
 }
-.ft-edit-form {
+@media (min-width: 500px) {
+  .ft-edit-overlay { align-items: center; }
+}
+.ft-edit-modal {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+  padding: 1.1rem 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.ft-edit-modal-header {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 1rem 0.6rem;
-  border-top: 1px solid var(--rule);
-  background: var(--paper-sunk);
+  justify-content: space-between;
 }
+.ft-edit-modal-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.ft-edit-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* ── Shared edit field components ───────────────────────────────────── */
 .ft-edit-fields {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -5301,6 +5409,7 @@ button.btn-icon {
 .ft-edit-inputs {
   display: flex;
   gap: 0.35rem;
+  align-items: center;
 }
 .ft-edit-input {
   flex: 1;
@@ -5340,12 +5449,3 @@ button.btn-icon {
 }
 .ft-swatch:hover   { transform: scale(1.15); }
 .ft-swatch--active { border-color: #fff; transform: scale(1.15); }
-
-/* ── Mobile ─────────────────────────────────────────────────────────── */
-@media (max-width: 600px) {
-  .ft-cycle-label { display: none; }
-
-  .ft-log-form { flex-wrap: wrap; }
-  .ft-log-input { width: 5rem; }
-  .ft-slots { flex: 1 1 100%; order: 3; }
-}

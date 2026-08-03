@@ -84,7 +84,8 @@ export default function Fitness() {
     }
   }
 
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId,   setOpenId]   = useState<number | null>(null);
+  const [swipeId,  setSwipeId]  = useState<number | null>(null);
 
   const activeExercises = (summary.data?.exercises ?? []).filter((e) => e.active);
   const activeDays = (summary.data?.consistencyStrip ?? []).filter((d) => d.active).length;
@@ -114,6 +115,8 @@ export default function Fitness() {
                   stat={ex}
                   isOpen={openId === ex.exerciseId}
                   onOpen={setOpenId}
+                  isSwipeOpen={swipeId === ex.exerciseId}
+                  onSwipeOpen={setSwipeId}
                   onChanged={summary.reload}
                   onError={setError}
                 />
@@ -488,66 +491,29 @@ function HistoryChart({
   );
 }
 
-// ─── Exercise row ─────────────────────────────────────────────────────────────
+// ─── Edit modal ───────────────────────────────────────────────────────────────
 
-function ExerciseRow({
+function EditModal({
   stat,
-  isOpen,
-  onOpen,
+  color,
+  onClose,
   onChanged,
   onError,
 }: {
   stat: ExerciseStat;
-  isOpen: boolean;
-  onOpen: (id: number | null) => void;
+  color: string;
+  onClose: () => void;
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const [amount,      setAmount]      = useState("");
-  const [busy,        setBusy]        = useState(false);
-  const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
-  const [showHistory, setShowHistory] = useState(false);
-  const [editing,     setEditing]     = useState(false);
-  const [editName,    setEditName]    = useState("");
-  const [editUnit,    setEditUnit]    = useState("");
-  const [editColor,      setEditColor]      = useState<string | null>(null);
+  const [editName,        setEditName]        = useState(stat.name);
+  const [editUnit,        setEditUnit]        = useState(stat.unit);
+  const [editColor,       setEditColor]       = useState<string | null>(stat.color ?? null);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  const inputRef   = useRef<HTMLInputElement>(null);
-  const editNameRef = useRef<HTMLInputElement>(null);
-  const color = stat.color ?? tagColor(stat.name);
+  const [busy,            setBusy]            = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
 
-  async function deleteExercise(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!confirm(`Delete "${stat.name}"? This removes all its history.`)) return;
-    onError(null);
-    try {
-      await api.del(`/api/fitness/exercises/${stat.exerciseId}`);
-      await onChanged();
-    } catch (err) {
-      onError(err instanceof Error ? err.message : "Could not delete exercise.");
-    }
-  }
-
-  useEffect(() => {
-    if (isOpen && !editing) inputRef.current?.focus();
-    if (isOpen && editing)  editNameRef.current?.focus();
-  }, [isOpen, editing]);
-
-  function openRow() {
-    setAmount("");
-    setEditing(false);
-    onOpen(stat.exerciseId);
-    onError(null);
-  }
-
-  function openEdit(e: React.MouseEvent) {
-    e.stopPropagation();
-    setEditName(stat.name);
-    setEditUnit(stat.unit);
-    setEditColor(stat.color ?? null);
-    setColorPickerOpen(false);
-    setEditing(true);
-  }
+  useEffect(() => { nameRef.current?.focus(); }, []);
 
   async function saveEdit() {
     if (!editName.trim() || !editUnit.trim()) return;
@@ -559,13 +525,218 @@ function ExerciseRow({
         unit:  editUnit.trim(),
         color: editColor,
       });
-      setEditing(false);
-      onOpen(null);
+      onClose();
       await onChanged();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Could not update exercise.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  return (
+    <div className="ft-edit-overlay" onClick={onClose}>
+      <div className="ft-edit-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="ft-edit-modal-header">
+          <span className="ft-edit-modal-title" style={{ color }}>
+            Edit exercise
+          </span>
+          <button className="quiet" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="ft-edit-fields">
+          <div className="ft-edit-inputs">
+            <button
+              type="button"
+              className="ft-color-trigger"
+              style={{ background: editColor ?? color }}
+              onClick={() => setColorPickerOpen((o) => !o)}
+              title="Choose color"
+            />
+            <input
+              ref={nameRef}
+              className="ft-edit-input"
+              value={editName}
+              placeholder="Name"
+              onChange={(e) => setEditName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter")  saveEdit();
+                if (e.key === "Escape") onClose();
+              }}
+            />
+            <input
+              className="ft-edit-unit"
+              value={editUnit}
+              placeholder="Unit"
+              onChange={(e) => setEditUnit(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter")  saveEdit();
+                if (e.key === "Escape") onClose();
+              }}
+            />
+          </div>
+          {colorPickerOpen && (
+            <div className="ft-edit-swatches">
+              {FITNESS_COLORS.map((c) => (
+                <button
+                  key={c.hex}
+                  type="button"
+                  className={`ft-swatch${editColor === c.hex ? " ft-swatch--active" : ""}`}
+                  style={{ background: c.hex }}
+                  onClick={() => {
+                    setEditColor(editColor === c.hex ? null : c.hex);
+                    setColorPickerOpen(false);
+                  }}
+                  title={c.label}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="ft-edit-modal-actions">
+          <button
+            className="primary"
+            onClick={saveEdit}
+            disabled={busy || !editName.trim() || !editUnit.trim()}
+          >
+            Save
+          </button>
+          <button className="quiet" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Exercise row ─────────────────────────────────────────────────────────────
+
+function ExerciseRow({
+  stat,
+  isOpen,
+  onOpen,
+  isSwipeOpen,
+  onSwipeOpen,
+  onChanged,
+  onError,
+}: {
+  stat: ExerciseStat;
+  isOpen: boolean;
+  onOpen: (id: number | null) => void;
+  isSwipeOpen: boolean;
+  onSwipeOpen: (id: number | null) => void;
+  onChanged: () => Promise<unknown>;
+  onError: (m: string | null) => void;
+}) {
+  const [amount,      setAmount]      = useState("");
+  const [busy,        setBusy]        = useState(false);
+  const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
+  const [showHistory, setShowHistory] = useState(false);
+  const [showEdit,    setShowEdit]    = useState(false);
+  const [swipeDir,    setSwipeDir]    = useState<"left" | "right" | null>(null);
+
+  const touchStartX   = useRef(0);
+  const touchStartY   = useRef(0);
+  const touchCurX     = useRef(0);
+  const isHoriz       = useRef(false);
+  const lastTapTime   = useRef(0);
+  const inputRef      = useRef<HTMLInputElement>(null);
+
+  const color = stat.color ?? tagColor(stat.name);
+
+  // When another card takes the swipe slot, close this card's swipe
+  useEffect(() => {
+    if (!isSwipeOpen) setSwipeDir(null);
+  }, [isSwipeOpen]);
+
+  useEffect(() => {
+    if (isOpen) inputRef.current?.focus();
+  }, [isOpen]);
+
+  const LEFT_SNAP = -140; // card shifts left → reveals edit + delete on right
+  const RIGHT_SNAP = 90;  // card shifts right → reveals history on left
+  const THRESHOLD  = 60;
+
+  const translateX =
+    swipeDir === "left"  ? LEFT_SNAP  :
+    swipeDir === "right" ? RIGHT_SNAP : 0;
+
+  // ── Touch handlers ──────────────────────────────────────────────────
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchCurX.current   = e.touches[0].clientX;
+    isHoriz.current     = false;
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    touchCurX.current = e.touches[0].clientX;
+    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (dx > 5 || dy > 5) {
+      if (dy <= dx * 1.2) isHoriz.current = true;
+    }
+  }
+
+  function handleTouchEnd() {
+    const dx = touchCurX.current - touchStartX.current;
+
+    if (!isHoriz.current) {
+      // ── Tap ──────────────────────────────────────────────────────────
+      const now = Date.now();
+      const gap = now - lastTapTime.current;
+
+      if (gap < 300 && gap > 0) {
+        // Double-tap → open inline input (or close if already open)
+        if (swipeDir !== null) { setSwipeDir(null); onSwipeOpen(null); }
+        onOpen(isOpen ? null : stat.exerciseId);
+        lastTapTime.current = 0; // reset so triple-tap doesn't re-fire
+      } else {
+        // Single tap → close swipe/input if open, otherwise do nothing
+        if (swipeDir !== null) {
+          setSwipeDir(null);
+          onSwipeOpen(null);
+        } else if (isOpen) {
+          onOpen(null);
+        }
+        lastTapTime.current = now;
+      }
+      return;
+    }
+
+    // ── Swipe ─────────────────────────────────────────────────────────
+    if (swipeDir === null) {
+      if (dx < -THRESHOLD) {
+        setSwipeDir("left");
+        onOpen(null); // close any open input
+        onSwipeOpen(stat.exerciseId);
+      } else if (dx > THRESHOLD) {
+        setSwipeDir("right");
+        onOpen(null);
+        onSwipeOpen(stat.exerciseId);
+      }
+    } else if (swipeDir === "left" && dx > THRESHOLD) {
+      setSwipeDir(null);
+      onSwipeOpen(null);
+    } else if (swipeDir === "right" && dx < -THRESHOLD) {
+      setSwipeDir(null);
+      onSwipeOpen(null);
+    }
+  }
+
+  // ── Actions ─────────────────────────────────────────────────────────
+
+  async function deleteExercise() {
+    if (!confirm(`Delete "${stat.name}"? This removes all its history.`)) return;
+    onError(null);
+    setSwipeDir(null);
+    onSwipeOpen(null);
+    try {
+      await api.del(`/api/fitness/exercises/${stat.exerciseId}`);
+      await onChanged();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not delete exercise.");
     }
   }
 
@@ -578,7 +749,6 @@ function ExerciseRow({
       await api.post("/api/fitness/efforts", {
         exerciseId: stat.exerciseId,
         date:       todayIso(),
-
         amount:     n,
       });
       setAmount("");
@@ -591,151 +761,178 @@ function ExerciseRow({
     }
   }
 
-  const both0   = stat.last7 === 0 && stat.prev7 === 0;
-  const deltaText =
-    both0              ? null
-    : stat.prev7 === 0 ? "first week"
-    : stat.delta >= 0  ? `↑ ${stat.delta}%`
-    :                    `↓ ${Math.abs(stat.delta)}%`;
-  const deltaUp = stat.delta >= 0;
-
   return (
-    <div
-      className={`ft-row${isOpen ? " ft-row--open" : ""}`}
-      style={{ "--row-color": color } as CSSProperties}
-    >
-      {/* Main tap target */}
-      <div
-        className="ft-row-main"
-        onClick={() => { if (isOpen) onOpen(null); else openRow(); }}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            if (isOpen) onOpen(null); else openRow();
-          }
-        }}
-        aria-label={`Log ${stat.name}`}
-        aria-expanded={isOpen}
-      >
-        <div className="ft-row-left">
-          <span className="ft-row-name">{stat.name}</span>
-        </div>
+    <div className="ft-row" style={{ "--row-color": color } as CSSProperties}>
 
-        <div className="ft-row-right">
-          <button
-            type="button"
-            className="ft-period-cycle"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPeriod((p) => p === "D" ? "W" : p === "W" ? "M" : "D");
-            }}
-            title="Tap to cycle Day / Week / Month"
-          >
-            <span className="ft-period-cycle-lbl">
-              {period === "D" ? "Day" : period === "W" ? "Week" : "Month"}
-            </span>
-            <span className={`ft-row-stat-val${
-              period === "D" && stat.todayTotal > 0 ? " ft-row-stat-val--active" : ""
-            }`}>
-              {(period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal) > 0
-                ? (period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal).toLocaleString()
-                : "—"}
-            </span>
-            <span className="ft-row-stat-unit">{stat.unit}</span>
-          </button>
-        </div>
-
-      </div>
-
-      {/* Drawer */}
-      <div className={`ft-drawer-wrap${isOpen ? " ft-drawer-wrap--open" : ""}`}>
-        <div className="ft-drawer-inner">
-          {/* Log form */}
-          <div className={`ft-log-form${editing ? " ft-log-form--hidden" : ""}`}>
-            <button type="button" className="quiet ft-history-btn"
-              onClick={() => setShowHistory(true)} title="View history">↗</button>
-            <input
-              ref={inputRef}
-              className="ft-log-input"
-              inputMode="decimal"
-              value={amount}
-              placeholder={stat.unit}
-              onChange={(e) => setAmount(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter")  submit();
-                if (e.key === "Escape") onOpen(null);
-              }}
-            />
-            <button className="primary ft-log-submit" onClick={submit}
-              disabled={busy || !amount.trim()}>✓</button>
-            <button type="button" className="quiet ft-history-btn ft-row-delete ft-drawer-right"
-              onClick={deleteExercise} title={`Delete ${stat.name}`}>🗑</button>
-          </div>
-
-          {/* Edit form */}
-          <div className={`ft-edit-form${!editing ? " ft-edit-form--hidden" : ""}`}>
-            <div className="ft-edit-fields">
-              <div className="ft-edit-inputs">
-                <button
-                  type="button"
-                  className="ft-color-trigger"
-                  style={{ background: editColor ?? color }}
-                  onClick={() => setColorPickerOpen(o => !o)}
-                  title="Choose color"
-                />
-                <input
-                  ref={editNameRef}
-                  className="ft-edit-input"
-                  value={editName}
-                  placeholder="Name"
-                  onChange={(e) => setEditName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter")  saveEdit();
-                    if (e.key === "Escape") setEditing(false);
-                  }}
-                />
-                <input
-                  className="ft-edit-unit"
-                  value={editUnit}
-                  placeholder="Unit"
-                  onChange={(e) => setEditUnit(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter")  saveEdit();
-                    if (e.key === "Escape") setEditing(false);
-                  }}
-                />
-              </div>
-              {colorPickerOpen && (
-                <div className="ft-edit-swatches">
-                  {FITNESS_COLORS.map((c) => (
-                    <button
-                      key={c.hex}
-                      type="button"
-                      className={`ft-swatch${editColor === c.hex ? " ft-swatch--active" : ""}`}
-                      style={{ background: c.hex }}
-                      onClick={() => {
-                        setEditColor(editColor === c.hex ? null : c.hex);
-                        setColorPickerOpen(false);
-                      }}
-                      title={c.label}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <button className="primary ft-log-submit" onClick={saveEdit}
-              disabled={busy || !editName.trim() || !editUnit.trim()}>✓</button>
-            <button className="quiet ft-history-btn ft-drawer-right" type="button"
-              onClick={() => setEditing(false)}>✕</button>
-          </div>
-        </div>
-      </div>
+      {/* Edit modal */}
+      {showEdit && (
+        <EditModal
+          stat={stat}
+          color={color}
+          onClose={() => setShowEdit(false)}
+          onChanged={onChanged}
+          onError={onError}
+        />
+      )}
 
       {/* History modal */}
       {showHistory && (
-        <HistoryModal stat={stat} color={color} onClose={() => setShowHistory(false)} onChanged={onChanged} />
+        <HistoryModal
+          stat={stat}
+          color={color}
+          onClose={() => setShowHistory(false)}
+          onChanged={onChanged}
+        />
       )}
+
+      {/* Swipe track */}
+      <div className="ft-swipe-track">
+
+        {/* Action buttons revealed by LEFT swipe (sit on right side) */}
+        <div className="ft-swipe-actions-right">
+          <button
+            className="ft-swipe-btn ft-swipe-btn--edit"
+            onClick={() => { setSwipeDir(null); onSwipeOpen(null); setShowEdit(true); }}
+          >
+            Edit
+          </button>
+          <button
+            className="ft-swipe-btn ft-swipe-btn--delete"
+            onClick={deleteExercise}
+          >
+            Delete
+          </button>
+        </div>
+
+        {/* Action button revealed by RIGHT swipe (sits on left side) */}
+        <div className="ft-swipe-actions-left">
+          <button
+            className="ft-swipe-btn ft-swipe-btn--history"
+            onClick={() => { setSwipeDir(null); onSwipeOpen(null); setShowHistory(true); }}
+          >
+            History
+          </button>
+        </div>
+
+        {/* Card face — translates over the action buttons */}
+        <div
+          className="ft-swipe-card"
+          style={{ transform: `translateX(${translateX}px)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div
+            className="ft-row-main"
+            role="button"
+            tabIndex={0}
+            aria-label={`${stat.name} — click to log`}
+            aria-expanded={isOpen}
+            onClick={() => {
+              // Desktop / pointer fallback: single click toggles inline input
+              if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+                if (swipeDir !== null) { setSwipeDir(null); onSwipeOpen(null); }
+                if (isOpen) { onOpen(null); setAmount(""); }
+                else         { onOpen(stat.exerciseId); onSwipeOpen(null); }
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                if (isOpen) { onOpen(null); setAmount(""); }
+                else         onOpen(stat.exerciseId);
+              }
+            }}
+          >
+            <div className="ft-row-left">
+              <span className="ft-row-name">{stat.name}</span>
+            </div>
+
+            <div className="ft-row-right">
+              {/* Desktop-only action buttons — hidden on touch, visible on hover */}
+              <div className="ft-row-desktop-actions">
+                <button
+                  type="button"
+                  className="ft-desktop-action-btn"
+                  title="History"
+                  onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}
+                >↗</button>
+                <button
+                  type="button"
+                  className="ft-desktop-action-btn"
+                  title="Edit"
+                  onClick={(e) => { e.stopPropagation(); setShowEdit(true); }}
+                >✎</button>
+                <button
+                  type="button"
+                  className="ft-desktop-action-btn ft-desktop-action-btn--delete"
+                  title="Delete"
+                  onClick={(e) => { e.stopPropagation(); deleteExercise(); }}
+                >🗑</button>
+              </div>
+
+              <button
+                type="button"
+                className="ft-period-cycle"
+                onTouchEnd={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPeriod((p) => p === "D" ? "W" : p === "W" ? "M" : "D");
+                }}
+                title="Tap to cycle Day / Week / Month"
+              >
+                <span className="ft-period-cycle-lbl">
+                  {period === "D" ? "Day" : period === "W" ? "Week" : "Month"}
+                </span>
+                <span className={`ft-row-stat-val${
+                  period === "D" && stat.todayTotal > 0 ? " ft-row-stat-val--active" : ""
+                }`}>
+                  {(period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal) > 0
+                    ? (period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal).toLocaleString()
+                    : "—"}
+                </span>
+                <span className="ft-row-stat-unit">{stat.unit}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Inline rep input — revealed by double-tap */}
+          {isOpen && (
+            <div
+              className="ft-inline-input"
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+            >
+              <input
+                ref={inputRef}
+                className="ft-log-input"
+                inputMode="decimal"
+                value={amount}
+                placeholder={stat.unit}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter")  submit();
+                  if (e.key === "Escape") { onOpen(null); setAmount(""); }
+                }}
+              />
+              <button
+                className="primary ft-log-submit"
+                onClick={submit}
+                disabled={busy || !amount.trim()}
+              >
+                ✓
+              </button>
+              <button
+                className="quiet"
+                onClick={() => { onOpen(null); setAmount(""); }}
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
