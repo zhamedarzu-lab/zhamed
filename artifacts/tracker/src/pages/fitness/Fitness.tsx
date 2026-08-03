@@ -236,7 +236,7 @@ function WeekGrid({ exercises }: { exercises: ExerciseStat[] }) {
                 <div
                   key={ex.exerciseId}
                   className="ft-week-dot"
-                  style={{ background: tagColor(ex.name) }}
+                  style={{ background: ex.color ?? tagColor(ex.name) }}
                   title={ex.name}
                 />
               ))}
