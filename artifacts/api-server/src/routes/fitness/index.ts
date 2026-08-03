@@ -62,6 +62,17 @@ router.delete("/exercises/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
+router.put("/exercises/reorder", async (req, res): Promise<void> => {
+  const data = parseBody(z.object({ ids: z.array(z.number().int()).min(1) }), req.body, res);
+  if (!data) return;
+  await Promise.all(
+    data.ids.map((id, i) =>
+      db.update(exercisesTable).set({ sortOrder: i + 1 }).where(eq(exercisesTable.id, id))
+    )
+  );
+  res.json({ ok: true });
+});
+
 // ─── Efforts ─────────────────────────────────────────────────────────────────
 
 const SLOTS = ["morning", "before_noon", "noon", "afternoon", "evening", "night"] as const;

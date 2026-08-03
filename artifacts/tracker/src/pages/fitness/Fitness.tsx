@@ -87,7 +87,64 @@ export default function Fitness() {
   const [numpadStat, setNumpadStat] = useState<ExerciseStat | null>(null);
   const [swipeId,    setSwipeId]    = useState<number | null>(null);
 
-  const activeExercises = (summary.data?.exercises ?? []).filter((e) => e.active);
+  // ── Drag-to-reorder ──────────────────────────────────────────────────
+  const [localOrder, setLocalOrder] = useState<ExerciseStat[]>([]);
+  const dragRef = useRef<{ fromId: number; overId: number } | null>(null);
+  const [dragIds, setDragIds] = useState<{ fromId: number; overId: number } | null>(null);
+
+  // Sync from server (skip while a drag is in flight to avoid jank)
+  useEffect(() => {
+    if (dragRef.current) return;
+    setLocalOrder((summary.data?.exercises ?? []).filter((e) => e.active));
+  }, [summary.data]);
+
+  // Visual order during drag: item moves from fromId's slot to overId's slot
+  const displayOrder = useMemo(() => {
+    if (!dragIds || dragIds.fromId === dragIds.overId) return localOrder;
+    const fromIdx = localOrder.findIndex((e) => e.exerciseId === dragIds.fromId);
+    const overIdx = localOrder.findIndex((e) => e.exerciseId === dragIds.overId);
+    if (fromIdx === -1 || overIdx === -1) return localOrder;
+    const arr = [...localOrder];
+    const [item] = arr.splice(fromIdx, 1);
+    arr.splice(overIdx, 0, item);
+    return arr;
+  }, [localOrder, dragIds]);
+
+  function handleDragStart(exerciseId: number) {
+    setSwipeId(null); // close any open swipe
+    dragRef.current = { fromId: exerciseId, overId: exerciseId };
+    setDragIds({ fromId: exerciseId, overId: exerciseId });
+  }
+
+  function handleDragMove(clientX: number, clientY: number) {
+    if (!dragRef.current) return;
+    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    const rowEl = el?.closest("[data-exercise-id]") as HTMLElement | null;
+    if (!rowEl) return;
+    const overId = parseInt(rowEl.dataset.exerciseId ?? "", 10);
+    if (isNaN(overId) || overId === dragRef.current.overId) return;
+    dragRef.current.overId = overId;
+    setDragIds({ ...dragRef.current });
+  }
+
+  function handleDragEnd() {
+    if (!dragRef.current) return;
+    const { fromId, overId } = dragRef.current;
+    dragRef.current = null;
+    setDragIds(null);
+    if (fromId === overId) return;
+    const fromIdx = localOrder.findIndex((e) => e.exerciseId === fromId);
+    const overIdx = localOrder.findIndex((e) => e.exerciseId === overId);
+    if (fromIdx === -1 || overIdx === -1) return;
+    const newOrder = [...localOrder];
+    const [item] = newOrder.splice(fromIdx, 1);
+    newOrder.splice(overIdx, 0, item);
+    setLocalOrder(newOrder);
+    api.put("/api/fitness/exercises/reorder", { ids: newOrder.map((e) => e.exerciseId) })
+      .catch(() => setError("Could not save order. Please try again."));
+  }
+  // ─────────────────────────────────────────────────────────────────────
+
   const activeDays = (summary.data?.consistencyStrip ?? []).filter((d) => d.active).length;
 
   return (
@@ -101,15 +158,15 @@ export default function Fitness() {
 
       {summary.data && (
         <>
-          <WeekGrid exercises={activeExercises} />
+          <WeekGrid exercises={displayOrder} />
 
-          {activeExercises.length === 0 ? (
+          {displayOrder.length === 0 ? (
             <Empty title="No exercises yet">
               <p>Add your first exercise below.</p>
             </Empty>
           ) : (
             <div className="ft-list">
-              {activeExercises.map((ex) => (
+              {displayOrder.map((ex) => (
                 <ExerciseRow
                   key={ex.exerciseId}
                   stat={ex}
@@ -118,6 +175,10 @@ export default function Fitness() {
                   onOpenNumpad={setNumpadStat}
                   onChanged={summary.reload}
                   onError={setError}
+                  isDragging={dragIds?.fromId === ex.exerciseId}
+                  onDragStart={() => handleDragStart(ex.exerciseId)}
+                  onDragMove={handleDragMove}
+                  onDragEnd={handleDragEnd}
                 />
               ))}
             </div>
@@ -733,6 +794,10 @@ function ExerciseRow({
   onOpenNumpad,
   onChanged,
   onError,
+  isDragging,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
 }: {
   stat: ExerciseStat;
   isSwipeOpen: boolean;
@@ -740,6 +805,10 @@ function ExerciseRow({
   onOpenNumpad: (stat: ExerciseStat) => void;
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
+  isDragging: boolean;
+  onDragStart: () => void;
+  onDragMove: (x: number, y: number) => void;
+  onDragEnd: () => void;
 }) {
   const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
   const [showHistory, setShowHistory] = useState(false);
@@ -824,11 +893,9 @@ function ExerciseRow({
     if (swipeDir === null) {
       if (dx < -THRESHOLD) {
         setSwipeDir("left");
-        onOpen(null); // close any open input
         onSwipeOpen(stat.exerciseId);
       } else if (dx > THRESHOLD) {
         setSwipeDir("right");
-        onOpen(null);
         onSwipeOpen(stat.exerciseId);
       }
     } else if (swipeDir === "left" && dx > THRESHOLD) {
@@ -856,7 +923,11 @@ function ExerciseRow({
   }
 
   return (
-    <div className="ft-row" style={{ "--row-color": color } as CSSProperties}>
+    <div
+      className={`ft-row${isDragging ? " ft-row--dragging" : ""}`}
+      style={{ "--row-color": color } as CSSProperties}
+      data-exercise-id={stat.exerciseId}
+    >
 
       {/* Edit modal */}
       {showEdit && (
@@ -935,6 +1006,32 @@ function ExerciseRow({
               if (e.key === "Enter" || e.key === " ") onOpenNumpad(stat);
             }}
           >
+            {/* Drag handle — pointer-captured so move/up fire here even off-element */}
+            <div
+              className="ft-drag-handle"
+              aria-label="Drag to reorder"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                onDragStart();
+              }}
+              onPointerMove={(e) => {
+                if (e.buttons === 0) return;
+                onDragMove(e.clientX, e.clientY);
+              }}
+              onPointerUp={(e) => {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+                onDragEnd();
+              }}
+              onPointerCancel={onDragEnd}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              ⠿
+            </div>
+
             <div className="ft-row-left">
               <span className="ft-row-name">{stat.name}</span>
             </div>

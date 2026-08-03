@@ -4925,6 +4925,29 @@ button.btn-icon {
   border-bottom: none;
 }
 
+.ft-row--dragging {
+  opacity: 0.45;
+}
+.ft-row--drag-over {
+  box-shadow: 0 -2px 0 0 var(--accent);
+}
+
+.ft-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem 0 0;
+  color: var(--ink-faint);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ft-drag-handle:active { cursor: grabbing; }
+
 .ft-row-main {
   display: flex;
   align-items: center;
@@ -5120,52 +5143,52 @@ button.btn-icon {
   border-left: 3px solid var(--row-color, var(--rule-strong));
 }
 
-/* ── Numpad overlay + bottom sheet ──────────────────────────────────── */
+/* ── Numpad popup ────────────────────────────────────────────────────── */
 .ft-numpad-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.35);
   z-index: 200;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
 }
 
 .ft-numpad-sheet {
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
+  width: 272px;
   background: var(--paper);
-  border-radius: 18px 18px 0 0;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  animation: slideUpSheet 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.16);
+  animation: numpadPop 0.18s cubic-bezier(0.34, 1.36, 0.64, 1) both;
+  overflow: hidden;
 }
 
-@keyframes slideUpSheet {
-  from { transform: translateY(100%); opacity: 0.6; }
-  to   { transform: translateY(0);    opacity: 1;   }
+@keyframes numpadPop {
+  from { transform: scale(0.88); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
 }
 
 .ft-numpad-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem 0.75rem;
-  border-bottom: 3px solid var(--row-color, var(--rule-strong));
+  padding: 0.6rem 0.875rem 0.5rem;
+  border-bottom: 2px solid var(--row-color, var(--rule-strong));
 }
 
 .ft-numpad-name {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: var(--ink);
 }
 
 .ft-numpad-close {
   background: none;
   border: none;
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: var(--ink-faint);
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.4rem;
   line-height: 1;
   border-radius: 4px;
   transition: color 0.1s;
@@ -5175,13 +5198,13 @@ button.btn-icon {
 .ft-numpad-display {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
-  padding: 0.9rem 1.5rem 0.6rem;
-  min-height: 3.8rem;
+  gap: 0.3rem;
+  padding: 0.55rem 0.875rem 0.4rem;
+  min-height: 2.6rem;
 }
 
 .ft-numpad-value {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -5189,7 +5212,7 @@ button.btn-icon {
 }
 
 .ft-numpad-unit {
-  font-size: 1rem;
+  font-size: 0.8125rem;
   color: var(--ink-faint);
 }
 
@@ -5205,10 +5228,10 @@ button.btn-icon {
   background: var(--paper);
   border: none;
   font: inherit;
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 500;
   color: var(--ink);
-  padding: 0.95rem 0;
+  padding: 0.65rem 0;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -5222,21 +5245,21 @@ button.btn-icon {
 }
 
 .ft-numpad-key--backspace {
-  font-size: 1.25rem;
+  font-size: 1rem;
   color: var(--ink-faint);
 }
 
 .ft-numpad-submit {
   display: block;
-  width: calc(100% - 2rem);
-  margin: 0.75rem 1rem 1rem;
-  padding: 0.85rem;
+  width: calc(100% - 1.25rem);
+  margin: 0.5rem 0.625rem 0.625rem;
+  padding: 0.6rem;
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font: inherit;
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
   transition: opacity 0.15s;
