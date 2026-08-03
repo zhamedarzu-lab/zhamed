@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { dollars, seqLabel, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
 import { BalanceChart, Empty, Loading, Notice, Panel, type Point } from "../../components/ui";
+import { AddItemRow } from "../../components/finance-ui";
 import FinanceNav from "./FinanceNav";
 import { isPayday, nextPayday } from "../../lib/payday";
 
@@ -117,8 +118,7 @@ function utilColor(ratio: number) {
 }
 
 export default function Debt() {
-  const [error, setError]   = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const accounts  = useApi<Account[]>("/api/finance/debt-accounts");
   const snapshots = useApi<Snapshot[]>("/api/finance/debt-snapshots");
@@ -141,12 +141,16 @@ export default function Debt() {
     catch (err) { setError(err instanceof Error ? err.message : "That didn't save."); }
   };
 
-  const addCard = guard(async () => {
-    if (!newName.trim()) return;
-    await api.post("/api/finance/debt-accounts", { name: newName.trim(), kind: "card" });
-    setNewName("");
-    await accounts.reload();
-  });
+  const addCard = async (name: string) => {
+    setError(null);
+    try {
+      await api.post("/api/finance/debt-accounts", { name, kind: "card" });
+      await accounts.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That didn't save.");
+      throw err;
+    }
+  };
 
   // Bucket the history once instead of re-scanning it inside every card.
   const snapshotsByAccount = useMemo(
@@ -224,18 +228,11 @@ export default function Debt() {
       )}
 
       {/* ── Add card ── */}
-      <div className="panel-body bills-add-row" style={{ marginTop: "1.25rem", border: "1px solid var(--rule)", borderRadius: 4 }}>
-        <input
-          value={newName}
-          placeholder="Add a card — Chase, Capital One…"
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addCard()}
-          style={{ flex: 1 }}
-        />
-        <button className="primary" onClick={addCard} disabled={!newName.trim()}>
-          Add card
-        </button>
-      </div>
+      <AddItemRow
+        label="Add a card"
+        placeholder="Chase, Capital One…"
+        onAdd={addCard}
+      />
     </>
   );
 }

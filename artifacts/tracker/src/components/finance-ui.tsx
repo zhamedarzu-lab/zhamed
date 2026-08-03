@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type RefObject } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { api, useApi } from "../lib/api";
 import { dollars, toAmount } from "../lib/format";
 import { SPENDING_COLOR, EXTRA_INCOME_COLOR, tagColor } from "./ui";
@@ -213,31 +213,58 @@ export function BudgetStat({
 /* ── Add row ─────────────────────────────────────────────────────────────── */
 
 export function AddItemRow({
-  value,
+  label,
   placeholder,
-  inputRef,
-  onChange,
   onAdd,
 }: {
-  value: string;
+  label: string;
   placeholder: string;
-  inputRef?: RefObject<HTMLInputElement | null>;
-  onChange: (v: string) => void;
-  onAdd: () => void;
+  onAdd: (name: string) => Promise<void>;
 }) {
+  const [open,  setOpen]  = useState(false);
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  async function submit() {
+    if (!value.trim()) return;
+    try {
+      await onAdd(value.trim());
+      setValue("");
+      setOpen(false);
+    } catch {
+      // parent shows the error banner; keep the form open
+    }
+  }
+
+  if (!open) {
+    return (
+      <button className="ft-add-btn" onClick={() => setOpen(true)}>
+        + {label}
+      </button>
+    );
+  }
+
   return (
     <div className="panel-body bills-add-row" style={{ borderTop: "1px solid var(--rule)" }}>
       <input
         ref={inputRef}
         value={value}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && onAdd()}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter")  void submit();
+          if (e.key === "Escape") { setOpen(false); setValue(""); }
+        }}
         style={{ flex: 1 }}
       />
-      <button className="primary" onClick={onAdd} disabled={!value.trim()}>
+      <button className="primary" onClick={() => void submit()} disabled={!value.trim()}>
         Add
       </button>
+      <button className="quiet" onClick={() => { setOpen(false); setValue(""); }}>✕</button>
     </div>
   );
 }

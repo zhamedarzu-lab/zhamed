@@ -99,7 +99,13 @@ function groupBy<T>(rows: T[], key: (row: T) => number): Map<number, T[]> {
 
 export default function Cash() {
   const [error, setError] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (addOpen) nameRef.current?.focus();
+  }, [addOpen]);
 
   const accounts  = useApi<Account[]>("/api/finance/cash-accounts");
   const snapshots = useApi<Snapshot[]>("/api/finance/cash-snapshots");
@@ -123,6 +129,7 @@ export default function Cash() {
     if (!newName.trim()) return;
     await api.post("/api/finance/cash-accounts", { name: newName.trim() });
     setNewName("");
+    setAddOpen(false);
     await accounts.reload();
   });
 
@@ -181,18 +188,33 @@ export default function Cash() {
       )}
 
       {/* ── Add account ── */}
-      <div className="panel-body bills-add-row" style={{ marginTop: "1.25rem", border: "1px solid var(--rule)", borderRadius: 4 }}>
-        <input
-          value={newName}
-          placeholder="Add an account — Cash App, Venmo…"
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && addAccount()}
-          style={{ flex: 1 }}
-        />
-        <button className="primary" onClick={addAccount} disabled={!newName.trim()}>
-          Add account
+      {!addOpen ? (
+        <button
+          className="ft-add-btn"
+          style={{ marginTop: "1.25rem" }}
+          onClick={() => setAddOpen(true)}
+        >
+          + Add account
         </button>
-      </div>
+      ) : (
+        <div className="panel-body bills-add-row" style={{ marginTop: "1.25rem", border: "1px solid var(--rule)", borderRadius: 4 }}>
+          <input
+            ref={nameRef}
+            value={newName}
+            placeholder="Cash App, Venmo…"
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter")  addAccount();
+              if (e.key === "Escape") { setAddOpen(false); setNewName(""); }
+            }}
+            style={{ flex: 1 }}
+          />
+          <button className="primary" onClick={addAccount} disabled={!newName.trim()}>
+            Add
+          </button>
+          <button className="quiet" onClick={() => { setAddOpen(false); setNewName(""); }}>✕</button>
+        </div>
+      )}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef, useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { currentMonth, dollars, monthName } from "../../lib/format";
 import { Empty, Loading, MonthPicker, Notice, Panel, tagColor } from "../../components/ui";
 import {
@@ -43,10 +43,8 @@ function useBillColors() {
 
 export default function Bills() {
   const [month, setMonth] = useState(currentMonth());
-  const [newName, setNewName] = useState("");
   const [budget, setBudget] = useBudget(BUDGET_KEY, DEFAULT_BUDGET);
   const [colors, setColor] = useBillColors();
-  const addInputRef = useRef<HTMLInputElement>(null);
 
   const { items, loading, error, add, patch, remove } = useMonthlyItems<MonthlyItem>(
     "bills",
@@ -55,13 +53,6 @@ export default function Bills() {
 
   const total = items.reduce((s, b) => s + b.amount, 0);
   const leftover = budget - total;
-
-  const addItem = async () => {
-    if (!newName.trim()) return;
-    await add(newName.trim());
-    setNewName("");
-    addInputRef.current?.focus();
-  };
 
   return (
     <>
@@ -141,11 +132,9 @@ export default function Bills() {
         )}
 
         <AddItemRow
-          value={newName}
-          placeholder="Add a bill — Rent, Power, Netflix…"
-          inputRef={addInputRef}
-          onChange={setNewName}
-          onAdd={() => void addItem()}
+          label="Add a bill"
+          placeholder="Rent, Power, Netflix…"
+          onAdd={(name) => add(name)}
         />
       </Panel>
 

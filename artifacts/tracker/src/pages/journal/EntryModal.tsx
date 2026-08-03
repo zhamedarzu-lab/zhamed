@@ -305,7 +305,7 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
             title={timesOpen ? "Hide time" : "Edit date & time"}
           >🕐</button>
           <button onClick={onCancel}>Cancel</button>
-          <button className="primary" onClick={submit} disabled={saving || !content.trim()}>
+          <button className="primary" onClick={submit} disabled={saving || (!content.trim() && !subject.trim())}>
             {saving ? "Saving…" : initial ? "Save" : "Add"}
           </button>
         </div>

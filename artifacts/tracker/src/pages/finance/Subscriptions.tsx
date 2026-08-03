@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { currentMonth, dollars } from "../../lib/format";
 import { Empty, Loading, Notice, Panel } from "../../components/ui";
 import {
@@ -22,9 +22,7 @@ type SubItem = MonthlyItem & { active: boolean };
 
 export default function Subscriptions() {
   const month = currentMonth();
-  const [newName, setNewName] = useState("");
   const [budget, setBudget] = useBudget(BUDGET_KEY, DEFAULT_BUDGET);
-  const addInputRef = useRef<HTMLInputElement>(null);
 
   const { items, loading, error, add, patch, remove } = useMonthlyItems<SubItem>(
     "subscriptions",
@@ -36,13 +34,6 @@ export default function Subscriptions() {
   const activeTotal = active.reduce((s, b) => s + b.amount, 0);
   const pausedTotal = paused.reduce((s, b) => s + b.amount, 0);
   const leftover = budget - activeTotal;
-
-  const addItem = async () => {
-    if (!newName.trim()) return;
-    await add(newName.trim());
-    setNewName("");
-    addInputRef.current?.focus();
-  };
 
   const renderRow = (b: SubItem) => (
     <tr key={b.id} className={b.active ? undefined : "sub-row-paused"}>
@@ -126,11 +117,9 @@ export default function Subscriptions() {
         )}
 
         <AddItemRow
-          value={newName}
-          placeholder="Add a subscription — Netflix, Spotify, iCloud…"
-          inputRef={addInputRef}
-          onChange={setNewName}
-          onAdd={() => void addItem()}
+          label="Add a subscription"
+          placeholder="Netflix, Spotify, iCloud…"
+          onAdd={(name) => add(name)}
         />
       </Panel>
     </>
