@@ -1360,19 +1360,21 @@ a:hover {
   flex-shrink: 0;
 }
 .entry-color-swatch {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 2px solid transparent;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
   cursor: pointer;
   padding: 0;
-  transition: transform 0.1s, border-color 0.1s;
+  transition: transform 0.1s, border-color 0.1s, box-shadow 0.1s;
   flex-shrink: 0;
 }
-.entry-color-swatch:hover { transform: scale(1.25); }
+.entry-color-swatch:hover { transform: scale(1.2); }
 .entry-color-swatch.selected {
   border-color: var(--ink);
-  transform: scale(1.2);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
+  transform: scale(1.15);
 }
 
 .entry-form-times {
