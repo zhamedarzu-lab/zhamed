@@ -21,6 +21,12 @@ export function optionalIdQuery(raw: unknown): number | undefined {
   return isNaN(n) ? undefined : n;
 }
 
+/** `?from=YYYY-MM-DD` / `?to=YYYY-MM-DD` style filters — undefined when absent or invalid. */
+export function optionalDateQuery(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  return DATE_RE.test(raw) ? raw : undefined;
+}
+
 /**
  * Validates a body and replies 400 itself when it doesn't fit, so routes read
  * as `const data = parseBody(...); if (!data) return;`.

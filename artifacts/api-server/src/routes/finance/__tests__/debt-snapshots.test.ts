@@ -231,6 +231,65 @@ describe("GET /api/finance/debt-snapshots", () => {
   });
 });
 
+// ─── GET /api/finance/debt-snapshots — date range filtering ───────────────────
+
+describe("GET /api/finance/debt-snapshots — date range", () => {
+  it("filters by ?from= to exclude older snapshots", async () => {
+    await makeSnapshot(cardId, { snapshotDate: "2099-01-01", balance: 500 });
+    await makeSnapshot(cardId, { snapshotDate: "2099-02-01", balance: 400 });
+    await makeSnapshot(cardId, { snapshotDate: "2099-03-01", balance: 300 });
+
+    const res = await request(app)
+      .get("/api/finance/debt-snapshots")
+      .query({ accountId: cardId, from: "2099-02-01" });
+
+    expect(res.status).toBe(200);
+    const dates = (res.body as Array<{ snapshotDate: string }>).map((s) => s.snapshotDate);
+    expect(dates).toEqual(["2099-02-01", "2099-03-01"]);
+  });
+
+  it("filters by ?to= to exclude newer snapshots", async () => {
+    await makeSnapshot(cardId, { snapshotDate: "2099-01-01", balance: 500 });
+    await makeSnapshot(cardId, { snapshotDate: "2099-02-01", balance: 400 });
+    await makeSnapshot(cardId, { snapshotDate: "2099-03-01", balance: 300 });
+
+    const res = await request(app)
+      .get("/api/finance/debt-snapshots")
+      .query({ accountId: cardId, to: "2099-02-01" });
+
+    expect(res.status).toBe(200);
+    const dates = (res.body as Array<{ snapshotDate: string }>).map((s) => s.snapshotDate);
+    expect(dates).toEqual(["2099-01-01", "2099-02-01"]);
+  });
+
+  it("filters by ?from= and ?to= together to return a bounded window", async () => {
+    await makeSnapshot(cardId, { snapshotDate: "2099-01-01", balance: 500 });
+    await makeSnapshot(cardId, { snapshotDate: "2099-02-01", balance: 400 });
+    await makeSnapshot(cardId, { snapshotDate: "2099-03-01", balance: 300 });
+    await makeSnapshot(cardId, { snapshotDate: "2099-04-01", balance: 200 });
+
+    const res = await request(app)
+      .get("/api/finance/debt-snapshots")
+      .query({ accountId: cardId, from: "2099-02-01", to: "2099-03-01" });
+
+    expect(res.status).toBe(200);
+    const dates = (res.body as Array<{ snapshotDate: string }>).map((s) => s.snapshotDate);
+    expect(dates).toEqual(["2099-02-01", "2099-03-01"]);
+  });
+
+  it("ignores an invalid ?from= value and returns all snapshots", async () => {
+    await makeSnapshot(cardId, { snapshotDate: "2099-01-01", balance: 500 });
+    await makeSnapshot(cardId, { snapshotDate: "2099-02-01", balance: 400 });
+
+    const res = await request(app)
+      .get("/api/finance/debt-snapshots")
+      .query({ accountId: cardId, from: "not-a-date" });
+
+    expect(res.status).toBe(200);
+    expect((res.body as unknown[]).length).toBe(2);
+  });
+});
+
 // ─── FK regression: deleting a paycheck nulls out paycheck_id ─────────────────
 
 describe("FK ON DELETE SET NULL regression", () => {

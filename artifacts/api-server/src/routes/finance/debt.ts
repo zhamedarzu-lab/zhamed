@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, isNull, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import {
@@ -8,7 +8,7 @@ import {
   debtSnapshotsTable,
   paychecksTable,
 } from "@workspace/db";
-import { DATE_RE, money, optionalIdQuery, parseBody, parseId, round } from "./shared.js";
+import { DATE_RE, money, optionalDateQuery, optionalIdQuery, parseBody, parseId, round } from "./shared.js";
 
 const router: IRouter = Router();
 
@@ -158,6 +158,14 @@ router.get("/debt-payments", async (req, res): Promise<void> => {
 
 router.get("/debt-snapshots", async (req, res): Promise<void> => {
   const accountId = optionalIdQuery(req.query.accountId);
+  const from = optionalDateQuery(req.query.from);
+  const to = optionalDateQuery(req.query.to);
+
+  const conditions = [
+    accountId !== undefined ? eq(debtSnapshotsTable.debtAccountId, accountId) : undefined,
+    from !== undefined ? gte(debtSnapshotsTable.snapshotDate, from) : undefined,
+    to !== undefined ? lte(debtSnapshotsTable.snapshotDate, to) : undefined,
+  ].filter((c) => c !== undefined) as Parameters<typeof and>;
 
   const rows = await db
     .select({
@@ -173,7 +181,7 @@ router.get("/debt-snapshots", async (req, res): Promise<void> => {
     })
     .from(debtSnapshotsTable)
     .leftJoin(paychecksTable, eq(debtSnapshotsTable.paycheckId, paychecksTable.id))
-    .where(accountId !== undefined ? eq(debtSnapshotsTable.debtAccountId, accountId) : undefined)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(debtSnapshotsTable.snapshotDate);
 
   res.json(
