@@ -187,16 +187,32 @@ router.get("/summary", async (req, res): Promise<void> => {
   const goalStartDates = exercises.map(ex => ex.goalStartDate).filter((d): d is string => !!d);
   const queryFrom = [...[d14ago, weekStart, monthStart], ...goalStartDates].sort()[0]!;
 
-  // Fetch windowed efforts (for periods/sparkline/deadlines) and all-time efforts
-  // (for best-day) in parallel — both are independent once queryFrom is known.
-  const [efforts, allEfforts] = await Promise.all([
+  // Fetch windowed efforts (for periods/sparkline/deadlines) and the all-time
+  // per-(exercise, date) aggregates for best-day — both run in parallel.
+  // The aggregation uses the exercise_id index (group by exercise + date) so
+  // it never does a full sequential scan across all exercises.
+  const [efforts, bestDayAgg] = await Promise.all([
     db.select()
       .from(effortsTable)
-      .where(gte(effortsTable.date, queryFrom))
+      .where(and(gte(effortsTable.date, queryFrom), lte(effortsTable.date, today)))
       .orderBy(asc(effortsTable.date)),
-    db.select({ exerciseId: effortsTable.exerciseId, date: effortsTable.date, amount: effortsTable.amount })
-      .from(effortsTable),
+    db.select({
+        exerciseId: effortsTable.exerciseId,
+        date:       effortsTable.date,
+        total:      sql<string>`SUM(${effortsTable.amount})`,
+      })
+      .from(effortsTable)
+      .where(lte(effortsTable.date, today))
+      .groupBy(effortsTable.exerciseId, effortsTable.date),
   ]);
+
+  // Pre-build a map: exerciseId → (date → dailyTotal) from the aggregated results
+  const allTimeByExDate = new Map<number, Map<string, number>>();
+  for (const r of bestDayAgg) {
+    let byDate = allTimeByExDate.get(r.exerciseId);
+    if (!byDate) { byDate = new Map(); allTimeByExDate.set(r.exerciseId, byDate); }
+    byDate.set(r.date, Number(r.total));
+  }
 
   // Consistency strip: which of the last 14 days had any effort
   const activeDates = new Set(efforts.filter((e) => e.date >= d14ago).map((e) => e.date));
@@ -204,13 +220,6 @@ router.get("/summary", async (req, res): Promise<void> => {
   for (let i = 13; i >= 0; i--) {
     const d = offsetDate(today, -i);
     consistencyStrip.push({ date: d, active: activeDates.has(d) });
-  }
-
-  const allTimeByExDate = new Map<number, Map<string, number>>();
-  for (const e of allEfforts) {
-    let byDate = allTimeByExDate.get(e.exerciseId);
-    if (!byDate) { byDate = new Map(); allTimeByExDate.set(e.exerciseId, byDate); }
-    byDate.set(e.date, (byDate.get(e.date) ?? 0) + Number(e.amount));
   }
 
   // Group recent efforts by exercise
