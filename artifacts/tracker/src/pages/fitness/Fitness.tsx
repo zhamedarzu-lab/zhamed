@@ -9,6 +9,8 @@ const FITNESS_COLORS = ENTRY_COLORS.slice(0, 7); // R O Y G B + pink + purple
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 
+type GoalPeriod = "day" | "week" | "month";
+
 type ExerciseStat = {
   exerciseId: number;
   name: string;
@@ -16,6 +18,8 @@ type ExerciseStat = {
   color: string | null;
   active: boolean;
   sortOrder: number;
+  goalAmount: number | null;
+  goalPeriod: GoalPeriod | null;
   todayTotal: number;
   weekTotal: number;
   monthTotal: number;
@@ -724,6 +728,109 @@ function EditModal({
   );
 }
 
+// ─── Goal modal ───────────────────────────────────────────────────────────────
+
+const PERIOD_LABELS: Record<GoalPeriod, string> = { day: "Daily", week: "Weekly", month: "Monthly" };
+
+function GoalModal({
+  stat,
+  color,
+  onClose,
+  onChanged,
+  onError,
+}: {
+  stat: ExerciseStat;
+  color: string;
+  onClose: () => void;
+  onChanged: () => Promise<unknown>;
+  onError: (m: string | null) => void;
+}) {
+  const [amount, setAmount] = useState(stat.goalAmount !== null ? String(stat.goalAmount) : "");
+  const [period, setPeriod] = useState<GoalPeriod>(stat.goalPeriod ?? "week");
+  const [busy,   setBusy]   = useState(false);
+
+  async function save() {
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed <= 0) return;
+    setBusy(true);
+    onError(null);
+    try {
+      await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, { goalAmount: parsed, goalPeriod: period });
+      await onChanged();
+      onClose();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not save goal.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function clear() {
+    setBusy(true);
+    onError(null);
+    try {
+      await api.patch(`/api/fitness/exercises/${stat.exerciseId}`, { goalAmount: null, goalPeriod: null });
+      await onChanged();
+      onClose();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not clear goal.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="ft-goal-overlay" onClick={onClose}>
+      <div className="ft-goal-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="ft-goal-header">
+          <span className="ft-goal-title" style={{ color }}>Goal · {stat.name}</span>
+          <button className="quiet" onClick={onClose}>✕</button>
+        </div>
+
+        <p className="ft-goal-hint">How much do you want to hit, and how often?</p>
+
+        <div className="ft-goal-fields">
+          <input
+            className="ft-goal-amount"
+            type="number"
+            min="0"
+            step="any"
+            placeholder={`Amount (${stat.unit})`}
+            value={amount}
+            autoFocus
+            onChange={(e) => setAmount(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void save(); if (e.key === "Escape") onClose(); }}
+          />
+          <div className="ft-goal-periods">
+            {(["day", "week", "month"] as GoalPeriod[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`ft-goal-period-btn${period === p ? " ft-goal-period-btn--active" : ""}`}
+                onClick={() => setPeriod(p)}
+              >
+                {PERIOD_LABELS[p]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="ft-goal-actions">
+          <button className="primary" onClick={save} disabled={busy || !amount || parseFloat(amount) <= 0}>
+            Save
+          </button>
+          {stat.goalAmount !== null && (
+            <button className="quiet ft-goal-clear" onClick={clear} disabled={busy}>
+              Clear goal
+            </button>
+          )}
+          <button className="quiet" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Exercise row ─────────────────────────────────────────────────────────────
 
 // ─── Numpad ───────────────────────────────────────────────────────────────────
@@ -865,6 +972,7 @@ function ExerciseRow({
 }) {
   const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
   const [showHistory, setShowHistory] = useState(false);
+  const [showGoal,    setShowGoal]    = useState(false);
   const [showEdit,    setShowEdit]    = useState(false);
   const [swipeDir,    setSwipeDir]    = useState<"left" | "right" | null>(null);
   const [liveOffset,  setLiveOffset]  = useState<number | null>(null); // non-null while finger is down
@@ -897,7 +1005,7 @@ function ExerciseRow({
   }, [isSwipeOpen]);
 
   const LEFT_SNAP  = -140; // card shifts left → reveals edit + delete on right
-  const RIGHT_SNAP =   90; // card shifts right → reveals history on left
+  const RIGHT_SNAP =  185; // card shifts right → reveals history + goal on left
   const THRESHOLD  =   60;
 
   // Base position from snapped state; liveOffset adds the live finger delta on top
@@ -1022,6 +1130,17 @@ function ExerciseRow({
         />
       )}
 
+      {/* Goal modal */}
+      {showGoal && (
+        <GoalModal
+          stat={stat}
+          color={color}
+          onClose={() => setShowGoal(false)}
+          onChanged={onChanged}
+          onError={onError}
+        />
+      )}
+
       {/* Swipe track */}
       <div className="ft-swipe-track">
 
@@ -1041,13 +1160,19 @@ function ExerciseRow({
           </button>
         </div>
 
-        {/* Action button revealed by RIGHT swipe (sits on left side) */}
+        {/* Action buttons revealed by RIGHT swipe (sit on left side) */}
         <div className="ft-swipe-actions-left">
           <button
             className="ft-swipe-btn ft-swipe-btn--history"
             onClick={() => { setSwipeDir(null); onSwipeOpen(null); setShowHistory(true); }}
           >
             History
+          </button>
+          <button
+            className="ft-swipe-btn ft-swipe-btn--goal"
+            onClick={() => { setSwipeDir(null); onSwipeOpen(null); setShowGoal(true); }}
+          >
+            Goal
           </button>
         </div>
 

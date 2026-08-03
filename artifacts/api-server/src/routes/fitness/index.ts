@@ -18,11 +18,13 @@ router.get("/exercises", async (_req, res): Promise<void> => {
 });
 
 const ExerciseInput = z.object({
-  name:      z.string().min(1).max(200).trim(),
-  unit:      z.string().min(1).max(50).trim(),
-  color:     z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
-  active:    z.boolean().optional(),
-  sortOrder: z.number().int().optional(),
+  name:       z.string().min(1).max(200).trim(),
+  unit:       z.string().min(1).max(50).trim(),
+  color:      z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(),
+  active:     z.boolean().optional(),
+  sortOrder:  z.number().int().optional(),
+  goalAmount: z.number().positive().nullable().optional(),
+  goalPeriod: z.enum(["day", "week", "month"]).nullable().optional(),
 });
 
 router.post("/exercises", async (req, res): Promise<void> => {
@@ -44,11 +46,13 @@ router.patch("/exercises/:id", async (req, res): Promise<void> => {
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
 
   const update: Partial<typeof exercisesTable.$inferInsert> = {};
-  if (data.name      !== undefined) update.name      = data.name;
-  if (data.unit      !== undefined) update.unit      = data.unit;
-  if (data.color     !== undefined) update.color     = data.color;
-  if (data.active    !== undefined) update.active    = data.active;
-  if (data.sortOrder !== undefined) update.sortOrder = data.sortOrder;
+  if (data.name       !== undefined) update.name       = data.name;
+  if (data.unit       !== undefined) update.unit       = data.unit;
+  if (data.color      !== undefined) update.color      = data.color;
+  if (data.active     !== undefined) update.active     = data.active;
+  if (data.sortOrder  !== undefined) update.sortOrder  = data.sortOrder;
+  if (data.goalAmount !== undefined) update.goalAmount = data.goalAmount !== null ? String(data.goalAmount) : null;
+  if (data.goalPeriod !== undefined) update.goalPeriod = data.goalPeriod;
 
   if (Object.keys(update).length > 0) {
     await db.update(exercisesTable).set(update).where(eq(exercisesTable.id, id));
@@ -254,6 +258,8 @@ router.get("/summary", async (req, res): Promise<void> => {
       color:      ex.color ?? null,
       active:     ex.active,
       sortOrder:  ex.sortOrder,
+      goalAmount: ex.goalAmount !== null && ex.goalAmount !== undefined ? Number(ex.goalAmount) : null,
+      goalPeriod: ex.goalPeriod ?? null,
       todayTotal,
       weekTotal,
       monthTotal,

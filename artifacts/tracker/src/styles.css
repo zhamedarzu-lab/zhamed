@@ -5154,6 +5154,96 @@ button.btn-icon {
   background: var(--amber);
   color: #1a1000;
 }
+.ft-swipe-btn--goal {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Goal modal ─────────────────────────────────────────────── */
+.ft-goal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.ft-goal-modal {
+  background: var(--paper);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 340px;
+  padding: 1.25rem 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.ft-goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ft-goal-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+.ft-goal-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+}
+.ft-goal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.ft-goal-amount {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+.ft-goal-amount:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.ft-goal-periods {
+  display: flex;
+  gap: 0.5rem;
+}
+.ft-goal-period-btn {
+  flex: 1;
+  padding: 0.5rem 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-faint);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.ft-goal-period-btn--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.ft-goal-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.ft-goal-clear {
+  color: var(--stamp);
+}
 
 /* The card face — sits above action buttons, translates over them */
 .ft-swipe-card {
