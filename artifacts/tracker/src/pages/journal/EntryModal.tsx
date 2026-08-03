@@ -243,11 +243,30 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
         </div>
       )}
       <div className="entry-form-actions">
-        <div className="entry-form-colors">
-          {ENTRY_COLORS.map(c => (
-            <button key={c.hex} className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
-              style={{ background: c.hex }} aria-label={c.label} onClick={() => setColor(c.hex)} />
-          ))}
+        <div className="entry-form-left">
+          <div className="entry-form-loose-end-group">
+            <button
+              className={`entry-form-loose-btn${looseEndType === 'open' ? ' active' : ''}`}
+              onClick={() => { setLooseEndType(t => t === 'open' ? null : 'open'); setLooseEndLink(null); }}
+              title="Open loose end"
+              type="button"
+            >◎</button>
+            <button
+              className={`entry-form-loose-btn${looseEndType === 'close' ? ' active' : ''}${looseEndType === 'close' && !looseEndLink ? ' needs-link' : ''}`}
+              onClick={() => {
+                if (looseEndType === 'close' && looseEndLink !== null) { setLooseEndType(null); setLooseEndLink(null); }
+                else setShowOpenPicker(true);
+              }}
+              title={looseEndType === 'close' ? 'Remove close link' : 'Close an open end'}
+              type="button"
+            >◉</button>
+          </div>
+          <div className="entry-form-colors">
+            {ENTRY_COLORS.map(c => (
+              <button key={c.hex} className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+                style={{ background: c.hex }} aria-label={c.label} onClick={() => setColor(c.hex)} />
+            ))}
+          </div>
         </div>
         <div className="entry-form-action-right">
           {onPunch && !punchMode && (
@@ -255,21 +274,6 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
               Punch
             </button>
           )}
-          <button
-            className={`entry-form-loose-btn${looseEndType === 'open' ? ' active' : ''}`}
-            onClick={() => { setLooseEndType(t => t === 'open' ? null : 'open'); setLooseEndLink(null); }}
-            title="Open loose end"
-            type="button"
-          >◎</button>
-          <button
-            className={`entry-form-loose-btn${looseEndType === 'close' ? ' active' : ''}${looseEndType === 'close' && !looseEndLink ? ' needs-link' : ''}`}
-            onClick={() => {
-              if (looseEndType === 'close' && looseEndLink !== null) { setLooseEndType(null); setLooseEndLink(null); }
-              else setShowOpenPicker(true);
-            }}
-            title={looseEndType === 'close' ? 'Remove close link' : 'Close an open end'}
-            type="button"
-          >◉</button>
           <button
             className={`entry-form-subject-toggle${showSubject ? " active" : ""}`}
             onClick={() => setShowSubject(o => !o)}
