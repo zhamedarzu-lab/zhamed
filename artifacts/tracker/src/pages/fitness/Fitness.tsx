@@ -88,8 +88,11 @@ export default function Fitness() {
     }
   }
 
-  const [numpadStat, setNumpadStat] = useState<ExerciseStat | null>(null);
-  const [swipeId,    setSwipeId]    = useState<number | null>(null);
+  const [numpadStat,  setNumpadStat]  = useState<ExerciseStat | null>(null);
+  const [editStat,    setEditStat]    = useState<ExerciseStat | null>(null);
+  const [historyStat, setHistoryStat] = useState<ExerciseStat | null>(null);
+  const [goalStat,    setGoalStat]    = useState<ExerciseStat | null>(null);
+  const [swipeId,     setSwipeId]     = useState<number | null>(null);
 
   // ── Drag-to-reorder ──────────────────────────────────────────────────
   type DragState = { fromId: number; overId: number; startY: number; currentY: number; rowHeight: number };
@@ -216,6 +219,9 @@ export default function Fitness() {
                   isSwipeOpen={swipeId === ex.exerciseId}
                   onSwipeOpen={setSwipeId}
                   onOpenNumpad={setNumpadStat}
+                  onOpenEdit={setEditStat}
+                  onOpenHistory={setHistoryStat}
+                  onOpenGoal={setGoalStat}
                   onChanged={summary.reload}
                   onError={setError}
                   isDragging={dragState?.fromId === ex.exerciseId}
@@ -235,11 +241,37 @@ export default function Fitness() {
         </>
       )}
 
-      {/* Numpad overlay */}
+      {/* Overlays — rendered here (outside the transformed rows) so position:fixed works */}
       {numpadStat && (
         <Numpad
           stat={numpadStat}
           onClose={() => setNumpadStat(null)}
+          onChanged={summary.reload}
+          onError={setError}
+        />
+      )}
+      {editStat && (
+        <EditModal
+          stat={editStat}
+          color={editStat.color ?? tagColor(editStat.name)}
+          onClose={() => setEditStat(null)}
+          onChanged={summary.reload}
+          onError={setError}
+        />
+      )}
+      {historyStat && (
+        <HistoryModal
+          stat={historyStat}
+          color={historyStat.color ?? tagColor(historyStat.name)}
+          onClose={() => setHistoryStat(null)}
+          onChanged={summary.reload}
+        />
+      )}
+      {goalStat && (
+        <GoalModal
+          stat={goalStat}
+          color={goalStat.color ?? tagColor(goalStat.name)}
+          onClose={() => setGoalStat(null)}
           onChanged={summary.reload}
           onError={setError}
         />
@@ -946,6 +978,9 @@ function ExerciseRow({
   isSwipeOpen,
   onSwipeOpen,
   onOpenNumpad,
+  onOpenEdit,
+  onOpenHistory,
+  onOpenGoal,
   onChanged,
   onError,
   isDragging,
@@ -958,7 +993,10 @@ function ExerciseRow({
   stat: ExerciseStat;
   isSwipeOpen: boolean;
   onSwipeOpen: (id: number | null) => void;
-  onOpenNumpad: (stat: ExerciseStat) => void;
+  onOpenNumpad:   (stat: ExerciseStat) => void;
+  onOpenEdit:     (stat: ExerciseStat) => void;
+  onOpenHistory:  (stat: ExerciseStat) => void;
+  onOpenGoal:     (stat: ExerciseStat) => void;
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
   isDragging: boolean;
@@ -968,10 +1006,7 @@ function ExerciseRow({
   onDragMove: (x: number, y: number) => void;
   onDragEnd: () => void;
 }) {
-  const [period,      setPeriod]      = useState<"D" | "W" | "M">("D");
-  const [showHistory, setShowHistory] = useState(false);
-  const [showGoal,    setShowGoal]    = useState(false);
-  const [showEdit,    setShowEdit]    = useState(false);
+  const [period, setPeriod] = useState<"D" | "W" | "M">("D");
   const [swipeDir,    setSwipeDir]    = useState<"left" | "right" | null>(null);
   const [liveOffset,  setLiveOffset]  = useState<number | null>(null); // non-null while finger is down
 
@@ -1107,38 +1142,6 @@ function ExerciseRow({
       data-exercise-id={stat.exerciseId}
     >
 
-      {/* Edit modal */}
-      {showEdit && (
-        <EditModal
-          stat={stat}
-          color={color}
-          onClose={() => setShowEdit(false)}
-          onChanged={onChanged}
-          onError={onError}
-        />
-      )}
-
-      {/* History modal */}
-      {showHistory && (
-        <HistoryModal
-          stat={stat}
-          color={color}
-          onClose={() => setShowHistory(false)}
-          onChanged={onChanged}
-        />
-      )}
-
-      {/* Goal modal */}
-      {showGoal && (
-        <GoalModal
-          stat={stat}
-          color={color}
-          onClose={() => setShowGoal(false)}
-          onChanged={onChanged}
-          onError={onError}
-        />
-      )}
-
       {/* Swipe track */}
       <div className="ft-swipe-track">
 
@@ -1146,7 +1149,7 @@ function ExerciseRow({
         <div className="ft-swipe-actions-right">
           <button
             className="ft-swipe-btn ft-swipe-btn--edit"
-            onClick={() => { setSwipeDir(null); onSwipeOpen(null); setShowEdit(true); }}
+            onClick={() => { setSwipeDir(null); onSwipeOpen(null); onOpenEdit(stat); }}
           >
             Edit
           </button>
@@ -1162,13 +1165,13 @@ function ExerciseRow({
         <div className="ft-swipe-actions-left">
           <button
             className="ft-swipe-btn ft-swipe-btn--history"
-            onClick={() => { setSwipeDir(null); onSwipeOpen(null); setShowHistory(true); }}
+            onClick={() => { setSwipeDir(null); onSwipeOpen(null); onOpenHistory(stat); }}
           >
             History
           </button>
           <button
             className="ft-swipe-btn ft-swipe-btn--goal"
-            onClick={() => { setSwipeDir(null); onSwipeOpen(null); setShowGoal(true); }}
+            onClick={() => { setSwipeDir(null); onSwipeOpen(null); onOpenGoal(stat); }}
           >
             Goal
           </button>
