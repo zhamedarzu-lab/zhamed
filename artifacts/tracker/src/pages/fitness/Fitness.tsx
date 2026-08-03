@@ -1323,10 +1323,13 @@ function ExerciseRow({
     const dx = touchCurX.current - touchStartX.current;
 
     if (!isHoriz.current) {
-      // ── Tap — close swipe if open, otherwise do nothing ─────────────
+      // ── Tap ──────────────────────────────────────────────────────────
       if (swipeDir !== null) {
+        // First tap closes the swipe; don't also open numpad
         setSwipeDir(null);
         onSwipeOpen(null);
+      } else {
+        onOpenNumpad(stat);
       }
       return;
     }
@@ -1472,15 +1475,6 @@ function ExerciseRow({
             </div>
 
             <div className="ft-row-right">
-              {/* + button — always visible, opens numpad */}
-              <button
-                type="button"
-                className="ft-row-add-btn"
-                aria-label={`Log ${stat.name}`}
-                onTouchEnd={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); onOpenNumpad(stat); }}
-              >+</button>
-
               {/* Desktop-only action buttons — hidden on touch, visible on hover */}
               <div className="ft-row-desktop-actions">
                 <button
