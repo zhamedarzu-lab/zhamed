@@ -30,7 +30,7 @@ router.post("/exercises", async (req, res): Promise<void> => {
   if (!data) return;
   const [row] = await db
     .insert(exercisesTable)
-    .values({ name: data.name, unit: data.unit })
+    .values({ name: data.name, unit: data.unit, color: data.color ?? null })
     .returning();
   res.status(201).json(row);
 });
@@ -251,6 +251,7 @@ router.get("/summary", async (_req, res): Promise<void> => {
     };
   });
 
+  res.set("Cache-Control", "no-store");
   res.json({ consistencyStrip, exercises: perExercise });
 });
 
