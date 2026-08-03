@@ -4948,6 +4948,10 @@ button.btn-icon {
   box-shadow: 0 -2px 0 0 var(--accent);
 }
 
+.ft-row--drag-over-end {
+  box-shadow: 0 2px 0 0 var(--accent);
+}
+
 .ft-drag-handle {
   display: flex;
   align-items: center;

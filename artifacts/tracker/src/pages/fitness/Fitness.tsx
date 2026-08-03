@@ -111,6 +111,28 @@ export default function Fitness() {
     return arr;
   }, [localOrder, dragState]);
 
+  // Compute where to show the insertion-point indicator.
+  // Uses localOrder indices directly — direction-aware:
+  //   Drag UP   (fromIdx > overIdx): item lands before overId → top-edge on overId
+  //   Drag DOWN (fromIdx < overIdx): item lands after  overId → top-edge on the next row,
+  //                                  or bottom-edge on overId when it is the last row.
+  const dropIndicator = useMemo<{ topId: number | null; bottomId: number | null }>(() => {
+    const none = { topId: null, bottomId: null };
+    if (!dragState || dragState.fromId === dragState.overId) return none;
+    const fromIdx = localOrder.findIndex((e) => e.exerciseId === dragState.fromId);
+    const overIdx = localOrder.findIndex((e) => e.exerciseId === dragState.overId);
+    if (fromIdx === -1 || overIdx === -1) return none;
+    if (fromIdx > overIdx) {
+      // dragging UP — item will be inserted before overId
+      return { topId: dragState.overId, bottomId: null };
+    }
+    // dragging DOWN — item will be inserted after overId
+    const nextId = localOrder[overIdx + 1]?.exerciseId ?? null;
+    if (nextId !== null) return { topId: nextId, bottomId: null };
+    // landing at the very end — mark the bottom edge of the last row
+    return { topId: null, bottomId: dragState.overId };
+  }, [localOrder, dragState]);
+
   // CSS translateY for each row — dragging item follows finger; others slide into gap
   function getTranslateY(exerciseId: number, ds: DragState | null): number {
     if (!ds) return 0;
@@ -191,6 +213,11 @@ export default function Fitness() {
                   onChanged={summary.reload}
                   onError={setError}
                   isDragging={dragState?.fromId === ex.exerciseId}
+                  isDropTarget={
+                    dropIndicator.topId === ex.exerciseId ? "top" :
+                    dropIndicator.bottomId === ex.exerciseId ? "bottom" :
+                    false
+                  }
                   translateY={getTranslateY(ex.exerciseId, dragState)}
                   onDragStart={(clientY, rowHeight) => handleDragStart(ex.exerciseId, clientY, rowHeight)}
                   onDragMove={handleDragMove}
@@ -815,6 +842,7 @@ function ExerciseRow({
   onChanged,
   onError,
   isDragging,
+  isDropTarget,
   translateY,
   onDragStart,
   onDragMove,
@@ -827,6 +855,7 @@ function ExerciseRow({
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
   isDragging: boolean;
+  isDropTarget: "top" | "bottom" | false;
   translateY: number;
   onDragStart: (clientY: number, rowHeight: number) => void;
   onDragMove: (x: number, y: number) => void;
@@ -960,7 +989,12 @@ function ExerciseRow({
 
   return (
     <div
-      className={`ft-row${isDragging ? " ft-row--dragging" : ""}`}
+      className={[
+        "ft-row",
+        isDragging    ? "ft-row--dragging"   : "",
+        isDropTarget === "top"    ? "ft-row--drag-over"     : "",
+        isDropTarget === "bottom" ? "ft-row--drag-over-end" : "",
+      ].filter(Boolean).join(" ")}
       style={{ "--row-color": color, transform: translateY !== 0 ? `translateY(${translateY}px)` : undefined } as CSSProperties}
       data-exercise-id={stat.exerciseId}
     >
