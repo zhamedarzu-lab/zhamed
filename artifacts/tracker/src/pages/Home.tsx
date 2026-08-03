@@ -36,8 +36,9 @@ type ExerciseStat = {
 };
 type FitnessSummary = { exercises: ExerciseStat[] };
 
-function fitnessGoalPct(exercises: ExerciseStat[], now: Date): { pct: number; onPace: number; total: number } | null {
+function fitnessGoalPct(exercises: ExerciseStat[], now: Date): { pct: number; pacePct: number; onPace: number; total: number } | null {
   const fills: number[] = [];
+  const paces: number[] = [];
   let onPace = 0;
 
   for (const ex of exercises) {
@@ -68,12 +69,14 @@ function fitnessGoalPct(exercises: ExerciseStat[], now: Date): { pct: number; on
     }
 
     fills.push(Math.min(filled, 1));
+    paces.push(Math.min(pace, 1));
     if (filled >= pace) onPace++;
   }
 
   if (fills.length === 0) return null;
-  const avg = fills.reduce((s, v) => s + v, 0) / fills.length;
-  return { pct: avg * 100, onPace, total: fills.length };
+  const avg     = fills.reduce((s, v) => s + v, 0) / fills.length;
+  const avgPace = paces.reduce((s, v) => s + v, 0) / paces.length;
+  return { pct: avg * 100, pacePct: avgPace * 100, onPace, total: fills.length };
 }
 
 export default function Home() {
@@ -93,6 +96,7 @@ export default function Home() {
       path: "/finance",
       accent: "#4ecb71",
       pct: cyclePct,
+      pacePct: null as number | null,
       caption: `payday · ${payday.toLocaleDateString("en-US", {
         weekday: "short",
         month: "short",
@@ -104,6 +108,7 @@ export default function Home() {
       path: "/journal",
       accent: "#6b9fd4",
       pct: todayPct,
+      pacePct: null as number | null,
       caption: "today",
     },
     {
@@ -111,6 +116,7 @@ export default function Home() {
       path: "/fitness",
       accent: "#e07d3a",
       pct: fitGoal ? fitGoal.pct : null,
+      pacePct: fitGoal ? fitGoal.pacePct : null,
       caption: fitGoal ? `${fitGoal.onPace} / ${fitGoal.total} on pace` : null,
     },
   ];
@@ -155,6 +161,9 @@ export default function Home() {
                 }
               >
                 <div className="home-pane-bar-fill" style={{ width: `${pane.pct}%` }} />
+                {pane.pacePct !== null && (
+                  <div className="home-pane-bar-pace" style={{ left: `${pane.pacePct}%` }} />
+                )}
               </div>
             )}
             {pane.caption && (

@@ -366,6 +366,18 @@ a:hover {
   border-radius: 4px;
   background: var(--paper-sunk);
   overflow: hidden;
+  position: relative;
+}
+
+.home-pane-bar-pace {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--pane-accent, var(--amber));
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 @keyframes home-pane-fill {
