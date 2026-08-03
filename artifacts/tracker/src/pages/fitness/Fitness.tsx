@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
 import { api, useApi } from "../../lib/api";
-import { shortDate, todayIso } from "../../lib/format";
+import { todayIso } from "../../lib/format";
 import { Empty, Loading, Notice } from "../../components/ui";
 import { ENTRY_COLORS } from "../journal/EntryModal";
 
@@ -415,12 +415,15 @@ function WeekGrid({ exercises }: { exercises: ExerciseStat[] }) {
 // ─── Slot labels ──────────────────────────────────────────────────────────────
 
 const SLOT_LABELS: Record<string, string> = {
-  morning:    "Morning",
-  before_noon:"Before Noon",
-  noon:       "Noon",
-  afternoon:  "Afternoon",
-  evening:    "Evening",
-  night:      "Night",
+  "early morning": "Early Morning",
+  morning:         "Morning",
+  "after morning": "After Morning",
+  before_noon:     "Before Noon",
+  noon:            "Noon",
+  afternoon:       "Afternoon",
+  evening:         "Evening",
+  night:           "Night",
+  midnight:        "Midnight",
 };
 
 type Effort = { id: number; exerciseId: number; date: string; slot: string; amount: number };
