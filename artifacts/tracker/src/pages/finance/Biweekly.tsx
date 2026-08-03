@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { dollars, shortMonth, signed } from "../../lib/format";
+import { dollars, seqLabel, shortMonth, signed } from "../../lib/format";
 import {
   AllocBar,
   tagColor,
@@ -80,7 +80,7 @@ export default function Biweekly() {
                 <div>
                   <h2 style={{ marginTop: "0.1rem" }}>
                     <span className="fig">{shortMonth(p.month)}</span>
-                    <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em", marginLeft: "0.4rem" }}>{p.seq}/2</span>
+                    <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em", marginLeft: "0.4rem" }}>{seqLabel(p.seq)}</span>
                     <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
                     <span className="fig">{dollars(p.amount)}</span>
                     {extraTotal > 0.005 && (

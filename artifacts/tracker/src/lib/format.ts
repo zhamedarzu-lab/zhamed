@@ -55,6 +55,13 @@ export function ordinal(n: number) {
   return `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
 }
 
+/**
+ * Which paycheck of its month, for display. Written as an ordinal rather than
+ * "n/2" because a month can carry a third paycheck, and "3/2" reads as an
+ * error. "1st" is right whether the month held two or three.
+ */
+export const seqLabel = (seq: number) => ordinal(seq);
+
 export const todayIso = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(

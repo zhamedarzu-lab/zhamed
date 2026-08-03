@@ -1,7 +1,7 @@
 import { Suspense, lazy, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../../lib/api";
-import { currentMonth, dollars, monthName, signed } from "../../lib/format";
+import { currentMonth, dollars, monthName, seqLabel, signed } from "../../lib/format";
 import {
   AllocBar,
   Empty,
@@ -211,7 +211,7 @@ export default function MonthlySummary() {
                   <IcChevron open={open} />
                   <h2 style={{ margin: 0 }}>
                     <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em" }}>
-                      {p.seq}/2
+                      {seqLabel(p.seq)}
                     </span>
                     <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
                     <span className="fig">{dollars(p.amount)}</span>

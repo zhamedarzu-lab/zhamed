@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { api, useApi } from "../../lib/api";
-import { dollars, shortDate, shortMonth, todayIso, toAmount } from "../../lib/format";
+import { dollars, seqLabel, shortDate, shortMonth, todayIso, toAmount } from "../../lib/format";
 import { isPayday, nextPayday } from "../../lib/payday";
 import {
   BalanceChart,
@@ -34,7 +34,7 @@ type Snapshot = {
 
 type PaycheckOption = { id: number; month: string; seq: number };
 
-const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seq}/2`;
+const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seqLabel(seq)}`;
 
 /** Shared empty array so cards without history keep a stable prop identity. */
 const EMPTY: never[] = [];

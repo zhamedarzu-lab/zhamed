@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { dollars, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
+import { dollars, seqLabel, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
 import { BalanceChart, Empty, Loading, Notice, Panel, type Point } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 import { isPayday, nextPayday } from "../../lib/payday";
@@ -41,7 +41,7 @@ type Payment = {
 type PaycheckOption = { id: number; month: string; seq: number };
 
 /** "Jul 2/2" — the same style already used for the paycheck payment history. */
-const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seq}/2`;
+const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seqLabel(seq)}`;
 
 /** Morning / Noon / Evening / Night based on the hour a snapshot was saved. */
 function timeOfDay(iso: string | null): string {
@@ -452,7 +452,7 @@ function CardPanel({
               {payments.map((p) => (
                 <li key={p.id}>
                   <Link to={`/finance/paycheck/${p.paycheckId}`} className="debt-history-when">
-                    {shortMonth(p.month)} {p.seq}/2
+                    {shortMonth(p.month)} {seqLabel(p.seq)}
                   </Link>
                   <span className="debt-history-note">{p.note || <em>Untitled</em>}</span>
                   <span className="debt-history-amt">{dollars(p.amount)}</span>

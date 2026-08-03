@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { currentMonth, dollars, signed } from "../../lib/format";
+import { currentMonth, dollars, seqLabel, signed } from "../../lib/format";
 import {
   AllocBar,
   tagColor,
@@ -38,7 +38,6 @@ const newKey = () => Math.random().toString(36).slice(2);
 const blankAlloc = (): Row => ({ key: newKey(), kind: "alloc", amount: 0, note: "", debtAccountId: null });
 const blankExtra = (): Row => ({ key: newKey(), kind: "extra", amount: 0, note: "", debtAccountId: null });
 
-const SEQ_LABELS: Record<number, string> = { 1: "1/2", 2: "2/2", 3: "3/2" };
 
 /* ── Icon helpers ──────────────────────────────────────────────────── */
 const IcBack = () => (
@@ -79,26 +78,14 @@ export default function PaycheckEditor() {
 
   const existing = useApi<LoadedPaycheck>(editing ? `/api/finance/paychecks/${id}` : null);
 
-  // Autocomplete suggestions pulled from all past paychecks
-  const allPaychecks = useApi<
-    Array<{ allocations: Array<{ note: string }>; extraIncome: Array<{ note: string }> }>
-  >("/api/finance/paychecks");
-
-  const allocSuggestions = useMemo(() => {
-    const seen = new Set<string>();
-    for (const p of allPaychecks.data ?? [])
-      for (const a of p.allocations)
-        if (a.note.trim()) seen.add(a.note.trim());
-    return [...seen].sort();
-  }, [allPaychecks.data]);
-
-  const extraSuggestions = useMemo(() => {
-    const seen = new Set<string>();
-    for (const p of allPaychecks.data ?? [])
-      for (const e of p.extraIncome)
-        if (e.note.trim()) seen.add(e.note.trim());
-    return [...seen].sort();
-  }, [allPaychecks.data]);
+  // Autocomplete suggestions. The server returns the distinct notes directly,
+  // so the editor no longer downloads every paycheck ever recorded to build
+  // this list.
+  const notes = useApi<{ allocations: string[]; extraIncome: string[] }>(
+    "/api/finance/notes",
+  );
+  const allocSuggestions = notes.data?.allocations ?? [];
+  const extraSuggestions = notes.data?.extraIncome ?? [];
 
   const cardsApi = useApi<Card[]>("/api/finance/debt-accounts");
   const cards = (cardsApi.data ?? []).filter((c) => c.active);
@@ -202,7 +189,7 @@ export default function PaycheckEditor() {
                     aria-pressed={seq === n}
                     onClick={() => setSeq(n)}
                   >
-                    {SEQ_LABELS[n]}
+                    {seqLabel(n)}
                   </button>
                 ))}
               </div>
