@@ -5344,7 +5344,7 @@ button.btn-icon {
   bottom: 0;
   width: 2px;
   margin-left: -1px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.85);
   pointer-events: none;
 }
 
