@@ -1098,6 +1098,7 @@ function OverallGoalBar({ exercises }: { exercises: ExerciseStat[] }) {
         <div className={`ft-overall-bar-track${complete ? " ft-overall-bar-track--complete" : ""}`}>
           <div className="ft-overall-bar-fill" style={{ width: `${fillPct}%` }} />
         </div>
+        {!complete && <div className="ft-overall-bar-you"  style={{ left: `${fillPct}%` }} />}
         {!complete && <div className="ft-overall-bar-pace" style={{ left: `${pacePct}%` }} />}
       </div>
     </div>

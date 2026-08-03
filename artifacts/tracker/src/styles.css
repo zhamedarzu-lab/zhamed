@@ -4974,14 +4974,25 @@ button.btn-icon {
   width: 100% !important;
   transition: none;
 }
-/* Tick sits on the rail (not inside the clipping track), so it protrudes above & below */
+/* "You are here" marker — bright, slightly thicker */
+.ft-overall-bar-you {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 3px;
+  margin-left: -1px;
+  background: #fff;
+  border-radius: 1px;
+  pointer-events: none;
+}
+/* Pace target — dimmer so the two can be read apart */
 .ft-overall-bar-pace {
   position: absolute;
   top: -3px;
   bottom: -3px;
   width: 2px;
   margin-left: -1px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.45);
   border-radius: 1px;
   pointer-events: none;
 }
