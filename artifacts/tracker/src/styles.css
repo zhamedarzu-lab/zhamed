@@ -5253,6 +5253,39 @@ button.btn-icon {
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   /* Solid bg so actions don't show through */
   border-left: 3px solid var(--row-color, var(--rule-strong));
+  overflow: hidden;
+}
+
+/* ── Goal progress bar ──────────────────────────────────────────────── */
+.ft-goal-bar {
+  height: 4px;
+  flex-shrink: 0;
+}
+.ft-goal-bar-track {
+  position: relative;
+  height: 100%;
+  background: color-mix(in srgb, var(--row-color) 20%, transparent);
+}
+.ft-goal-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--row-color);
+  transition: width 0.45s ease;
+}
+.ft-goal-bar--complete .ft-goal-bar-fill {
+  background: #5fc97a;
+  width: 100% !important;
+  transition: none;
+}
+/* Pace tick — shows where you should be to hit goal on time */
+.ft-goal-bar-pace {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
 }
 
 /* ── Numpad popup ────────────────────────────────────────────────────── */

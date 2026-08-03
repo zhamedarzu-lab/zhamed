@@ -972,6 +972,51 @@ function Numpad({
   );
 }
 
+// ─── GoalBar ──────────────────────────────────────────────────────────────────
+
+function GoalBar({ stat }: { stat: ExerciseStat }) {
+  if (!stat.goalAmount || !stat.goalPeriod) return null;
+
+  const goal   = stat.goalAmount;
+  const period = stat.goalPeriod;
+  const total  = period === "day" ? stat.todayTotal : period === "week" ? stat.weekTotal : stat.monthTotal;
+
+  const fillPct = Math.min(total / goal, 1) * 100;
+  const complete = total >= goal;
+
+  // Fraction of the current period that has elapsed (0–1) — client local time
+  const now = new Date();
+  let pace: number;
+  if (period === "day") {
+    pace = (now.getHours() + now.getMinutes() / 60) / 24;
+  } else if (period === "week") {
+    // Sunday = 0, Saturday = 6; week is 168 h
+    pace = (now.getDay() * 24 + now.getHours() + now.getMinutes() / 60) / 168;
+  } else {
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    pace = ((now.getDate() - 1) + (now.getHours() + now.getMinutes() / 60) / 24) / daysInMonth;
+  }
+  const pacePct = Math.min(pace * 100, 100);
+
+  const periodLabel = period === "day" ? "today" : period === "week" ? "this week" : "this month";
+  const title = complete
+    ? `Goal complete! ${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit} ${periodLabel}`
+    : `${total.toLocaleString()} / ${goal.toLocaleString()} ${stat.unit} ${periodLabel} · ${Math.round(pacePct)}% of period elapsed`;
+
+  return (
+    <div
+      className={`ft-goal-bar${complete ? " ft-goal-bar--complete" : ""}`}
+      title={title}
+      aria-label={title}
+    >
+      <div className="ft-goal-bar-track">
+        <div className="ft-goal-bar-fill" style={{ width: `${fillPct}%` }} />
+        {!complete && <div className="ft-goal-bar-pace" style={{ left: `${pacePct}%` }} />}
+      </div>
+    </div>
+  );
+}
+
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
 function ExerciseRow({
@@ -1245,13 +1290,13 @@ function ExerciseRow({
                   type="button"
                   className="ft-desktop-action-btn"
                   title="History"
-                  onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}
+                  onClick={(e) => { e.stopPropagation(); onOpenHistory(stat); }}
                 >↗</button>
                 <button
                   type="button"
                   className="ft-desktop-action-btn"
                   title="Edit"
-                  onClick={(e) => { e.stopPropagation(); setShowEdit(true); }}
+                  onClick={(e) => { e.stopPropagation(); onOpenEdit(stat); }}
                 >✎</button>
                 <button
                   type="button"
@@ -1285,6 +1330,8 @@ function ExerciseRow({
               </button>
             </div>
           </div>
+
+          <GoalBar stat={stat} />
 
         </div>
       </div>
