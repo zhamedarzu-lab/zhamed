@@ -20,8 +20,8 @@ export type Entry = {
 
 /* ── colors ─────────────────────────────────────────────────────────── */
 export const ENTRY_COLORS: { hex: string; label: string; hint: string }[] = [
-  { hex: "#e05555", label: "Red",         hint: "Bad habits"    },
-  { hex: "#c0392b", label: "Dark Red",    hint: "Dark Red"      },
+  { hex: "#e82020", label: "Red",         hint: "Bad habits"    },
+  { hex: "#8b1a1a", label: "Dark Red",    hint: "Dark Red"      },
   { hex: "#e08c3a", label: "Orange",      hint: "Food & drink"  },
   { hex: "#e0b04e", label: "Yellow",      hint: "Fitness"       },
   { hex: "#c49a2a", label: "Dark Yellow", hint: "Dark Yellow"   },
