@@ -53,6 +53,14 @@ export function fmtTime(iso: string) {
 export function fmtRange(start: string, end: string | null) {
   return end ? `${fmtTime(start)} – ${fmtTime(end)}` : fmtTime(start);
 }
+export function fmtDuration(start: string, end: string): string {
+  const mins = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000);
+  if (mins <= 0) return "";
+  if (mins < 60) return `${mins}min`;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  const hLabel = h === 1 ? "1hr" : `${h}hrs`;
+  return m === 0 ? hLabel : `${hLabel} ${m}min`;
+}
 export function fmtFullDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
     weekday: "long", month: "long", day: "numeric", year: "numeric",
@@ -393,6 +401,11 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
                 {(isOpener || (!isCloser && closeEntry)) && <span className="loose-end-badge loose-end-badge--open" title="Open loose end">◎ </span>}
                 {isCloser && <span className="loose-end-badge loose-end-badge--closed" title="Closes a loose end">◉ </span>}
                 {fmtRange(currentEntry.startTime, currentEntry.endTime)}
+                {currentEntry.endTime && (
+                  <span className="entry-modal-duration">
+                    {fmtDuration(currentEntry.startTime, currentEntry.endTime)}
+                  </span>
+                )}
               </p>
               {currentEntry.subject && (
                 <h2 className="entry-modal-subject">{currentEntry.subject}</h2>

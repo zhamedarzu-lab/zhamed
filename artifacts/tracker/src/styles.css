@@ -926,6 +926,12 @@ a:hover {
   color: var(--amber);
   font-variant-numeric: tabular-nums;
 }
+.entry-modal-duration {
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
 .entry-modal-subject {
   margin: 0;
   font-size: 1.2rem;
