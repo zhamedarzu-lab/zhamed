@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
 import { api, useApi } from "../../lib/api";
 import { shortDate, todayIso } from "../../lib/format";
-import { Empty, Loading, Notice, tagColor } from "../../components/ui";
+import { Empty, Loading, Notice } from "../../components/ui";
 import { ENTRY_COLORS } from "../journal/EntryModal";
 
 const FITNESS_COLORS = ENTRY_COLORS.slice(0, 7); // R O Y G B + pink + purple
+const FITNESS_DEFAULT_COLOR = "#888888";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -257,7 +258,7 @@ export default function Fitness() {
       {editStat && (
         <EditModal
           stat={editStat}
-          color={editStat.color ?? tagColor(editStat.name)}
+          color={editStat.color ?? FITNESS_DEFAULT_COLOR}
           onClose={() => setEditStat(null)}
           onChanged={summary.reload}
           onError={setError}
@@ -266,7 +267,7 @@ export default function Fitness() {
       {historyStat && (
         <HistoryModal
           stat={historyStat}
-          color={historyStat.color ?? tagColor(historyStat.name)}
+          color={historyStat.color ?? FITNESS_DEFAULT_COLOR}
           onClose={() => setHistoryStat(null)}
           onChanged={summary.reload}
         />
@@ -274,7 +275,7 @@ export default function Fitness() {
       {goalStat && (
         <GoalModal
           stat={goalStat}
-          color={goalStat.color ?? tagColor(goalStat.name)}
+          color={goalStat.color ?? FITNESS_DEFAULT_COLOR}
           onClose={() => setGoalStat(null)}
           onChanged={summary.reload}
           onError={setError}
@@ -395,7 +396,7 @@ function WeekGrid({ exercises }: { exercises: ExerciseStat[] }) {
                 <div
                   key={ex.exerciseId}
                   className="ft-week-dot"
-                  style={{ background: ex.color ?? tagColor(ex.name) }}
+                  style={{ background: ex.color ?? FITNESS_DEFAULT_COLOR }}
                   title={ex.name}
                 />
               ))}
@@ -948,7 +949,7 @@ function Numpad({
 }) {
   const [value, setValue] = useState("");
   const [busy,  setBusy]  = useState(false);
-  const color = stat.color ?? tagColor(stat.name);
+  const color = stat.color ?? FITNESS_DEFAULT_COLOR;
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -1238,7 +1239,7 @@ function ExerciseRow({
     return () => el.removeEventListener("touchmove", onMove);
   }, []);
 
-  const color = stat.color ?? tagColor(stat.name);
+  const color = stat.color ?? FITNESS_DEFAULT_COLOR;
 
   // When another card takes the swipe slot, close this card's swipe
   useEffect(() => {
