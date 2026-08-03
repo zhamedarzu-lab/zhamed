@@ -152,7 +152,8 @@ export default function Fitness() {
     const state: DragState = { fromId: exerciseId, overId: exerciseId, startY: clientY, currentY: clientY, rowHeight };
     dragRef.current = state;
     setDragState({ ...state });
-    document.documentElement.style.overflow = "hidden"; // lock page scroll
+    document.documentElement.style.overflow = "hidden";   // lock page scroll
+    document.body.style.userSelect = "none";               // prevent text selection while dragging
   }
 
   function handleDragMove(clientX: number, clientY: number) {
@@ -169,7 +170,8 @@ export default function Fitness() {
 
   function handleDragEnd() {
     if (!dragRef.current) return;
-    document.documentElement.style.overflow = ""; // restore scroll
+    document.documentElement.style.overflow = "";
+    document.body.style.userSelect = "";
     const { fromId, overId } = dragRef.current;
     dragRef.current = null;
     setDragState(null);
