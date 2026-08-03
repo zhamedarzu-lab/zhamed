@@ -1082,11 +1082,17 @@ function OverallGoalBar({ exercises }: { exercises: ExerciseStat[] }) {
   const fillPct    = avgFill * 100;
   const pacePct    = Math.min(avgPace * 100, 100);
 
+  const pctLabel = complete ? "100%" : `${Math.round(avgFill * 100)}%`;
+
   return (
     <div className="ft-overall-bar">
       <div className="ft-overall-bar-header">
         <span className="ft-overall-bar-label">Overall goals</span>
-        <span className="ft-overall-bar-tally">{onPaceCount} / {points.length} on pace</span>
+        <span className="ft-overall-bar-tally">
+          <span className="ft-overall-bar-pct">{pctLabel}</span>
+          <span className="ft-overall-bar-sep"> · </span>
+          {onPaceCount} / {points.length} on pace
+        </span>
       </div>
       <div className={`ft-overall-bar-track${complete ? " ft-overall-bar-track--complete" : ""}`}>
         <div className="ft-overall-bar-fill" style={{ width: `${fillPct}%` }} />

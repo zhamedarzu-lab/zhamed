@@ -4936,6 +4936,19 @@ button.btn-icon {
 .ft-overall-bar-tally {
   font-size: 0.62rem;
   color: var(--ink-faint);
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+.ft-overall-bar-pct {
+  font-family: var(--fig);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+.ft-overall-bar-sep {
+  opacity: 0.4;
 }
 .ft-overall-bar-track {
   position: relative;
