@@ -5031,6 +5031,25 @@ button.btn-icon {
   margin-left: auto;
 }
 
+/* ── Drawer slide animation ─────────────────────────────────────────── */
+.ft-drawer-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.ft-drawer-wrap--open {
+  grid-template-rows: 1fr;
+}
+.ft-drawer-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.ft-log-form--hidden,
+.ft-edit-form--hidden {
+  display: none;
+}
+
 /* ── Combined chart ─────────────────────────────────────────────────── */
 .ft-combined-chart {
   margin: 0.75rem 0 0.25rem;

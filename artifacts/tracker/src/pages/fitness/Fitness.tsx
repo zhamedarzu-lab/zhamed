@@ -649,88 +649,90 @@ function ExerciseRow({
       </div>
 
       {/* Drawer */}
-      {isOpen && !editing && (
-        <div className="ft-log-form">
-          <button type="button" className="quiet ft-history-btn"
-            onClick={() => setShowHistory(true)} title="View history">↗</button>
-          <input
-            ref={inputRef}
-            className="ft-log-input"
-            inputMode="decimal"
-            value={amount}
-            placeholder={stat.unit}
-            onChange={(e) => setAmount(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter")  submit();
-              if (e.key === "Escape") onOpen(null);
-            }}
-          />
-          <button className="primary ft-log-submit" onClick={submit}
-            disabled={busy || !amount.trim()}>✓</button>
-          <button type="button" className="quiet ft-history-btn ft-drawer-right"
-            onClick={openEdit} title="Edit exercise">edit</button>
-          <button type="button" className="quiet ft-history-btn ft-row-delete"
-            onClick={deleteExercise} title={`Delete ${stat.name}`}>🗑</button>
-        </div>
-      )}
-
-      {isOpen && editing && (
-        <div className="ft-edit-form">
-          <div className="ft-edit-fields">
-            <div className="ft-edit-inputs">
-              <button
-                type="button"
-                className="ft-color-trigger"
-                style={{ background: editColor ?? color }}
-                onClick={() => setColorPickerOpen(o => !o)}
-                title="Choose color"
-              />
-              <input
-                ref={editNameRef}
-                className="ft-edit-input"
-                value={editName}
-                placeholder="Name"
-                onChange={(e) => setEditName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter")  saveEdit();
-                  if (e.key === "Escape") setEditing(false);
-                }}
-              />
-              <input
-                className="ft-edit-unit"
-                value={editUnit}
-                placeholder="Unit"
-                onChange={(e) => setEditUnit(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter")  saveEdit();
-                  if (e.key === "Escape") setEditing(false);
-                }}
-              />
-            </div>
-            {colorPickerOpen && (
-              <div className="ft-edit-swatches">
-                {FITNESS_COLORS.map((c) => (
-                  <button
-                    key={c.hex}
-                    type="button"
-                    className={`ft-swatch${editColor === c.hex ? " ft-swatch--active" : ""}`}
-                    style={{ background: c.hex }}
-                    onClick={() => {
-                      setEditColor(editColor === c.hex ? null : c.hex);
-                      setColorPickerOpen(false);
-                    }}
-                    title={c.label}
-                  />
-                ))}
-              </div>
-            )}
+      <div className={`ft-drawer-wrap${isOpen ? " ft-drawer-wrap--open" : ""}`}>
+        <div className="ft-drawer-inner">
+          {/* Log form */}
+          <div className={`ft-log-form${editing ? " ft-log-form--hidden" : ""}`}>
+            <button type="button" className="quiet ft-history-btn"
+              onClick={() => setShowHistory(true)} title="View history">↗</button>
+            <input
+              ref={inputRef}
+              className="ft-log-input"
+              inputMode="decimal"
+              value={amount}
+              placeholder={stat.unit}
+              onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter")  submit();
+                if (e.key === "Escape") onOpen(null);
+              }}
+            />
+            <button className="primary ft-log-submit" onClick={submit}
+              disabled={busy || !amount.trim()}>✓</button>
+            <button type="button" className="quiet ft-history-btn ft-drawer-right"
+              onClick={openEdit} title="Edit exercise">edit</button>
+            <button type="button" className="quiet ft-history-btn ft-row-delete"
+              onClick={deleteExercise} title={`Delete ${stat.name}`}>🗑</button>
           </div>
-          <button className="primary ft-log-submit" onClick={saveEdit}
-            disabled={busy || !editName.trim() || !editUnit.trim()}>✓</button>
-          <button className="quiet ft-history-btn ft-drawer-right" type="button"
-            onClick={() => setEditing(false)}>✕</button>
+
+          {/* Edit form */}
+          <div className={`ft-edit-form${!editing ? " ft-edit-form--hidden" : ""}`}>
+            <div className="ft-edit-fields">
+              <div className="ft-edit-inputs">
+                <button
+                  type="button"
+                  className="ft-color-trigger"
+                  style={{ background: editColor ?? color }}
+                  onClick={() => setColorPickerOpen(o => !o)}
+                  title="Choose color"
+                />
+                <input
+                  ref={editNameRef}
+                  className="ft-edit-input"
+                  value={editName}
+                  placeholder="Name"
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")  saveEdit();
+                    if (e.key === "Escape") setEditing(false);
+                  }}
+                />
+                <input
+                  className="ft-edit-unit"
+                  value={editUnit}
+                  placeholder="Unit"
+                  onChange={(e) => setEditUnit(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")  saveEdit();
+                    if (e.key === "Escape") setEditing(false);
+                  }}
+                />
+              </div>
+              {colorPickerOpen && (
+                <div className="ft-edit-swatches">
+                  {FITNESS_COLORS.map((c) => (
+                    <button
+                      key={c.hex}
+                      type="button"
+                      className={`ft-swatch${editColor === c.hex ? " ft-swatch--active" : ""}`}
+                      style={{ background: c.hex }}
+                      onClick={() => {
+                        setEditColor(editColor === c.hex ? null : c.hex);
+                        setColorPickerOpen(false);
+                      }}
+                      title={c.label}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <button className="primary ft-log-submit" onClick={saveEdit}
+              disabled={busy || !editName.trim() || !editUnit.trim()}>✓</button>
+            <button className="quiet ft-history-btn ft-drawer-right" type="button"
+              onClick={() => setEditing(false)}>✕</button>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* History modal */}
       {showHistory && (
