@@ -14,6 +14,13 @@ type SpendingEntry = {
   loggedAt: string;
 };
 
+type Summary = {
+  todaySpent: number;
+  weekSpent:  number;
+  monthSpent: number;
+  byCategory: Array<{ category: string; total: number }>;
+};
+
 // ── Category tag colours (hash-stable) ───────────────────────────────────────
 
 const TAG_PALETTE = [
@@ -46,6 +53,14 @@ function logTime(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + `, ${time}`;
 }
 
+type StatPeriod = "today" | "week" | "month";
+const PERIODS: StatPeriod[] = ["today", "week", "month"];
+const PERIOD_LABEL: Record<StatPeriod, string> = {
+  today: "Today",
+  week:  "This week",
+  month: "This month",
+};
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -56,6 +71,7 @@ interface Props {
 
 export default function SpendingLogModal({ accountId, accountName, onClose }: Props) {
   const entries = useApi<SpendingEntry[]>(`/api/finance/cash-spending?accountId=${accountId}`);
+  const summary  = useApi<Summary>(`/api/finance/cash-spending/summary?accountId=${accountId}`);
 
   const [sign, setSign]         = useState<"+" | "-">("-");
   const [amount, setAmount]     = useState("");
@@ -64,23 +80,34 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
+  // Stats overlay state
+  const [statsPeriod, setStatsPeriod] = useState<StatPeriod | null>(null);
+
   const amtRef     = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { amtRef.current?.focus(); }, []);
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (statsPeriod !== null) { setStatsPeriod(null); return; }
+        onClose();
+      }
+    };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, [onClose, statsPeriod]);
 
-  const refresh = useCallback(() => entries.reload(), [entries]);
+  const refresh = useCallback(
+    () => Promise.all([entries.reload(), summary.reload()]),
+    [entries, summary],
+  );
 
-  // Known categories from existing entries — used for datalist autocomplete
+  // Known categories for datalist autocomplete
   const knownCats = [...new Set((entries.data ?? []).map((e) => e.category))]
     .filter(Boolean).sort();
 
-  // ── Add entry (always an expense — amount is negated) ─────────────────────
+  // ── Add entry ──────────────────────────────────────────────────────────────
 
   async function addEntry() {
     const rawAmt = Math.abs(toAmount(amount));
@@ -107,7 +134,7 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
     }
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  // ── Delete ─────────────────────────────────────────────────────────────────
 
   async function deleteEntry(id: number) {
     setError(null);
@@ -119,27 +146,67 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
     }
   }
 
+  // ── Stats cycling ──────────────────────────────────────────────────────────
+
+  function openStats() {
+    setStatsPeriod("today");
+  }
+
+  function cycleStats() {
+    setStatsPeriod((cur) => {
+      if (cur === null) return "today";
+      const idx = PERIODS.indexOf(cur);
+      return PERIODS[(idx + 1) % PERIODS.length];
+    });
+  }
+
+  function statAmount(period: StatPeriod): number {
+    if (!summary.data) return 0;
+    if (period === "today") return summary.data.todaySpent;
+    if (period === "week")  return summary.data.weekSpent;
+    return summary.data.monthSpent;
+  }
+
   const list = entries.data ?? [];
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div
       className="sl-overlay"
       ref={overlayRef}
-      onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      onMouseDown={(e) => {
+        if (statsPeriod !== null) return; // let stats overlay handle its own dismiss
+        if (e.target === overlayRef.current) onClose();
+      }}
     >
       <div className="sl-modal" role="dialog" aria-modal="true" aria-label={`${accountName} spending log`}>
 
         {/* Header */}
         <div className="sl-header">
           <span className="sl-header-name">{accountName}</span>
-          <button className="quiet btn-icon" onClick={onClose} aria-label="Close">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {/* Stats button */}
+            <button
+              className="quiet sl-stats-btn"
+              onClick={openStats}
+              title="View spending stats"
+              aria-label="Spending stats"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6"  y1="20" x2="6"  y2="14"/>
+              </svg>
+            </button>
+            <button className="quiet btn-icon" onClick={onClose} aria-label="Close">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Add form */}
@@ -203,15 +270,14 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
             <div className="sl-log">
               {list.map((entry) => {
                 const amt = Number(entry.amount);
+                const c = tagColor(entry.category);
                 return (
                   <div key={entry.id} className="sl-log-row">
                     <span className="sl-log-time">{logTime(entry.loggedAt)}</span>
                     <span className="sl-log-desc">{entry.description}</span>
-                    {(() => { const c = tagColor(entry.category); return (
-                      <span className="sl-log-cat" style={{ background: c.bg, color: c.color }}>
-                        {entry.category}
-                      </span>
-                    ); })()}
+                    <span className="sl-log-cat" style={{ background: c.bg, color: c.color }}>
+                      {entry.category}
+                    </span>
                     <span className="sl-log-amt" style={{ color: amt < 0 ? "var(--stamp)" : "#5de8a0" }}>
                       {amt < 0 ? `−${dollars(Math.abs(amt))}` : `+${dollars(amt)}`}
                     </span>
@@ -232,6 +298,40 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
             </div>
           )}
         </div>
+
+        {/* Stats overlay (sits inside the modal) */}
+        {statsPeriod !== null && (
+          <div
+            className="sl-stats-overlay"
+            onClick={cycleStats}
+            role="button"
+            aria-label="Tap to cycle period"
+          >
+            <button
+              className="quiet btn-icon sl-stats-close"
+              onClick={(e) => { e.stopPropagation(); setStatsPeriod(null); }}
+              aria-label="Close stats"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+
+            <span className="sl-stats-label">{PERIOD_LABEL[statsPeriod]}</span>
+            <span className="sl-stats-fig">
+              {summary.loading ? "…" : dollars(statAmount(statsPeriod))}
+            </span>
+            <span className="sl-stats-hint">tap to cycle</span>
+
+            {/* Period dots */}
+            <div className="sl-stats-dots">
+              {PERIODS.map((p) => (
+                <span key={p} className={`sl-stats-dot${p === statsPeriod ? " active" : ""}`} />
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

@@ -5858,3 +5858,71 @@ button.btn-icon {
 .sl-sign-btn:hover { color: var(--ink); }
 .sl-sign-btn.active.expense { background: rgba(248,113,113,0.12); color: #f87171; }
 .sl-sign-btn.active.deposit { background: rgba(93,232,160,0.12);  color: #5de8a0; }
+
+/* ── Stats overlay inside spending modal ── */
+
+.sl-stats-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  color: var(--ink-faint);
+  transition: color 0.1s;
+}
+.sl-stats-btn:hover { color: var(--ink); }
+
+.sl-stats-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(13,17,14,0.94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  border-radius: inherit;
+  z-index: 10;
+  user-select: none;
+}
+.sl-stats-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: var(--ink-faint);
+}
+.sl-stats-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.sl-stats-fig {
+  font-family: var(--fig);
+  font-size: 3rem;
+  letter-spacing: -0.04em;
+  color: var(--stamp);
+  line-height: 1;
+}
+.sl-stats-hint {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  margin-top: 0.15rem;
+}
+.sl-stats-dots {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+.sl-stats-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  opacity: 0.35;
+  transition: opacity 0.15s, background 0.15s;
+}
+.sl-stats-dot.active {
+  opacity: 1;
+  background: var(--stamp);
+}
