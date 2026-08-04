@@ -5538,6 +5538,38 @@ button.btn-icon {
 }
 
 /* Spending log button on account cards */
+/* ── Cash account drag-to-reorder ────────────────────────────────────── */
+.ca-card-wrapper {
+  transition: opacity 0.15s, outline 0.1s;
+}
+.ca-card--dragging {
+  opacity: 0.35;
+}
+.ca-card--drop-target > .panel {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.ca-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  cursor: grab;
+  touch-action: none;
+  border-radius: 6px;
+  transition: color 0.12s, background 0.12s;
+  margin-right: 2px;
+}
+.ca-drag-handle:hover,
+.ca-drag-handle:active {
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--ink-faint) 12%, transparent);
+}
+.ca-drag-handle:active { cursor: grabbing; }
+
 .cd-log-link {
   font-size: 0.8rem;
   color: var(--ink-faint);

@@ -58,6 +58,17 @@ router.get("/cash-accounts", async (_req, res): Promise<void> => {
   );
 });
 
+router.put("/cash-accounts/reorder", async (req, res): Promise<void> => {
+  const data = parseBody(z.object({ ids: z.array(z.number().int()) }), req.body, res);
+  if (!data) return;
+  await Promise.all(
+    data.ids.map((id, idx) =>
+      db.update(cashAccountsTable).set({ sortOrder: idx }).where(eq(cashAccountsTable.id, id)),
+    ),
+  );
+  res.sendStatus(204);
+});
+
 router.post("/cash-accounts", async (req, res): Promise<void> => {
   const data = parseBody(z.object({ name: z.string().min(1) }), req.body, res);
   if (!data) return;
