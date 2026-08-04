@@ -354,6 +354,139 @@ async function parsePDF(buffer: Buffer): Promise<ParseResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Cash App plain-text statement parser
+// ---------------------------------------------------------------------------
+
+const MONTH_ABBR: Record<string, string> = {
+  jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+  jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+};
+
+/** Detect Cash App plain-text format by looking for abbreviated-month dates and header markers. */
+function isCashAppText(lines: string[]): boolean {
+  const sample = lines.slice(0, 40).join("\n");
+  const hasCashAppMarker =
+    /cash\s*app/i.test(sample) ||
+    /account\s+statement/i.test(sample);
+  const monDRe = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\b/i;
+  const hasMonDDates = lines.some((l) => monDRe.test(l));
+  return hasCashAppMarker && hasMonDDates;
+}
+
+/** Parse a Cash App account statement (copied from PDF) into ParsedRow[]. */
+function parseCashAppText(content: string): ParseResult {
+  const rawLines = content.split(/\r?\n/);
+
+  // Infer statement year from a "Month YYYY" header line (e.g. "July 2026")
+  let statementYear = new Date().getFullYear().toString();
+  for (const line of rawLines) {
+    const ym = line.match(
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i,
+    );
+    if (ym) { statementYear = ym[2]; break; }
+  }
+
+  // Noise patterns to discard entirely
+  const noisePatterns: RegExp[] = [
+    /^\d+\s*\/\s*\d+$/,                                   // page counter "1 / 13"
+    /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}$/i, // "July 2026"
+    /^Account\s+Statement$/i,
+    /^Transactions$/i,
+    /^Date\s+Description/i,                               // column header row
+  ];
+
+  // Trim to content before the footer disclaimer
+  const footerIdx = rawLines.findIndex((l) =>
+    /all\s+transactions\s+shown\s+in/i.test(l),
+  );
+  const trimmed = footerIdx === -1 ? rawLines : rawLines.slice(0, footerIdx);
+
+  // Strip noise lines, keep non-empty content
+  const cleanLines = trimmed
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !noisePatterns.some((re) => re.test(l)));
+
+  // Rejoin ATM / continuation lines.
+  // A continuation line does NOT start with a Mon D date and looks like a
+  // fee note (e.g. "App fee, $1.50" / "operator fee, $2.00").
+  const monDStartRe = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\b/i;
+  const continuationRe = /^(App\s+fee|operator\s+fee|cash\s+app\s+fee)/i;
+
+  const joinedLines: string[] = [];
+  for (let i = 0; i < cleanLines.length; i++) {
+    const cur = cleanLines[i];
+    const next = cleanLines[i + 1] ?? "";
+    if (next && !monDStartRe.test(next) && continuationRe.test(next)) {
+      joinedLines.push(`${cur} ${next}`);
+      i++; // consume continuation
+    } else {
+      joinedLines.push(cur);
+    }
+  }
+
+  // Amount regex: optional leading +/-, optional whitespace, then $digits.cents
+  const allAmountsRe = /([+-])?\s*\$([\d,]+\.\d{2})/g;
+
+  const rows: ParsedRow[] = [];
+
+  for (const line of joinedLines) {
+    // Must start with Mon D date
+    const dateMatch = line.match(
+      /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\b/i,
+    );
+    if (!dateMatch) continue;
+
+    const monthKey = dateMatch[1].toLowerCase().slice(0, 3);
+    const monthNum = MONTH_ABBR[monthKey];
+    if (!monthNum) continue;
+    const dayNum = dateMatch[2].padStart(2, "0");
+    const date = `${statementYear}-${monthNum}-${dayNum}`;
+
+    const rest = line.slice(dateMatch[0].length).trim();
+
+    // Collect all amount tokens from the rest of the line
+    const amounts: Array<{ value: number; index: number; raw: string }> = [];
+    let m: RegExpExecArray | null;
+    allAmountsRe.lastIndex = 0;
+    while ((m = allAmountsRe.exec(rest)) !== null) {
+      const sign = m[1] ?? "";
+      const n = parseFloat(m[2].replace(/,/g, ""));
+      if (!isNaN(n)) {
+        // + prefix = credit (money in) → negative in our convention (positive = expense)
+        const value = sign === "+" ? -n : n;
+        amounts.push({ value, index: m.index, raw: m[0] });
+      }
+    }
+
+    // Need at least two amounts: fee (second-to-last) and transaction (last)
+    if (amounts.length < 2) continue;
+
+    const txnAmt = amounts[amounts.length - 1];
+    const feeEntry = amounts[amounts.length - 2];
+
+    // Description: everything between the date token and the fee amount
+    const merchant = rest.slice(0, feeEntry.index).replace(/\s+/g, " ").trim();
+    if (!merchant) continue;
+
+    // Skip rows where both amounts are zero
+    if (txnAmt.value === 0 && feeEntry.value === 0) continue;
+
+    rows.push({ date, merchant, amount: txnAmt.value });
+  }
+
+  if (rows.length === 0) {
+    return {
+      rows: [],
+      diagnostic:
+        "Detected Cash App statement format but could not parse any transactions. " +
+        "Make sure you copied the full statement text including dates and amounts.",
+    };
+  }
+
+  return { rows };
+}
+
+// ---------------------------------------------------------------------------
 // POST /statements/upload
 // ---------------------------------------------------------------------------
 router.post(
@@ -388,36 +521,42 @@ router.post(
       if (isPDF) {
         parseResult = await parsePDF(req.file.buffer);
       } else if (isPlainText) {
-        // Try structured CSV/TSV first (handles .tsv and well-formed plain-text exports)
         const content = req.file.buffer.toString("utf-8");
-        parseResult = parseCSV(content);
-        // If CSV found nothing, run the PDF line-extractor directly on the raw text —
-        // this handles text that was copy-pasted out of a bank PDF viewer.
-        if (parseResult.rows.length === 0) {
-          const lines = content.split(/\r?\n/);
-          let pdfRows = extractPDFRows(lines);
-          // Two-pass merge for wrapped lines (same as parsePDF)
-          if (pdfRows.length < 3) {
-            const merged: string[] = [];
-            for (let i = 0; i < lines.length; i++) {
-              const cur = lines[i].trim();
-              const next = (lines[i + 1] ?? "").trim();
-              if (cur && next) { merged.push(`${cur} ${next}`); i++; }
-              else if (cur) merged.push(cur);
+        const textLines = content.split(/\r?\n/);
+        // Route Cash App statements to the dedicated parser before trying CSV/TSV
+        if (isCashAppText(textLines)) {
+          parseResult = parseCashAppText(content);
+        } else {
+          // Try structured CSV/TSV first (handles .tsv and well-formed plain-text exports)
+          parseResult = parseCSV(content);
+          // If CSV found nothing, run the PDF line-extractor directly on the raw text —
+          // this handles text that was copy-pasted out of a bank PDF viewer.
+          if (parseResult.rows.length === 0) {
+            const lines = content.split(/\r?\n/);
+            let pdfRows = extractPDFRows(lines);
+            // Two-pass merge for wrapped lines (same as parsePDF)
+            if (pdfRows.length < 3) {
+              const merged: string[] = [];
+              for (let i = 0; i < lines.length; i++) {
+                const cur = lines[i].trim();
+                const next = (lines[i + 1] ?? "").trim();
+                if (cur && next) { merged.push(`${cur} ${next}`); i++; }
+                else if (cur) merged.push(cur);
+              }
+              const mergedRows = extractPDFRows(merged);
+              if (mergedRows.length > pdfRows.length) pdfRows = mergedRows;
             }
-            const mergedRows = extractPDFRows(merged);
-            if (mergedRows.length > pdfRows.length) pdfRows = mergedRows;
-          }
-          if (pdfRows.length > 0) {
-            parseResult = { rows: normalizeSign(pdfRows) };
-          } else {
-            parseResult = {
-              rows: [],
-              diagnostic:
-                parseResult.diagnostic ??
-                "No transactions found in pasted text. " +
-                "Make sure you copied the full statement — including dates, descriptions, and amounts.",
-            };
+            if (pdfRows.length > 0) {
+              parseResult = { rows: normalizeSign(pdfRows) };
+            } else {
+              parseResult = {
+                rows: [],
+                diagnostic:
+                  parseResult.diagnostic ??
+                  "No transactions found in pasted text. " +
+                  "Make sure you copied the full statement — including dates, descriptions, and amounts.",
+              };
+            }
           }
         }
       } else {
