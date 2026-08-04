@@ -361,6 +361,10 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
 
   const list = entries.data ?? [];
 
+  // Responsive initial limit: phone → 5, tablet → 10, desktop → all
+  const initialLimit = window.innerWidth < 600 ? 5 : window.innerWidth < 1024 ? 10 : Infinity;
+  const [visibleCount, setVisibleCount] = useState(initialLimit);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -476,7 +480,7 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
             <p className="sl-empty">No entries yet.</p>
           ) : (
             <div className="sl-log">
-              {list.map((entry) => {
+              {list.slice(0, visibleCount).map((entry) => {
                 const amt = Number(entry.amount);
                 const c = tagColor(entry.category);
 
@@ -603,6 +607,15 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
                 );
               })}
             </div>
+          )}
+          {list.length > visibleCount && (
+            <button
+              className="sl-show-more"
+              onClick={() => setVisibleCount((n) => n + initialLimit)}
+            >
+              Show {Math.min(list.length - visibleCount, initialLimit)} more
+              <span className="sl-show-more-total"> ({list.length - visibleCount} remaining)</span>
+            </button>
           )}
         </div>
 
