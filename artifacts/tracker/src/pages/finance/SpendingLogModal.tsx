@@ -57,6 +57,7 @@ interface Props {
 export default function SpendingLogModal({ accountId, accountName, onClose }: Props) {
   const entries = useApi<SpendingEntry[]>(`/api/finance/cash-spending?accountId=${accountId}`);
 
+  const [sign, setSign]         = useState<"+" | "-">("-");
   const [amount, setAmount]     = useState("");
   const [description, setDesc]  = useState("");
   const [category, setCategory] = useState("");
@@ -89,10 +90,11 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
     try {
       await api.post("/api/finance/cash-spending", {
         cashAccountId: accountId,
-        amount: -rawAmt,          // always stored as negative (expense)
+        amount: sign === "-" ? -rawAmt : rawAmt,
         description: description.trim(),
         category: category.trim() || "Other",
       });
+      setSign("-");
       setAmount("");
       setDesc("");
       setCategory("");
@@ -142,6 +144,18 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
 
         {/* Add form */}
         <div className="sl-add-form">
+          <div className="sl-sign-toggle" role="group" aria-label="Entry type">
+            <button
+              type="button"
+              className={`sl-sign-btn${sign === "-" ? " active expense" : ""}`}
+              onClick={() => { setSign("-"); amtRef.current?.focus(); }}
+            >−</button>
+            <button
+              type="button"
+              className={`sl-sign-btn${sign === "+" ? " active deposit" : ""}`}
+              onClick={() => { setSign("+"); amtRef.current?.focus(); }}
+            >+</button>
+          </div>
           <input
             ref={amtRef}
             className="sl-amt-input"
