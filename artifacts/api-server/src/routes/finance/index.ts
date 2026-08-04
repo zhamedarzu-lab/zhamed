@@ -4,6 +4,7 @@ import paychecksRouter from "./paychecks.js";
 import debtRouter from "./debt.js";
 import cashRouter from "./cash.js";
 import summaryRouter from "./summary.js";
+import statementsRouter from "./statements.js";
 import { createMonthlyItemsRouter } from "./monthly-items.js";
 
 const router: IRouter = Router();
@@ -35,5 +36,6 @@ router.use(
 router.use(debtRouter);
 router.use(cashRouter);
 router.use(summaryRouter);
+router.use(statementsRouter);
 
 export default router;
