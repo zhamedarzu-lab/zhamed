@@ -5653,3 +5653,45 @@ button.btn-icon {
 }
 .spending-tx-amt.expense { color: var(--stamp); }
 .spending-tx-amt.credit  { color: var(--green, #1fcc55); }
+
+/* ── Spending filter bar ── */
+.spending-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.spending-filter-search {
+  flex: 1;
+  min-width: 140px;
+  font-size: 0.8125rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  width: auto;
+}
+.spending-filter-search::placeholder { color: var(--ink-faint); }
+.spending-filter-search:focus { outline: none; border-color: var(--accent); }
+
+.spending-filter-cat {
+  font-size: 0.8125rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  width: auto;
+  flex-shrink: 0;
+}
+.spending-filter-cat:focus { outline: none; border-color: var(--accent); }
+
+.spending-filter-count {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-family: var(--fig);
+  white-space: nowrap;
+}

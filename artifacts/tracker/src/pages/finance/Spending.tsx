@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { api, useApi } from "../../lib/api";
-import { dollars, currentMonth, shiftMonth, monthName, shortDate } from "../../lib/format";
+import { dollars, currentMonth, monthName, shortDate } from "../../lib/format";
 import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
@@ -31,8 +31,14 @@ type CategorySummary = {
   count: number;
 };
 
+type TrendPoint = {
+  month: string;
+  total: number;
+  byCategory: Record<string, number>;
+};
+
 // ---------------------------------------------------------------------------
-// Category colours — fixed palette so the chart is consistent
+// Category colours — fixed palette so charts are consistent
 // ---------------------------------------------------------------------------
 const CATEGORY_COLORS: Record<string, string> = {
   "Food & Dining":  "#e57c5a",
@@ -54,10 +60,9 @@ function categoryColor(cat: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Spend summary bar chart
+// Spend summary bar chart (current month, by category)
 // ---------------------------------------------------------------------------
 function SpendingSummary({ summary }: { summary: CategorySummary[] }) {
-  // Only show positive totals (expenses); negative = credits
   const expenses = summary.filter((s) => s.total > 0).sort((a, b) => b.total - a.total);
   if (expenses.length === 0) return null;
 
@@ -136,6 +141,117 @@ function SpendingSummary({ summary }: { summary: CategorySummary[] }) {
         >
           <span style={{ color: "var(--text-muted)" }}>Total</span>
           <span style={{ fontWeight: 600 }}>{dollars(grandTotal)}</span>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Month-over-month trend chart
+// ---------------------------------------------------------------------------
+function TrendChart({ trend }: { trend: TrendPoint[] }) {
+  if (trend.length === 0) return null;
+
+  const maxTotal = Math.max(...trend.map((p) => p.total), 1);
+
+  return (
+    <Panel title="Month-over-month trend">
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+        {trend.map((point) => {
+          // Stacked segments ordered by amount desc
+          const segments = Object.entries(point.byCategory)
+            .filter(([, v]) => v > 0)
+            .sort(([, a], [, b]) => b - a);
+
+          return (
+            <div key={point.month} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              {/* Month label */}
+              <div
+                style={{
+                  width: "3.5rem",
+                  fontSize: "0.75rem",
+                  color: "var(--ink-faint)",
+                  fontFamily: "var(--fig)",
+                  flexShrink: 0,
+                  textAlign: "right",
+                }}
+              >
+                {monthName(point.month).slice(0, 3)}
+              </div>
+
+              {/* Stacked bar */}
+              <div
+                style={{
+                  flex: 1,
+                  background: "var(--rule)",
+                  borderRadius: "4px",
+                  height: "14px",
+                  overflow: "hidden",
+                  display: "flex",
+                }}
+              >
+                {segments.map(([cat, val]) => (
+                  <div
+                    key={cat}
+                    title={`${cat}: ${dollars(val)}`}
+                    style={{
+                      width: `${(val / maxTotal) * 100}%`,
+                      height: "100%",
+                      background: categoryColor(cat),
+                      transition: "width 0.35s ease",
+                      flexShrink: 0,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Total */}
+              <div
+                style={{
+                  width: "5rem",
+                  fontSize: "0.8125rem",
+                  textAlign: "right",
+                  fontFamily: "var(--fig)",
+                  flexShrink: 0,
+                }}
+              >
+                {dollars(point.total)}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Category legend */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.5rem 1rem",
+            paddingTop: "0.5rem",
+            marginTop: "0.1rem",
+            borderTop: "1px solid var(--rule)",
+          }}
+        >
+          {ALL_CATEGORIES.filter((cat) =>
+            trend.some((p) => p.byCategory[cat] > 0),
+          ).map((cat) => (
+            <div
+              key={cat}
+              style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "var(--ink-faint)" }}
+            >
+              <div
+                style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "2px",
+                  background: categoryColor(cat),
+                  flexShrink: 0,
+                }}
+              />
+              {cat}
+            </div>
+          ))}
         </div>
       </div>
     </Panel>
@@ -284,6 +400,62 @@ function UploadsList({
 }
 
 // ---------------------------------------------------------------------------
+// Search + category filter bar
+// ---------------------------------------------------------------------------
+function FilterBar({
+  search,
+  onSearch,
+  categoryFilter,
+  onCategory,
+  resultCount,
+  totalCount,
+}: {
+  search: string;
+  onSearch: (v: string) => void;
+  categoryFilter: string;
+  onCategory: (v: string) => void;
+  resultCount: number;
+  totalCount: number;
+}) {
+  return (
+    <div className="spending-filter-bar">
+      <input
+        type="search"
+        placeholder="Search merchant…"
+        value={search}
+        onChange={(e) => onSearch(e.target.value)}
+        className="spending-filter-search"
+      />
+      <select
+        value={categoryFilter}
+        onChange={(e) => onCategory(e.target.value)}
+        className="spending-filter-cat"
+      >
+        <option value="">All categories</option>
+        {ALL_CATEGORIES.map((c) => (
+          <option key={c} value={c}>{c}</option>
+        ))}
+      </select>
+      {(search || categoryFilter) && (
+        <span className="spending-filter-count">
+          {resultCount} of {totalCount}
+        </span>
+      )}
+      {(search || categoryFilter) && (
+        <button
+          type="button"
+          className="quiet"
+          onClick={() => { onSearch(""); onCategory(""); }}
+          style={{ fontSize: "0.8125rem", color: "var(--ink-faint)", padding: "0.1rem 0.4rem" }}
+        >
+          Clear
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Category cell (inline select)
 // ---------------------------------------------------------------------------
 function CategoryCell({
@@ -425,6 +597,8 @@ function TransactionTable({
 // ---------------------------------------------------------------------------
 export default function Spending() {
   const [month, setMonth] = useState(currentMonth);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
   const {
     data: uploads,
@@ -447,13 +621,31 @@ export default function Spending() {
     reload: reloadSummary,
   } = useApi<CategorySummary[]>(`/api/finance/spending/summary?month=${month}`, [month]);
 
+  const {
+    data: trend,
+    loading: trendLoading,
+    reload: reloadTrend,
+  } = useApi<TrendPoint[]>(`/api/finance/spending/trend?months=6`, []);
+
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Filtered transactions (client-side, no API call)
+  const filteredTransactions = useMemo(() => {
+    if (!transactions) return null;
+    const q = search.trim().toLowerCase();
+    return transactions.filter((t) => {
+      if (q && !t.merchant.toLowerCase().includes(q)) return false;
+      if (categoryFilter && t.category !== categoryFilter) return false;
+      return true;
+    });
+  }, [transactions, search, categoryFilter]);
 
   const handleUploaded = useCallback(() => {
     void reloadUploads();
     void reloadTxns();
     void reloadSummary();
-  }, [reloadUploads, reloadTxns, reloadSummary]);
+    void reloadTrend();
+  }, [reloadUploads, reloadTxns, reloadSummary, reloadTrend]);
 
   const handleDelete = useCallback(
     async (id: number) => {
@@ -463,11 +655,12 @@ export default function Spending() {
         void reloadUploads();
         void reloadTxns();
         void reloadSummary();
+        void reloadTrend();
       } catch (err) {
         setDeleteError(err instanceof Error ? err.message : "Delete failed");
       }
     },
-    [reloadUploads, reloadTxns, reloadSummary],
+    [reloadUploads, reloadTxns, reloadSummary, reloadTrend],
   );
 
   const handleCategoryChange = useCallback(
@@ -477,10 +670,10 @@ export default function Spending() {
           ? prev.map((t) => (t.id === id ? { ...t, category: cat } : t))
           : prev,
       );
-      // Refresh summary after category edit
       void reloadSummary();
+      void reloadTrend();
     },
-    [setTransactions, reloadSummary],
+    [setTransactions, reloadSummary, reloadTrend],
   );
 
   const loading = uploadsLoading || txnsLoading || summaryLoading;
@@ -521,18 +714,37 @@ export default function Spending() {
         <SpendingSummary summary={summary} />
       )}
 
+      {/* Month-over-month trend */}
+      {!trendLoading && trend && trend.length > 0 && (
+        <TrendChart trend={trend} />
+      )}
+
       {/* Transaction table */}
       {!txnsLoading && transactions !== null && (
         <Panel
           title={
-            transactions.length > 0
+            filteredTransactions && filteredTransactions.length !== transactions.length
+              ? `${filteredTransactions.length} of ${transactions.length} transactions`
+              : transactions.length > 0
               ? `${transactions.length} transaction${transactions.length > 1 ? "s" : ""}`
               : "Transactions"
           }
           bodyless
         >
+          {transactions.length > 0 && (
+            <div style={{ padding: "0.6rem 1rem 0" }}>
+              <FilterBar
+                search={search}
+                onSearch={setSearch}
+                categoryFilter={categoryFilter}
+                onCategory={setCategoryFilter}
+                resultCount={filteredTransactions?.length ?? 0}
+                totalCount={transactions.length}
+              />
+            </div>
+          )}
           <TransactionTable
-            transactions={transactions}
+            transactions={filteredTransactions ?? []}
             onCategoryChange={handleCategoryChange}
           />
         </Panel>

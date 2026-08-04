@@ -181,27 +181,6 @@ export const statementUploadsTable = pgTable(
   ],
 );
 export type MonthlyBillItem = typeof monthlyBillItemsTable.$inferSelect;
-export const statementsTable = pgTable("statements", {
-  id:         serial("id").primaryKey(),
-  filename:   text("filename").notNull(),
-  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).defaultNow().notNull(),
-  txCount:    integer("tx_count").notNull().default(0),
-});
-
-export const transactionsTable = pgTable("transactions", {
-  id:           serial("id").primaryKey(),
-  statementId:  integer("statement_id")
-                  .notNull()
-                  .references(() => statementsTable.id, { onDelete: "cascade" }),
-  date:         date("date", { mode: "string" }).notNull(),
-  description:  text("description").notNull(),
-  amountCents:  integer("amount_cents").notNull(), // negative = expense, positive = credit
-  category:     text("category").notNull().default("Other"),
-  notes:        text("notes"),
-}, (t) => [
-  index("transactions_statement_idx").on(t.statementId),
-  index("transactions_date_idx").on(t.date),
-]);
 
 export type DebtAccount = typeof debtAccountsTable.$inferSelect;
 export type DebtSnapshot = typeof debtSnapshotsTable.$inferSelect;
@@ -210,8 +189,6 @@ export type CashSnapshot = typeof cashSnapshotsTable.$inferSelect;
 export type Paycheck = typeof paychecksTable.$inferSelect;
 export type Allocation = typeof allocationsTable.$inferSelect;
 export type ExtraIncome = typeof extraIncomeTable.$inferSelect;
-export type Statement = typeof statementsTable.$inferSelect;
-export type Transaction = typeof transactionsTable.$inferSelect;
 
 export type InsertDebtAccount = typeof debtAccountsTable.$inferInsert;
 export type InsertCashAccount = typeof cashAccountsTable.$inferInsert;

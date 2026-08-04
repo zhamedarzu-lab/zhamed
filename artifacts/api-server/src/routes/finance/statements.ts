@@ -467,4 +467,51 @@ router.get("/spending/summary", async (req, res): Promise<void> => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// GET /spending/trend?months=6  — last N months totals by category
+// ---------------------------------------------------------------------------
+router.get("/spending/trend", async (req, res): Promise<void> => {
+  const months = Math.min(12, Math.max(1, parseInt(String(req.query.months ?? "6"), 10) || 6));
+
+  // Compute start date: beginning of (current month - (months-1))
+  const now = new Date();
+  const startDate = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const from = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-01`;
+
+  const rows = await db
+    .select({
+      month:    sql<string>`to_char(${spendingTransactionsTable.txnDate}, 'YYYY-MM')`,
+      category: spendingTransactionsTable.category,
+      total:    sql<string>`SUM(${spendingTransactionsTable.amount})`,
+    })
+    .from(spendingTransactionsTable)
+    .where(
+      and(
+        gte(spendingTransactionsTable.txnDate, from),
+        sql`${spendingTransactionsTable.amount} > 0`,
+      ),
+    )
+    .groupBy(
+      sql`to_char(${spendingTransactionsTable.txnDate}, 'YYYY-MM')`,
+      spendingTransactionsTable.category,
+    )
+    .orderBy(sql`to_char(${spendingTransactionsTable.txnDate}, 'YYYY-MM') ASC`);
+
+  // Roll up into per-month buckets
+  const monthMap = new Map<string, { total: number; byCategory: Record<string, number> }>();
+  for (const row of rows) {
+    if (!monthMap.has(row.month)) monthMap.set(row.month, { total: 0, byCategory: {} });
+    const entry = monthMap.get(row.month)!;
+    const amt = round(Number(row.total));
+    entry.total = round(entry.total + amt);
+    entry.byCategory[row.category] = amt;
+  }
+
+  const result = Array.from(monthMap.entries())
+    .map(([month, data]) => ({ month, total: data.total, byCategory: data.byCategory }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  res.json(result);
+});
+
 export default router;
