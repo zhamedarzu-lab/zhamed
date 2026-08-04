@@ -1231,18 +1231,24 @@ function getPeriodTarget(stat: ExerciseStat, period: "D" | "W" | "M"): number | 
   if (!stat.goalAmount || !stat.goalPeriod || stat.goalDeadline) return null;
   const amount = stat.goalAmount;
   const gp = stat.goalPeriod;
+  const t = new Date(todayIso() + "T12:00:00");
+  const daysInMonth = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
 
   if (period === "D") {
     if (gp === "day")   return amount;
     if (gp === "week")  return Math.ceil(amount / 7);
-    if (gp === "month") {
-      const t = new Date(todayIso() + "T12:00:00");
-      const days = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
-      return Math.ceil(amount / days);
-    }
+    if (gp === "month") return Math.ceil(amount / daysInMonth);
   }
-  if (period === "W" && gp === "week")  return amount;
-  if (period === "M" && gp === "month") return amount;
+  if (period === "W") {
+    if (gp === "week")  return amount;
+    if (gp === "day")   return amount * 7;
+    if (gp === "month") return Math.ceil((amount * 7) / daysInMonth);
+  }
+  if (period === "M") {
+    if (gp === "month") return amount;
+    if (gp === "week")  return Math.ceil((amount * daysInMonth) / 7);
+    if (gp === "day")   return amount * daysInMonth;
+  }
   return null;
 }
 
