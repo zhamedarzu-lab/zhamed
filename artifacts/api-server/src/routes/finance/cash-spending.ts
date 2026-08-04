@@ -57,7 +57,9 @@ router.get("/cash-spending/summary", async (req, res): Promise<void> => {
   // Track spending only (negative entries = expenses; deposits are excluded
   // from the "spent" stats so the numbers reflect what went out the door).
   let todaySpent = 0, weekSpent = 0, monthSpent = 0;
-  const catMap = new Map<string, number>();
+  const todayCatMap = new Map<string, number>();
+  const weekCatMap  = new Map<string, number>();
+  const monthCatMap = new Map<string, number>();
 
   for (const e of entries) {
     if (!e.loggedAt) continue;
@@ -65,23 +67,35 @@ router.get("/cash-spending/summary", async (req, res): Promise<void> => {
     const amt = Number(e.amount);
     if (amt >= 0) continue; // skip deposits for spending stats
     const spent = Math.abs(amt);
-    if (at >= startOfDay)   todaySpent += spent;
-    if (at >= startOfWeek)  weekSpent  += spent;
+    if (at >= startOfDay) {
+      todaySpent += spent;
+      todayCatMap.set(e.category, (todayCatMap.get(e.category) ?? 0) + spent);
+    }
+    if (at >= startOfWeek) {
+      weekSpent += spent;
+      weekCatMap.set(e.category, (weekCatMap.get(e.category) ?? 0) + spent);
+    }
     if (at >= startOfMonth) {
       monthSpent += spent;
-      catMap.set(e.category, (catMap.get(e.category) ?? 0) + spent);
+      monthCatMap.set(e.category, (monthCatMap.get(e.category) ?? 0) + spent);
     }
   }
 
-  const byCategory = [...catMap.entries()]
-    .map(([category, total]) => ({ category, total: round(total) }))
-    .sort((a, b) => b.total - a.total);
+  const mapToSorted = (m: Map<string, number>) =>
+    [...m.entries()]
+      .map(([category, total]) => ({ category, total: round(total) }))
+      .sort((a, b) => b.total - a.total);
 
   res.json({
     todaySpent: round(todaySpent),
     weekSpent:  round(weekSpent),
     monthSpent: round(monthSpent),
-    byCategory,
+    // per-period category breakdowns (expenses only)
+    todayByCategory: mapToSorted(todayCatMap),
+    weekByCategory:  mapToSorted(weekCatMap),
+    monthByCategory: mapToSorted(monthCatMap),
+    // kept for backwards compat
+    byCategory: mapToSorted(monthCatMap),
   });
 });
 

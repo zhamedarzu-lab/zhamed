@@ -5859,7 +5859,7 @@ button.btn-icon {
 .sl-sign-btn.active.expense { background: rgba(248,113,113,0.12); color: #f87171; }
 .sl-sign-btn.active.deposit { background: rgba(93,232,160,0.12);  color: #5de8a0; }
 
-/* ── Stats overlay inside spending modal ── */
+/* ── Stats / analytics button inside spending modal header ── */
 
 .sl-stats-btn {
   display: flex;
@@ -5870,59 +5870,165 @@ button.btn-icon {
 }
 .sl-stats-btn:hover { color: var(--ink); }
 
-.sl-stats-overlay {
+/* ── Analytics overlay (full-modal panel) ── */
+
+.sl-analytics-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(13,17,14,0.94);
+  background: var(--surface, #0d110e);
+  border-radius: inherit;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* header row */
+.sl-analytics-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.1rem 0.75rem;
+  flex-shrink: 0;
+}
+.sl-analytics-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* period tab strip */
+.sl-analytics-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 1.1rem 0.75rem;
+  flex-shrink: 0;
+}
+.sl-analytics-tab {
+  flex: 1;
+  padding: 0.4rem 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  border-radius: 0;
+}
+.sl-analytics-tab:first-child { border-radius: 6px 0 0 6px; }
+.sl-analytics-tab:last-child  { border-radius: 0 6px 6px 0; }
+.sl-analytics-tab:hover       { color: var(--ink); background: rgba(255,255,255,0.04); }
+.sl-analytics-tab.active {
+  color: var(--stamp);
+  border-color: var(--stamp);
+  background: rgba(var(--stamp-rgb, 251,146,60), 0.08);
+}
+
+/* scrollable body */
+.sl-analytics-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* donut chart wrapper */
+.sl-analytics-chart-wrap {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+.sl-donut {
+  width: 130px;
+  height: 130px;
+  display: block;
+}
+.sl-analytics-chart-centre {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  border-radius: inherit;
-  z-index: 10;
-  user-select: none;
+  pointer-events: none;
 }
-.sl-stats-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  color: var(--ink-faint);
-}
-.sl-stats-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.sl-stats-fig {
+.sl-analytics-chart-fig {
   font-family: var(--fig);
-  font-size: 3rem;
-  letter-spacing: -0.04em;
-  color: var(--stamp);
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
+  color: var(--ink);
   line-height: 1;
 }
-.sl-stats-hint {
-  font-size: 0.72rem;
+.sl-analytics-chart-sub {
+  font-size: 0.65rem;
   color: var(--ink-faint);
   margin-top: 0.15rem;
 }
-.sl-stats-dots {
+
+.sl-analytics-empty {
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+/* category rows */
+.sl-analytics-cats {
   display: flex;
-  gap: 0.4rem;
-  margin-top: 0.75rem;
+  flex-direction: column;
+  gap: 0.6rem;
 }
-.sl-stats-dot {
-  width: 5px;
-  height: 5px;
+.sl-analytics-cat-row {
+  display: grid;
+  grid-template-columns: 8px 1fr auto auto auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sl-analytics-cat-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--ink-faint);
-  opacity: 0.35;
-  transition: opacity 0.15s, background 0.15s;
+  flex-shrink: 0;
 }
-.sl-stats-dot.active {
-  opacity: 1;
-  background: var(--stamp);
+.sl-analytics-cat-name {
+  font-size: 0.8rem;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.sl-analytics-cat-bar-track {
+  width: 70px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.07);
+  overflow: hidden;
+}
+.sl-analytics-cat-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  opacity: 0.75;
+}
+.sl-analytics-cat-pct {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  min-width: 2.5rem;
+  text-align: right;
+}
+.sl-analytics-cat-amt {
+  font-family: var(--fig);
+  font-size: 0.8rem;
+  color: var(--stamp);
+  min-width: 3.5rem;
+  text-align: right;
 }

@@ -14,11 +14,15 @@ type SpendingEntry = {
   loggedAt: string;
 };
 
+type CatRow = { category: string; total: number };
+
 type Summary = {
   todaySpent: number;
   weekSpent:  number;
   monthSpent: number;
-  byCategory: Array<{ category: string; total: number }>;
+  todayByCategory: CatRow[];
+  weekByCategory:  CatRow[];
+  monthByCategory: CatRow[];
 };
 
 // ── Category tag colours (hash-stable) ───────────────────────────────────────
@@ -54,12 +58,164 @@ function logTime(iso: string): string {
 }
 
 type StatPeriod = "today" | "week" | "month";
-const PERIODS: StatPeriod[] = ["today", "week", "month"];
 const PERIOD_LABEL: Record<StatPeriod, string> = {
   today: "Today",
   week:  "This week",
   month: "This month",
 };
+
+// ── SVG Donut Chart ───────────────────────────────────────────────────────────
+
+const DONUT_R  = 38;
+const DONUT_CX = 56;
+const DONUT_CY = 56;
+const DONUT_CIRC = 2 * Math.PI * DONUT_R;
+
+function DonutChart({ rows, total }: { rows: CatRow[]; total: number }) {
+  if (total === 0 || rows.length === 0) {
+    return (
+      <svg viewBox="0 0 112 112" className="sl-donut" aria-hidden>
+        <circle cx={DONUT_CX} cy={DONUT_CY} r={DONUT_R}
+          fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="16" />
+        <text x={DONUT_CX} y={DONUT_CY + 5} textAnchor="middle"
+          fill="var(--ink-faint)" fontSize="10">no data</text>
+      </svg>
+    );
+  }
+
+  const slices: JSX.Element[] = [];
+  let offset = -DONUT_CIRC * 0.25; // start at 12 o'clock
+
+  rows.forEach((row) => {
+    const frac = row.total / total;
+    const dash = frac * DONUT_CIRC;
+    const { color } = tagColor(row.category);
+    const rotDeg = (offset / DONUT_CIRC) * 360;
+    slices.push(
+      <circle
+        key={row.category}
+        cx={DONUT_CX} cy={DONUT_CY} r={DONUT_R}
+        fill="none"
+        stroke={color}
+        strokeWidth="16"
+        strokeDasharray={`${dash} ${DONUT_CIRC - dash}`}
+        strokeDashoffset={0}
+        transform={`rotate(${rotDeg} ${DONUT_CX} ${DONUT_CY})`}
+        opacity="0.85"
+      />
+    );
+    offset += dash;
+  });
+
+  return (
+    <svg viewBox="0 0 112 112" className="sl-donut" aria-hidden>
+      <circle cx={DONUT_CX} cy={DONUT_CY} r={DONUT_R}
+        fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="16" />
+      {slices}
+    </svg>
+  );
+}
+
+// ── Analytics Overlay ─────────────────────────────────────────────────────────
+
+function AnalyticsOverlay({
+  summary,
+  onClose,
+}: {
+  summary: Summary | undefined;
+  onClose: () => void;
+}) {
+  const [period, setPeriod] = useState<StatPeriod>("month");
+
+  const total = summary
+    ? period === "today" ? summary.todaySpent
+    : period === "week"  ? summary.weekSpent
+    : summary.monthSpent
+    : 0;
+
+  const cats: CatRow[] = summary
+    ? period === "today" ? summary.todayByCategory
+    : period === "week"  ? summary.weekByCategory
+    : summary.monthByCategory
+    : [];
+
+  const grandTotal = cats.reduce((s, c) => s + c.total, 0);
+
+  return (
+    <div className="sl-analytics-overlay" onClick={(e) => e.stopPropagation()}>
+
+      {/* Header */}
+      <div className="sl-analytics-hdr">
+        <span className="sl-analytics-title">Spending analysis</span>
+        <button className="quiet btn-icon" onClick={onClose} aria-label="Close analysis">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Period tabs */}
+      <div className="sl-analytics-tabs" role="tablist">
+        {(["today", "week", "month"] as StatPeriod[]).map((p) => (
+          <button
+            key={p}
+            role="tab"
+            aria-selected={period === p}
+            className={`sl-analytics-tab${period === p ? " active" : ""}`}
+            onClick={() => setPeriod(p)}
+          >
+            {PERIOD_LABEL[p]}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="sl-analytics-body">
+        {!summary ? (
+          <Loading />
+        ) : (
+          <>
+            {/* Donut + total */}
+            <div className="sl-analytics-chart-wrap">
+              <DonutChart rows={cats} total={grandTotal} />
+              <div className="sl-analytics-chart-centre">
+                <span className="sl-analytics-chart-fig">{dollars(total)}</span>
+                <span className="sl-analytics-chart-sub">spent</span>
+              </div>
+            </div>
+
+            {/* Category rows */}
+            {cats.length === 0 ? (
+              <p className="sl-analytics-empty">No expenses {PERIOD_LABEL[period].toLowerCase()}.</p>
+            ) : (
+              <div className="sl-analytics-cats">
+                {cats.map((row) => {
+                  const pct = grandTotal > 0 ? Math.round((row.total / grandTotal) * 100) : 0;
+                  const { color } = tagColor(row.category);
+                  return (
+                    <div key={row.category} className="sl-analytics-cat-row">
+                      <span className="sl-analytics-cat-dot" style={{ background: color }} />
+                      <span className="sl-analytics-cat-name">{row.category}</span>
+                      <div className="sl-analytics-cat-bar-track">
+                        <div
+                          className="sl-analytics-cat-bar-fill"
+                          style={{ width: `${pct}%`, background: color }}
+                        />
+                      </div>
+                      <span className="sl-analytics-cat-pct">{pct}%</span>
+                      <span className="sl-analytics-cat-amt">{dollars(row.total)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -80,8 +236,8 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
-  // Stats overlay state
-  const [statsPeriod, setStatsPeriod] = useState<StatPeriod | null>(null);
+  // Analytics overlay
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const amtRef     = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -90,13 +246,13 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (statsPeriod !== null) { setStatsPeriod(null); return; }
+        if (showAnalytics) { setShowAnalytics(false); return; }
         onClose();
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [onClose, statsPeriod]);
+  }, [onClose, showAnalytics]);
 
   const refresh = useCallback(
     () => Promise.all([entries.reload(), summary.reload()]),
@@ -146,27 +302,6 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
     }
   }
 
-  // ── Stats cycling ──────────────────────────────────────────────────────────
-
-  function openStats() {
-    setStatsPeriod("today");
-  }
-
-  function cycleStats() {
-    setStatsPeriod((cur) => {
-      if (cur === null) return "today";
-      const idx = PERIODS.indexOf(cur);
-      return PERIODS[(idx + 1) % PERIODS.length];
-    });
-  }
-
-  function statAmount(period: StatPeriod): number {
-    if (!summary.data) return 0;
-    if (period === "today") return summary.data.todaySpent;
-    if (period === "week")  return summary.data.weekSpent;
-    return summary.data.monthSpent;
-  }
-
   const list = entries.data ?? [];
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -176,7 +311,7 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
       className="sl-overlay"
       ref={overlayRef}
       onMouseDown={(e) => {
-        if (statsPeriod !== null) return; // let stats overlay handle its own dismiss
+        if (showAnalytics) return;
         if (e.target === overlayRef.current) onClose();
       }}
     >
@@ -186,12 +321,12 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
         <div className="sl-header">
           <span className="sl-header-name">{accountName}</span>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            {/* Stats button */}
+            {/* Analytics button */}
             <button
               className="quiet sl-stats-btn"
-              onClick={openStats}
-              title="View spending stats"
-              aria-label="Spending stats"
+              onClick={() => setShowAnalytics(true)}
+              title="View spending analysis"
+              aria-label="Spending analysis"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -299,38 +434,12 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
           )}
         </div>
 
-        {/* Stats overlay (sits inside the modal) */}
-        {statsPeriod !== null && (
-          <div
-            className="sl-stats-overlay"
-            onClick={cycleStats}
-            role="button"
-            aria-label="Tap to cycle period"
-          >
-            <button
-              className="quiet btn-icon sl-stats-close"
-              onClick={(e) => { e.stopPropagation(); setStatsPeriod(null); }}
-              aria-label="Close stats"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-
-            <span className="sl-stats-label">{PERIOD_LABEL[statsPeriod]}</span>
-            <span className="sl-stats-fig">
-              {summary.loading ? "…" : dollars(statAmount(statsPeriod))}
-            </span>
-            <span className="sl-stats-hint">tap to cycle</span>
-
-            {/* Period dots */}
-            <div className="sl-stats-dots">
-              {PERIODS.map((p) => (
-                <span key={p} className={`sl-stats-dot${p === statsPeriod ? " active" : ""}`} />
-              ))}
-            </div>
-          </div>
+        {/* Analytics overlay (sits inside the modal) */}
+        {showAnalytics && (
+          <AnalyticsOverlay
+            summary={summary.data}
+            onClose={() => setShowAnalytics(false)}
+          />
         )}
 
       </div>
