@@ -176,6 +176,7 @@ export const cashSpendingLogTable = pgTable(
     amount:       numeric("amount", { precision: 10, scale: 2 }).notNull(),
     description:  text("description").notNull().default(""),
     category:     text("category").notNull().default("Other"),
+    notes:        text("notes"),
     loggedAt:     timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

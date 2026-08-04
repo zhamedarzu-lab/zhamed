@@ -107,6 +107,7 @@ const entrySchema = z.object({
   amount:        z.number().refine((n) => n !== 0, "Amount cannot be zero"),
   description:   z.string().min(1).max(200),
   category:      z.string().min(1).max(50).default("Other"),
+  notes:         z.string().max(500).optional(),
 });
 
 router.post("/cash-spending", async (req, res): Promise<void> => {
@@ -131,6 +132,7 @@ router.post("/cash-spending", async (req, res): Promise<void> => {
       amount:        money(body.amount),
       description:   body.description,
       category:      body.category,
+      notes:         body.notes ?? null,
     })
     .returning();
 

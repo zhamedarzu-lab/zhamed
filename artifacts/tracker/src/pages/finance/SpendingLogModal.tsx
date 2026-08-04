@@ -11,6 +11,7 @@ type SpendingEntry = {
   amount: string;
   description: string;
   category: string;
+  notes: string | null;
   loggedAt: string;
 };
 
@@ -234,6 +235,7 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
   const [amount, setAmount]     = useState("");
   const [description, setDesc]  = useState("");
   const [category, setCategory] = useState("");
+  const [notes, setNotes]       = useState("");
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
@@ -277,11 +279,13 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
         amount: sign === "-" ? -rawAmt : rawAmt,
         description: description.trim(),
         category: category.trim() || "Other",
+        notes: notes.trim() || undefined,
       });
       setSign("-");
       setAmount("");
       setDesc("");
       setCategory("");
+      setNotes("");
       amtRef.current?.focus();
       await refresh();
     } catch (err) {
@@ -386,6 +390,13 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
           <datalist id="sl-cat-list">
             {knownCats.map((c) => <option key={c} value={c} />)}
           </datalist>
+          <input
+            className="sl-notes-input"
+            placeholder="Note (optional)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addEntry()}
+          />
           <button
             className="primary sl-log-btn"
             onClick={addEntry}
@@ -428,6 +439,9 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
                         <path d="M18 6L6 18M6 6l12 12"/>
                       </svg>
                     </button>
+                    {entry.notes && (
+                      <span className="sl-log-note">{entry.notes}</span>
+                    )}
                   </div>
                 );
               })}
