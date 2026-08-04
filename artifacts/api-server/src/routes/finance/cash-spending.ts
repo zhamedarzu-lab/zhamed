@@ -139,6 +139,44 @@ router.post("/cash-spending", async (req, res): Promise<void> => {
   res.status(201).json(entry);
 });
 
+// ── Update an entry ───────────────────────────────────────────────────────────
+
+const patchSchema = z.object({
+  amount:      z.number().refine((n) => n !== 0, "Amount cannot be zero").optional(),
+  description: z.string().min(1).max(200).optional(),
+  category:    z.string().min(1).max(50).optional(),
+  notes:       z.string().max(500).nullable().optional(),
+});
+
+router.patch("/cash-spending/:id", async (req, res): Promise<void> => {
+  let id: number;
+  try { id = parseId(req.params.id); }
+  catch { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const body = parseBody(patchSchema, req.body, res);
+  if (!body) return;
+
+  const updates: Record<string, unknown> = {};
+  if (body.amount      !== undefined) updates.amount      = money(body.amount);
+  if (body.description !== undefined) updates.description = body.description;
+  if (body.category    !== undefined) updates.category    = body.category;
+  if ("notes" in body)               updates.notes       = body.notes ?? null;
+
+  if (Object.keys(updates).length === 0) {
+    res.status(400).json({ error: "No fields to update" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(cashSpendingLogTable)
+    .set(updates)
+    .where(eq(cashSpendingLogTable.id, id))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(updated);
+});
+
 // ── Delete an entry ───────────────────────────────────────────────────────────
 
 router.delete("/cash-spending/:id", async (req, res): Promise<void> => {

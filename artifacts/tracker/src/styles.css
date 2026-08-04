@@ -5782,7 +5782,7 @@ button.btn-icon {
 
 .sl-log-row {
   display: grid;
-  grid-template-columns: 148px 1fr auto auto auto;
+  grid-template-columns: 148px 1fr auto auto auto auto;
   grid-template-rows: auto auto;
   align-items: center;
   gap: 0.25rem 0.65rem;
@@ -5797,6 +5797,52 @@ button.btn-icon {
   line-height: 1.4;
   padding-top: 0.05rem;
   font-style: italic;
+}
+
+/* edit / delete action buttons */
+.sl-log-edit,
+.sl-log-del {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.sl-log-row:hover .sl-log-edit,
+.sl-log-row:hover .sl-log-del { opacity: 1; }
+/* always visible on touch devices */
+@media (hover: none) {
+  .sl-log-edit, .sl-log-del { opacity: 1; }
+}
+
+/* ── Inline edit form (replaces a log row) ── */
+.sl-edit-form {
+  display: grid;
+  grid-template-columns: auto 82px 1fr 110px auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0.4rem 0.45rem;
+  padding: 0.6rem 1.1rem;
+  border-bottom: 1px solid var(--rule);
+  background: rgba(255,255,255,0.025);
+}
+.sl-edit-form .sl-sign-toggle { grid-column: 1; grid-row: 1; }
+.sl-edit-form .sl-amt-input   { grid-column: 2; grid-row: 1; width: 100%; }
+.sl-edit-form .sl-desc-input  { grid-column: 3; grid-row: 1; width: 100%; }
+.sl-edit-form .sl-cat-input   { grid-column: 4; grid-row: 1; width: 100%; }
+.sl-edit-save                 { grid-column: 5; grid-row: 1; }
+.sl-edit-cancel               { grid-column: 6; grid-row: 1; }
+.sl-edit-form .sl-notes-input { grid-column: 1 / -1; grid-row: 2; width: 100%; }
+
+@media (max-width: 540px) {
+  .sl-edit-form {
+    grid-template-columns: auto 1fr 1fr auto auto;
+    grid-template-rows: auto auto auto;
+  }
+  .sl-edit-form .sl-sign-toggle { grid-column: 1;      grid-row: 1; }
+  .sl-edit-form .sl-amt-input   { grid-column: 2;      grid-row: 1; }
+  .sl-edit-form .sl-desc-input  { grid-column: 3;      grid-row: 1; }
+  .sl-edit-form .sl-cat-input   { grid-column: 1 / 4;  grid-row: 2; }
+  .sl-edit-save                 { grid-column: 4;      grid-row: 2; }
+  .sl-edit-cancel               { grid-column: 5;      grid-row: 2; }
+  .sl-edit-form .sl-notes-input { grid-column: 1 / -1; grid-row: 3; }
 }
 
 .sl-log-time {

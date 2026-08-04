@@ -242,6 +242,12 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
   // Analytics overlay
   const [showAnalytics, setShowAnalytics] = useState(false);
 
+  // Inline edit state
+  type EditDraft = { sign: "+" | "-"; amount: string; desc: string; cat: string; notes: string };
+  const [editingId, setEditingId]   = useState<number | null>(null);
+  const [editDraft, setEditDraft]   = useState<EditDraft | null>(null);
+  const [editBusy, setEditBusy]     = useState(false);
+
   const amtRef     = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -250,12 +256,13 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (showAnalytics) { setShowAnalytics(false); return; }
+        if (editingId !== null) { setEditingId(null); setEditDraft(null); return; }
         onClose();
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [onClose, showAnalytics]);
+  }, [onClose, showAnalytics, editingId]);
 
   const refresh = useCallback(
     () => Promise.all([entries.reload(), summary.reload()]),
@@ -292,6 +299,47 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
       setError(err instanceof Error ? err.message : "Could not save.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  // ── Edit ───────────────────────────────────────────────────────────────────
+
+  function startEdit(entry: SpendingEntry) {
+    const amt = Number(entry.amount);
+    setEditingId(entry.id);
+    setEditDraft({
+      sign:   amt < 0 ? "-" : "+",
+      amount: String(Math.abs(amt)),
+      desc:   entry.description,
+      cat:    entry.category,
+      notes:  entry.notes ?? "",
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditDraft(null);
+  }
+
+  async function saveEdit() {
+    if (!editDraft || !editingId) return;
+    const rawAmt = Math.abs(toAmount(editDraft.amount));
+    if (!rawAmt || !editDraft.desc.trim()) return;
+    setEditBusy(true);
+    setError(null);
+    try {
+      await api.patch(`/api/finance/cash-spending/${editingId}`, {
+        amount:      editDraft.sign === "-" ? -rawAmt : rawAmt,
+        description: editDraft.desc.trim(),
+        category:    editDraft.cat.trim() || "Other",
+        notes:       editDraft.notes.trim() || null,
+      });
+      cancelEdit();
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save.");
+    } finally {
+      setEditBusy(false);
     }
   }
 
@@ -418,6 +466,82 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
               {list.map((entry) => {
                 const amt = Number(entry.amount);
                 const c = tagColor(entry.category);
+
+                // ── Inline edit form ──────────────────────────────────────
+                if (editingId === entry.id && editDraft) {
+                  return (
+                    <div key={entry.id} className="sl-edit-form">
+                      <div className="sl-sign-toggle" role="group" aria-label="Entry type">
+                        <button
+                          type="button"
+                          className={`sl-sign-btn${editDraft.sign === "-" ? " active expense" : ""}`}
+                          onClick={() => setEditDraft({ ...editDraft, sign: "-" })}
+                        >−</button>
+                        <button
+                          type="button"
+                          className={`sl-sign-btn${editDraft.sign === "+" ? " active deposit" : ""}`}
+                          onClick={() => setEditDraft({ ...editDraft, sign: "+" })}
+                        >+</button>
+                      </div>
+                      <input
+                        autoFocus
+                        className="sl-amt-input"
+                        inputMode="decimal"
+                        placeholder="Amount"
+                        value={editDraft.amount}
+                        onChange={(e) => setEditDraft({ ...editDraft, amount: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                      />
+                      <input
+                        className="sl-desc-input"
+                        placeholder="What was it for?"
+                        value={editDraft.desc}
+                        onChange={(e) => setEditDraft({ ...editDraft, desc: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                      />
+                      <input
+                        className="sl-cat-input"
+                        placeholder="Category"
+                        value={editDraft.cat}
+                        list="sl-cat-list"
+                        onChange={(e) => setEditDraft({ ...editDraft, cat: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                      />
+                      {/* Save / Cancel */}
+                      <button
+                        className="primary sl-edit-save"
+                        onClick={saveEdit}
+                        disabled={editBusy || !editDraft.amount.trim() || !editDraft.desc.trim()}
+                        aria-label="Save"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </button>
+                      <button
+                        className="quiet btn-icon sl-edit-cancel"
+                        onClick={cancelEdit}
+                        aria-label="Cancel"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                      </button>
+                      {/* Notes row */}
+                      <input
+                        className="sl-notes-input"
+                        placeholder="Note (optional)"
+                        value={editDraft.notes}
+                        onChange={(e) => setEditDraft({ ...editDraft, notes: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                      />
+                    </div>
+                  );
+                }
+
+                // ── Normal display row ────────────────────────────────────
                 return (
                   <div key={entry.id} className="sl-log-row">
                     <span className="sl-log-time">{logTime(entry.loggedAt)}</span>
@@ -428,6 +552,18 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
                     <span className="sl-log-amt" style={{ color: amt < 0 ? "var(--stamp)" : "#5de8a0" }}>
                       {amt < 0 ? `−${dollars(Math.abs(amt))}` : `+${dollars(amt)}`}
                     </span>
+                    <button
+                      className="quiet btn-icon sl-log-edit"
+                      onClick={() => startEdit(entry)}
+                      aria-label="Edit"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
                     <button
                       className="quiet danger btn-icon sl-log-del"
                       onClick={() => deleteEntry(entry.id)}
