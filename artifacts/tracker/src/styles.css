@@ -4196,10 +4196,18 @@ button.btn-icon {
     order: -1;
   }
 
-  /* Bottom row: ◎ ◉ left-anchored (via margin-right:auto), other buttons right */
+  /* Bottom row: ◎ ◉ left-anchored, utility icons right, Cancel+Add wrap to row 2 */
   .entry-form-action-right {
     width: 100%;
     gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  /* Cancel and the primary (Add/Save) are direct button children with no utility class —
+     give them flex:1 + a min-width so they drop together to a second row and fill it */
+  .entry-form-action-right > button:not(.entry-form-punch-btn):not(.entry-form-subject-toggle):not(.entry-form-time-toggle) {
+    flex: 1;
+    min-width: 80px;
+    justify-content: center;
   }
   .entry-form-action-right button,
   .entry-form-time-toggle,
