@@ -14,6 +14,25 @@ type SpendingEntry = {
   loggedAt: string;
 };
 
+// ── Category tag colours (hash-stable) ───────────────────────────────────────
+
+const TAG_PALETTE = [
+  { bg: "rgba(93,232,160,0.13)",  color: "#5de8a0" },
+  { bg: "rgba(192,132,252,0.13)", color: "#c084fc" },
+  { bg: "rgba(251,146,60,0.13)",  color: "#fb923c" },
+  { bg: "rgba(96,165,250,0.13)",  color: "#60a5fa" },
+  { bg: "rgba(248,113,113,0.13)", color: "#f87171" },
+  { bg: "rgba(163,230,53,0.13)",  color: "#a3e635" },
+  { bg: "rgba(251,191,36,0.13)",  color: "#fbbf24" },
+  { bg: "rgba(34,211,238,0.13)",  color: "#22d3ee" },
+];
+
+function tagColor(cat: string) {
+  let h = 0;
+  for (let i = 0; i < cat.length; i++) h = (h * 31 + cat.charCodeAt(i)) & 0xffff;
+  return TAG_PALETTE[h % TAG_PALETTE.length];
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function logTime(iso: string): string {
@@ -38,10 +57,11 @@ interface Props {
 export default function SpendingLogModal({ accountId, accountName, onClose }: Props) {
   const entries = useApi<SpendingEntry[]>(`/api/finance/cash-spending?accountId=${accountId}`);
 
-  const [amount, setAmount]    = useState("");
-  const [description, setDesc] = useState("");
-  const [busy, setBusy]        = useState(false);
-  const [error, setError]      = useState<string | null>(null);
+  const [amount, setAmount]     = useState("");
+  const [description, setDesc]  = useState("");
+  const [category, setCategory] = useState("");
+  const [busy, setBusy]         = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
   const amtRef     = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -55,6 +75,10 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
 
   const refresh = useCallback(() => entries.reload(), [entries]);
 
+  // Known categories from existing entries — used for datalist autocomplete
+  const knownCats = [...new Set((entries.data ?? []).map((e) => e.category))]
+    .filter(Boolean).sort();
+
   // ── Add entry (always an expense — amount is negated) ─────────────────────
 
   async function addEntry() {
@@ -67,10 +91,11 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
         cashAccountId: accountId,
         amount: -rawAmt,          // always stored as negative (expense)
         description: description.trim(),
-        category: "Other",
+        category: category.trim() || "Other",
       });
       setAmount("");
       setDesc("");
+      setCategory("");
       amtRef.current?.focus();
       await refresh();
     } catch (err) {
@@ -133,6 +158,17 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
             onChange={(e) => setDesc(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addEntry()}
           />
+          <input
+            className="sl-cat-input"
+            placeholder="Category"
+            value={category}
+            list="sl-cat-list"
+            onChange={(e) => setCategory(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addEntry()}
+          />
+          <datalist id="sl-cat-list">
+            {knownCats.map((c) => <option key={c} value={c} />)}
+          </datalist>
           <button
             className="primary sl-log-btn"
             onClick={addEntry}
@@ -157,6 +193,11 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
                   <div key={entry.id} className="sl-log-row">
                     <span className="sl-log-time">{logTime(entry.loggedAt)}</span>
                     <span className="sl-log-desc">{entry.description}</span>
+                    {(() => { const c = tagColor(entry.category); return (
+                      <span className="sl-log-cat" style={{ background: c.bg, color: c.color }}>
+                        {entry.category}
+                      </span>
+                    ); })()}
                     <span className="sl-log-amt" style={{ color: amt < 0 ? "var(--stamp)" : "#5de8a0" }}>
                       {amt < 0 ? `−${dollars(Math.abs(amt))}` : `+${dollars(amt)}`}
                     </span>
