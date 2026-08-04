@@ -1497,15 +1497,10 @@ function ExerciseRow({
             tabIndex={0}
             aria-label={`${stat.name} — click to log`}
             onClick={() => {
-              // Desktop / pointer fallback: single click opens numpad
-              if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-                if (swipeDir !== null) { setSwipeDir(null); onSwipeOpen(null); }
-                onOpenNumpad(stat);
-              }
+              // Close swipe if open; numpad is only opened via the + button
+              if (swipeDir !== null) { setSwipeDir(null); onSwipeOpen(null); }
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") onOpenNumpad(stat);
-            }}
+            onKeyDown={undefined}
           >
             {/* + zone — tap to log reps; hold the card body to drag-to-reorder */}
             <div
