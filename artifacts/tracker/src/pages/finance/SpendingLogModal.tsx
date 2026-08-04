@@ -253,7 +253,6 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
   const amtRef     = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { amtRef.current?.focus(); }, []);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
