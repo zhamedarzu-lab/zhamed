@@ -266,7 +266,7 @@ function UploadZone({
   onUploaded,
 }: {
   month: string;
-  onUploaded: () => void;
+  onUploaded: (detectedMonth: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -283,8 +283,11 @@ function UploadZone({
         const form = new FormData();
         form.append("file", file);
         form.append("month", month);
-        await api.upload("/api/finance/statements/upload", form);
-        onUploaded();
+        const result = await api.upload<{ upload: { month: string } }>(
+          "/api/finance/statements/upload",
+          form,
+        );
+        onUploaded(result.upload.month);
         setPasteText("");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Upload failed");
@@ -673,7 +676,9 @@ export default function Spending() {
     });
   }, [transactions, search, categoryFilter]);
 
-  const handleUploaded = useCallback(() => {
+  const handleUploaded = useCallback((detectedMonth: string) => {
+    // Switch to the statement's actual month so transactions are visible
+    setMonth(detectedMonth);
     void reloadUploads();
     void reloadTxns();
     void reloadSummary();

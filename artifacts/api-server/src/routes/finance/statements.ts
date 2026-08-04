@@ -595,13 +595,27 @@ router.post(
       storageKey = "";
     }
 
+    // Derive the statement month from parsed transaction dates (most-common
+    // YYYY-MM wins) so uploading a July statement while viewing August still
+    // lands in July.  Fall back to the client-supplied month when no dates.
+    let statementMonth = month;
+    if (parsed.length > 0) {
+      const freq: Record<string, number> = {};
+      for (const row of parsed) {
+        const ym = row.date.slice(0, 7);
+        freq[ym] = (freq[ym] ?? 0) + 1;
+      }
+      const dominant = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
+      if (/^\d{4}-\d{2}$/.test(dominant)) statementMonth = dominant;
+    }
+
     // Save upload record + transactions atomically
     const [uploadRecord] = await db
       .insert(statementUploadsTable)
       .values({
         originalFilename: req.file.originalname,
         storageKey,
-        month,
+        month: statementMonth,
         rowCount: parsed.length,
       })
       .returning();
