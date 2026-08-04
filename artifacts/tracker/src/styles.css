@@ -5697,10 +5697,20 @@ button.btn-icon {
   border-bottom: 1px solid var(--rule);
   flex-shrink: 0;
 }
+.sl-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
 .sl-header-name {
   font-size: 1rem;
   font-weight: 600;
   color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.sl-header-balance {
+  font-size: 0.78rem;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 

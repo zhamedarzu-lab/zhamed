@@ -338,6 +338,7 @@ function AccountPanel({
             <SpendingLogModal
               accountId={account.id}
               accountName={account.name}
+              balance={account.currentBalance}
               onClose={() => { setShowSpendingLog(false); onChanged(); }}
             />
           )}

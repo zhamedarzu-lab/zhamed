@@ -224,10 +224,11 @@ function AnalyticsOverlay({
 interface Props {
   accountId:   number;
   accountName: string;
+  balance:     number;
   onClose:     () => void;
 }
 
-export default function SpendingLogModal({ accountId, accountName, onClose }: Props) {
+export default function SpendingLogModal({ accountId, accountName, balance, onClose }: Props) {
   const entries = useApi<SpendingEntry[]>(`/api/finance/cash-spending?accountId=${accountId}`);
   const summary  = useApi<Summary>(`/api/finance/cash-spending/summary?accountId=${accountId}`);
 
@@ -379,7 +380,12 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
 
         {/* Header */}
         <div className="sl-header">
-          <span className="sl-header-name">{accountName}</span>
+          <div className="sl-header-title">
+            <span className="sl-header-name">{accountName}</span>
+            <span className="sl-header-balance" style={{ color: balance >= 0 ? "var(--ink-faint)" : "var(--stamp)" }}>
+              {dollars(balance)}
+            </span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             {/* Analytics button */}
             <button
