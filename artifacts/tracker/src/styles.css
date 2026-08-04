@@ -4637,19 +4637,15 @@ button.btn-icon {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border: none;
-  background: transparent;
   color: var(--row-color);
   font-size: 1.6rem;
   font-weight: 300;
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
-  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   opacity: 0.6;
-  padding: 0;
 }
 .ft-add-btn:active { opacity: 1; }
 

@@ -1507,17 +1507,19 @@ function ExerciseRow({
               if (e.key === "Enter" || e.key === " ") onOpenNumpad(stat);
             }}
           >
-            {/* + button — tap to log reps; hold the card to drag-to-reorder */}
-            <button
-              type="button"
+            {/* + zone — tap to log reps; hold the card body to drag-to-reorder */}
+            <div
               className="ft-add-btn"
+              role="button"
               aria-label="Log reps"
+              tabIndex={0}
               onTouchStart={(e) => e.stopPropagation()}
               onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onOpenNumpad(stat); }}
               onClick={(e) => { e.stopPropagation(); onOpenNumpad(stat); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpenNumpad(stat); }}
             >
               +
-            </button>
+            </div>
 
             <div className="ft-row-left">
               <span className="ft-row-name">{stat.name}</span>
