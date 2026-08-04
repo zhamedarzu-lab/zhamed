@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import SpendingLogModal from "./SpendingLogModal";
 import { api, useApi } from "../../lib/api";
 import { dollars, seqLabel, shortDate, shortMonth, todayIso, toAmount } from "../../lib/format";
 import { isPayday, nextPayday } from "../../lib/payday";
@@ -237,10 +237,10 @@ function AccountPanel({
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
-  const navigate = useNavigate();
   const [balInput, setBalInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [showLog, setShowLog] = useState(false);
+  const [showSpendingLog, setShowSpendingLog] = useState(false);
 
   const sorted = [...snapshots].sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
   const points: Point[] = sorted.map((s) => ({ date: s.snapshotDate, value: s.balance }));
@@ -334,9 +334,16 @@ function AccountPanel({
 
       {/* Update balance — only on payday */}
       <div className="debt-card-footer">
-        <button className="quiet cd-log-link" onClick={() => navigate(`/finance/cash/${account.id}`)}>
+        <button className="quiet cd-log-link" onClick={() => setShowSpendingLog(true)}>
           Spending log →
         </button>
+        {showSpendingLog && (
+          <SpendingLogModal
+            accountId={account.id}
+            accountName={account.name}
+            onClose={() => setShowSpendingLog(false)}
+          />
+        )}
         {log.length > 0 && (
           <button className="quiet bal-log-trigger" onClick={() => setShowLog(true)}>
             Log <span className="bal-log-count">{log.length}</span>
