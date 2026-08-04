@@ -1290,15 +1290,18 @@ function ExerciseRow({
   const touchCurX     = useRef(0);
   const isHoriz       = useRef(false);
   const cardRef       = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragActive     = useRef(false);
 
   // Non-passive touchmove listener — React's onTouchMove is passive so
   // e.preventDefault() inside it is silently ignored by the browser.
-  // Attaching directly lets us block scroll once a horizontal swipe is confirmed.
+  // Attaching directly lets us block scroll once a horizontal swipe is confirmed
+  // or a long-press drag is active.
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
     function onMove(e: TouchEvent) {
-      if (isHoriz.current) e.preventDefault();
+      if (isHoriz.current || dragActive.current) e.preventDefault();
     }
     el.addEventListener("touchmove", onMove, { passive: false });
     return () => el.removeEventListener("touchmove", onMove);
@@ -1327,6 +1330,17 @@ function ExerciseRow({
     touchCurX.current   = e.touches[0].clientX;
     isHoriz.current     = false;
     setLiveOffset(null);
+
+    // Long-press activates drag-to-reorder after 500 ms
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null;
+      dragActive.current = true;
+      navigator.vibrate?.(40);
+      const rowEl = cardRef.current?.closest("[data-exercise-id]") as HTMLElement | null;
+      const rowHeight = rowEl?.getBoundingClientRect().height ?? 64;
+      onDragStart(touchStartY.current, rowHeight);
+    }, 500);
   }
 
   function handleTouchMove(e: React.TouchEvent) {
@@ -1334,6 +1348,19 @@ function ExerciseRow({
     const rawDx = e.touches[0].clientX - touchStartX.current;
     const dx    = Math.abs(rawDx);
     const dy    = Math.abs(e.touches[0].clientY - touchStartY.current);
+
+    // Cancel long-press if finger moved significantly before the timer fired
+    if ((dx > 8 || dy > 8) && longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    // If drag is active, route all movement to the drag handler
+    if (dragActive.current) {
+      onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+      return;
+    }
+
     if (dx > 5 || dy > 5) {
       if (dy <= dx * 1.2) isHoriz.current = true;
     }
@@ -1346,18 +1373,28 @@ function ExerciseRow({
   }
 
   function handleTouchEnd() {
+    // Clear long-press timer if it hasn't fired yet
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    // End drag if it was active
+    if (dragActive.current) {
+      dragActive.current = false;
+      onDragEnd();
+      return;
+    }
+
     // Zeroing liveOffset re-enables the CSS transition → snaps to new swipeDir
     setLiveOffset(null);
     const dx = touchCurX.current - touchStartX.current;
 
     if (!isHoriz.current) {
-      // ── Tap ──────────────────────────────────────────────────────────
+      // ── Tap — only closes an open swipe; + button handles numpad ────
       if (swipeDir !== null) {
-        // First tap closes the swipe; don't also open numpad
         setSwipeDir(null);
         onSwipeOpen(null);
-      } else {
-        onOpenNumpad(stat);
       }
       return;
     }
@@ -1470,33 +1507,17 @@ function ExerciseRow({
               if (e.key === "Enter" || e.key === " ") onOpenNumpad(stat);
             }}
           >
-            {/* Drag handle — pointer-captured so move/up fire here even off-element */}
-            <div
-              className="ft-drag-handle"
-              aria-label="Drag to reorder"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.currentTarget.setPointerCapture(e.pointerId);
-                const rowEl = e.currentTarget.closest("[data-exercise-id]") as HTMLElement | null;
-                const rowHeight = rowEl?.getBoundingClientRect().height ?? 64;
-                onDragStart(e.clientY, rowHeight);
-              }}
-              onPointerMove={(e) => {
-                if (e.buttons === 0) return;
-                onDragMove(e.clientX, e.clientY);
-              }}
-              onPointerUp={(e) => {
-                e.currentTarget.releasePointerCapture(e.pointerId);
-                onDragEnd();
-              }}
-              onPointerCancel={onDragEnd}
+            {/* + button — tap to log reps; hold the card to drag-to-reorder */}
+            <button
+              type="button"
+              className="ft-add-btn"
+              aria-label="Log reps"
               onTouchStart={(e) => e.stopPropagation()}
-              onTouchMove={(e) => e.stopPropagation()}
-              onClick={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onOpenNumpad(stat); }}
+              onClick={(e) => { e.stopPropagation(); onOpenNumpad(stat); }}
             >
-              ⠿
-            </div>
+              +
+            </button>
 
             <div className="ft-row-left">
               <span className="ft-row-name">{stat.name}</span>
