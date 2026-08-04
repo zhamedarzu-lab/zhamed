@@ -1532,6 +1532,12 @@ function ExerciseRow({
                 <button
                   type="button"
                   className="ft-desktop-action-btn"
+                  title="Goal"
+                  onClick={(e) => { e.stopPropagation(); onOpenGoal(stat); }}
+                >◎</button>
+                <button
+                  type="button"
+                  className="ft-desktop-action-btn"
                   title="Edit"
                   onClick={(e) => { e.stopPropagation(); onOpenEdit(stat); }}
                 >✎</button>
