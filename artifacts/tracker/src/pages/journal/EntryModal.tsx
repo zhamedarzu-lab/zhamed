@@ -142,6 +142,7 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
   const [looseEndType,    setLooseEndType]    = useState<'open' | 'close' | null>(initial?.looseEndType ?? null);
   const [looseEndLink,    setLooseEndLink]    = useState<number | null>(initial?.looseEndLink ?? null);
   const [showOpenPicker,  setShowOpenPicker]  = useState(false);
+  const [swatchOpen,      setSwatchOpen]      = useState(false);
 
   async function submit() {
     setSaving(true);
@@ -182,13 +183,23 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
         onKeyDown={e => { if (e.key === "Enter" && punchNote.trim()) onPunch?.(punchNote.trim(), color); }}
       />
       <div className="entry-form-actions">
-        <div className="entry-form-colors">
-          {ENTRY_COLORS.map(c => (
-            <button key={c.hex}
-              className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
-              style={{ background: c.hex }} aria-label={c.label}
-              onClick={() => setColor(c.hex)} />
-          ))}
+        <div className="entry-form-color-trigger-group">
+          <button
+            className="entry-color-trigger"
+            style={{ background: color }}
+            aria-label="Pick color"
+            onClick={() => setSwatchOpen(o => !o)}
+          />
+          {swatchOpen && (
+            <div className="entry-form-colors">
+              {ENTRY_COLORS.map(c => (
+                <button key={c.hex}
+                  className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+                  style={{ background: c.hex }} aria-label={c.label}
+                  onClick={() => { setColor(c.hex); setSwatchOpen(false); }} />
+              ))}
+            </div>
+          )}
         </div>
         <div className="entry-form-action-right">
           <button onClick={() => setPunchMode(false)}>Cancel</button>
@@ -250,13 +261,23 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
         </div>
       )}
       <div className="entry-form-actions">
-        <div className="entry-form-colors">
-          {ENTRY_COLORS.map(c => (
-            <button key={c.hex}
-              className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
-              style={{ background: c.hex }} aria-label={c.label}
-              onClick={() => setColor(c.hex)} />
-          ))}
+        <div className="entry-form-color-trigger-group">
+          <button
+            className="entry-color-trigger"
+            style={{ background: color }}
+            aria-label="Pick color"
+            onClick={() => setSwatchOpen(o => !o)}
+          />
+          {swatchOpen && (
+            <div className="entry-form-colors">
+              {ENTRY_COLORS.map(c => (
+                <button key={c.hex}
+                  className={`entry-color-swatch${color === c.hex ? " selected" : ""}`}
+                  style={{ background: c.hex }} aria-label={c.label}
+                  onClick={() => { setColor(c.hex); setSwatchOpen(false); }} />
+              ))}
+            </div>
+          )}
         </div>
         <div className="entry-form-action-right">
           <div className="entry-form-loose-end-group">

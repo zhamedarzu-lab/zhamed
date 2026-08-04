@@ -1429,14 +1429,33 @@ a:hover {
 }
 .entry-form-add-end:hover { color: var(--ink); border-color: var(--ink-soft); }
 
-/* Bottom action row: swatches left, buttons right */
+/* Bottom action row: color trigger left, buttons right */
 .entry-form-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
 }
+.entry-form-color-trigger-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+.entry-color-trigger {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.entry-color-trigger:hover { transform: scale(1.15); box-shadow: 0 0 0 1px rgba(255,255,255,0.6); }
 .entry-form-loose-end-group {
   display: flex;
   align-items: center;
