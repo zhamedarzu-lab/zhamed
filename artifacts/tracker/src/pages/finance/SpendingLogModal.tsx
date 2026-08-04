@@ -133,11 +133,12 @@ function AnalyticsOverlay({
     : summary.monthSpent
     : 0;
 
-  const cats: CatRow[] = summary
-    ? period === "today" ? summary.todayByCategory
-    : period === "week"  ? summary.weekByCategory
-    : summary.monthByCategory
-    : [];
+  const cats: CatRow[] = (() => {
+    if (!summary) return [];
+    if (period === "today") return summary.todayByCategory ?? [];
+    if (period === "week")  return summary.weekByCategory  ?? [];
+    return summary.monthByCategory ?? [];
+  })();
 
   const grandTotal = cats.reduce((s, c) => s + c.total, 0);
 
