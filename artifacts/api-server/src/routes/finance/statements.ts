@@ -21,11 +21,17 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
+    const name = file.originalname.toLowerCase();
     const ok =
       file.mimetype === "text/csv" ||
+      file.mimetype === "text/tab-separated-values" ||
       file.mimetype === "application/pdf" ||
-      file.originalname.toLowerCase().endsWith(".csv") ||
-      file.originalname.toLowerCase().endsWith(".pdf");
+      // Some browsers send generic MIME for TSV/TXT exports
+      file.mimetype === "text/plain" ||
+      name.endsWith(".csv") ||
+      name.endsWith(".tsv") ||
+      name.endsWith(".txt") ||
+      name.endsWith(".pdf");
     cb(null, ok);
   },
 });
@@ -76,8 +82,8 @@ interface ParsedRow {
   amount: number;  // positive = expense, negative = credit/refund
 }
 
-/** Parse a single CSV line respecting quoted fields. */
-function splitCSVLine(line: string): string[] {
+/** Parse a single delimited line respecting quoted fields. */
+function splitDelimitedLine(line: string, delim: string): string[] {
   const result: string[] = [];
   let cur = "";
   let inQ = false;
@@ -86,9 +92,10 @@ function splitCSVLine(line: string): string[] {
     if (c === '"') {
       if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
       else inQ = !inQ;
-    } else if (c === "," && !inQ) {
+    } else if (!inQ && line.startsWith(delim, i)) {
       result.push(cur.trim());
       cur = "";
+      i += delim.length - 1;
     } else {
       cur += c;
     }
@@ -134,44 +141,84 @@ function normalizeSign(rows: ParsedRow[]): ParsedRow[] {
   return rows;
 }
 
-function parseCSV(content: string): ParsedRow[] {
-  const lines = content.split(/\r?\n/);
+interface ParseResult {
+  rows: ParsedRow[];
+  diagnostic?: string; // human-readable hint when rows is empty
+}
 
-  // Find header row: first row with ≥3 comma-separated fields
+/** Detect whether content is tab-separated (TSV) or comma-separated (CSV). */
+function detectDelimiter(lines: string[]): string {
+  let tabCount = 0;
+  let commaCount = 0;
+  const sample = lines.filter((l) => l.trim()).slice(0, 5);
+  for (const l of sample) {
+    tabCount += (l.match(/\t/g) ?? []).length;
+    commaCount += (l.match(/,/g) ?? []).length;
+  }
+  return tabCount > commaCount ? "\t" : ",";
+}
+
+function parseCSV(content: string): ParseResult {
+  const lines = content.split(/\r?\n/);
+  const delim = detectDelimiter(lines);
+
+  // Find header row: first row with ≥3 delimited fields within the first 15 lines
   let headerIdx = -1;
   let headers: string[] = [];
   for (let i = 0; i < Math.min(15, lines.length); i++) {
-    const cols = splitCSVLine(lines[i]);
+    const cols = splitDelimitedLine(lines[i], delim);
     if (cols.length >= 3) {
       headerIdx = i;
       headers = cols.map((h) => h.toLowerCase().replace(/['"]/g, "").trim());
       break;
     }
   }
-  if (headerIdx === -1) return [];
+  if (headerIdx === -1) {
+    return {
+      rows: [],
+      diagnostic:
+        "Could not find a header row with at least 3 columns in the first 15 lines. " +
+        `The file appears to be ${delim === "\t" ? "tab" : "comma"}-separated — ` +
+        "make sure you're exporting the full CSV/TSV from your bank.",
+    };
+  }
 
-  // Locate columns
-  const dateCol = headers.findIndex((h) =>
-    /transaction.?date|^date$|posted.?date|trans.?date/.test(h),
-  ) ?? headers.findIndex((h) => h.includes("date"));
+  // ---- Date column ----
+  // Try specific patterns first; fall back to any column containing "date".
+  let dateCol = headers.findIndex((h) =>
+    /transaction.?date|^date$|posted.?date|trans.?date|posting.?date|value.?date|process.?date|settlement.?date|activity.?date/.test(h),
+  );
+  if (dateCol === -1) dateCol = headers.findIndex((h) => h.includes("date"));
 
+  // ---- Description column ----
   const descCol = headers.findIndex((h) =>
-    /description|payee|merchant|memo|name/.test(h),
+    /description|payee|merchant|memo|^name$|details|narrative|original.?description|transaction(?!.*date|.*amount)/.test(h),
   );
 
-  const amountCol = headers.findIndex((h) => /^amount$/.test(h));
-  const debitCol = headers.findIndex((h) => /^debit$/.test(h));
-  const creditCol = headers.findIndex((h) => /^credit$/.test(h));
+  // ---- Amount columns ----
+  // Single-column formats (Chase, Discover, BofA): "Amount", "Transaction Amount", "Charge"
+  const amountCol = headers.findIndex((h) =>
+    /^amount$|transaction.?amount|charge[s]?$/.test(h),
+  );
+  // Two-column debit/credit formats (Capital One, Citi, Wells Fargo)
+  const debitCol = headers.findIndex((h) =>
+    /^debit[s]?$|debit.?amount|withdrawal[s]?/.test(h),
+  );
+  const creditCol = headers.findIndex((h) =>
+    /^credit[s]?$|credit.?amount|deposit[s]?/.test(h),
+  );
 
   const effectiveDateCol = dateCol !== -1 ? dateCol : 0;
   const effectiveDescCol = descCol !== -1 ? descCol : 1;
+
+  const hasAmountCol = amountCol !== -1 || debitCol !== -1 || creditCol !== -1;
 
   const rows: ParsedRow[] = [];
 
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
-    const cols = splitCSVLine(line);
+    const cols = splitDelimitedLine(line, delim);
     if (cols.length < 2) continue;
 
     const rawDate = cols[effectiveDateCol] ?? "";
@@ -194,27 +241,32 @@ function parseCSV(content: string): ParsedRow[] {
     rows.push({ date, merchant, amount });
   }
 
-  return normalizeSign(rows);
+  if (rows.length === 0) {
+    const foundCols = headers.filter(Boolean).join(", ");
+    const missing: string[] = [];
+    if (dateCol === -1) missing.push("date");
+    if (descCol === -1) missing.push("description/merchant");
+    if (!hasAmountCol) missing.push("amount (or debit/credit/withdrawal/deposit)");
+
+    const hint = missing.length > 0
+      ? `Missing recognizable column(s): ${missing.join(", ")}. ` +
+        `Found columns: ${foundCols}.`
+      : `Columns found (${foundCols}) but no rows had a parseable date and non-zero amount. ` +
+        "Check that the file contains actual transactions.";
+
+    return { rows: [], diagnostic: hint };
+  }
+
+  return { rows: normalizeSign(rows) };
 }
 
 // ---------------------------------------------------------------------------
-// PDF parsing (best-effort line-by-line extraction)
+// PDF parsing (best-effort line-by-line extraction with two-pass fallback)
 // ---------------------------------------------------------------------------
-async function parsePDF(buffer: Buffer): Promise<ParsedRow[]> {
-  // Dynamically import pdf-parse; handle CJS→ESM interop edge cases
-  const mod = await import("pdf-parse");
-  // CJS packages land at mod.default in Node native ESM, but raw mod when bundled
-  const pdfParse: (buf: Buffer) => Promise<{ text: string }> =
-    typeof mod.default === "function"
-      ? (mod.default as typeof pdfParse)
-      : typeof (mod as unknown) === "function"
-        ? (mod as unknown as typeof pdfParse)
-        : (() => { throw new Error("pdf-parse module not available"); })();
-  const data = await pdfParse(buffer);
 
+/** Try to extract ParsedRows from an array of text lines (single-pass). */
+function extractPDFRows(lines: string[]): ParsedRow[] {
   const rows: ParsedRow[] = [];
-  const lines = data.text.split(/\r?\n/);
-
   // Amount pattern: optional leading minus/parens, optional $, digits, decimal
   const amountRe = /([\-\(]?\$?[\d,]{1,12}\.\d{2}\)?)\s*$/;
   // Date patterns at start of line
@@ -247,7 +299,58 @@ async function parsePDF(buffer: Buffer): Promise<ParsedRow[]> {
     rows.push({ date, merchant, amount });
   }
 
-  return normalizeSign(rows);
+  return rows;
+}
+
+async function parsePDF(buffer: Buffer): Promise<ParseResult> {
+  // Dynamically import pdf-parse; handle CJS→ESM interop edge cases
+  const mod = await import("pdf-parse");
+  // CJS packages land at mod.default in Node native ESM, but raw mod when bundled
+  const pdfParse: (buf: Buffer) => Promise<{ text: string }> =
+    typeof mod.default === "function"
+      ? (mod.default as typeof pdfParse)
+      : typeof (mod as unknown) === "function"
+        ? (mod as unknown as typeof pdfParse)
+        : (() => { throw new Error("pdf-parse module not available"); })();
+  const data = await pdfParse(buffer);
+
+  const lines = data.text.split(/\r?\n/);
+
+  // Pass 1: single-line match
+  let rows = extractPDFRows(lines);
+
+  // Pass 2: if too few results, try merging consecutive short lines (handles
+  // PDFs where descriptions wrap onto the next line or a running balance
+  // appears on its own line after the transaction line).
+  if (rows.length < 3) {
+    const merged: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const cur = lines[i].trim();
+      const next = (lines[i + 1] ?? "").trim();
+      // If the current line ends with a date-only pattern and no amount, try
+      // appending the next line to it.
+      if (cur && next) {
+        merged.push(`${cur} ${next}`);
+        i++; // consume the next line so we don't double-count it
+      } else if (cur) {
+        merged.push(cur);
+      }
+    }
+    const mergedRows = extractPDFRows(merged);
+    if (mergedRows.length > rows.length) rows = mergedRows;
+  }
+
+  if (rows.length === 0) {
+    return {
+      rows: [],
+      diagnostic:
+        "Could not extract transaction lines from the PDF. " +
+        "Bank PDFs often use complex layouts that don't parse well. " +
+        "Try exporting or downloading as CSV from your bank's website instead.",
+    };
+  }
+
+  return { rows: normalizeSign(rows) };
 }
 
 // ---------------------------------------------------------------------------
@@ -271,25 +374,27 @@ router.post(
     const isPDF = req.file.originalname.toLowerCase().endsWith(".pdf");
 
     // Parse transactions from the file
-    let parsed: ParsedRow[] = [];
+    let parseResult: ParseResult = { rows: [] };
     try {
       if (isPDF) {
-        parsed = await parsePDF(req.file.buffer);
+        parseResult = await parsePDF(req.file.buffer);
       } else {
-        parsed = parseCSV(req.file.buffer.toString("utf-8"));
+        parseResult = parseCSV(req.file.buffer.toString("utf-8"));
       }
     } catch (err) {
       res.status(422).json({ error: `Could not parse file: ${(err as Error).message}` });
       return;
     }
 
-    if (parsed.length === 0) {
+    if (parseResult.rows.length === 0) {
       res.status(422).json({
-        error:
+        error: parseResult.diagnostic ??
           "No transactions found. Make sure you're uploading a valid bank statement CSV or PDF.",
       });
       return;
     }
+
+    const parsed = parseResult.rows;
 
     // Store raw file in object storage
     let storageKey = "";
