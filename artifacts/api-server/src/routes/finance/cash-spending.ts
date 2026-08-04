@@ -54,18 +54,22 @@ router.get("/cash-spending/summary", async (req, res): Promise<void> => {
 
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  let today = 0, thisWeek = 0, thisMonth = 0;
+  // Track spending only (negative entries = expenses; deposits are excluded
+  // from the "spent" stats so the numbers reflect what went out the door).
+  let todaySpent = 0, weekSpent = 0, monthSpent = 0;
   const catMap = new Map<string, number>();
 
   for (const e of entries) {
     if (!e.loggedAt) continue;
-    const at = new Date(e.loggedAt);
+    const at  = new Date(e.loggedAt);
     const amt = Number(e.amount);
-    if (at >= startOfDay)   today    += amt;
-    if (at >= startOfWeek)  thisWeek += amt;
+    if (amt >= 0) continue; // skip deposits for spending stats
+    const spent = Math.abs(amt);
+    if (at >= startOfDay)   todaySpent += spent;
+    if (at >= startOfWeek)  weekSpent  += spent;
     if (at >= startOfMonth) {
-      thisMonth += amt;
-      catMap.set(e.category, (catMap.get(e.category) ?? 0) + amt);
+      monthSpent += spent;
+      catMap.set(e.category, (catMap.get(e.category) ?? 0) + spent);
     }
   }
 
@@ -74,9 +78,9 @@ router.get("/cash-spending/summary", async (req, res): Promise<void> => {
     .sort((a, b) => b.total - a.total);
 
   res.json({
-    today:     round(today),
-    thisWeek:  round(thisWeek),
-    thisMonth: round(thisMonth),
+    todaySpent: round(todaySpent),
+    weekSpent:  round(weekSpent),
+    monthSpent: round(monthSpent),
     byCategory,
   });
 });
@@ -85,7 +89,8 @@ router.get("/cash-spending/summary", async (req, res): Promise<void> => {
 
 const entrySchema = z.object({
   cashAccountId: z.number().int().positive(),
-  amount:        z.number().positive(),
+  // Positive = deposit/top-up, negative = expense. Zero not allowed.
+  amount:        z.number().refine((n) => n !== 0, "Amount cannot be zero"),
   description:   z.string().min(1).max(200),
   category:      z.string().min(1).max(50).default("Other"),
 });

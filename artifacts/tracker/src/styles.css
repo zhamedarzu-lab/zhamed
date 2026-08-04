@@ -5821,3 +5821,40 @@ button.btn-icon {
   .sl-log-amt  { grid-column: 2; grid-row: 2; text-align: right; }
   .sl-log-del  { grid-column: 3; grid-row: 1 / 3; opacity: 1; }
 }
+
+/* ── Spending log modal: header balance + sign toggle ── */
+
+.sl-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+.sl-header-bal {
+  font-family: var(--fig);
+  font-size: 1.2rem;
+  letter-spacing: -0.03em;
+}
+
+.sl-sign-toggle {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.sl-sign-btn {
+  flex: 1;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.sl-sign-btn:first-child { border-right: 1px solid var(--rule); }
+.sl-sign-btn:hover { color: var(--ink); }
+.sl-sign-btn.active.expense { background: rgba(248,113,113,0.12); color: #f87171; }
+.sl-sign-btn.active.deposit { background: rgba(93,232,160,0.12);  color: #5de8a0; }

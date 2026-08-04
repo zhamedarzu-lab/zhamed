@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { cashAccountsTable, cashSnapshotsTable, paychecksTable } from "@workspace/db";
-import { DATE_RE, money, optionalDateQuery, optionalIdQuery, parseBody, parseId } from "./shared.js";
+import { cashAccountsTable, cashSnapshotsTable, cashSpendingLogTable, paychecksTable } from "@workspace/db";
+import { DATE_RE, money, optionalDateQuery, optionalIdQuery, parseBody, parseId, round } from "./shared.js";
 
 const router: IRouter = Router();
 
@@ -13,25 +13,47 @@ const router: IRouter = Router();
 // and a running balance.
 
 router.get("/cash-accounts", async (_req, res): Promise<void> => {
-  const [accounts, snapshots] = await Promise.all([
+  const [accounts, entries] = await Promise.all([
     db.select().from(cashAccountsTable).orderBy(cashAccountsTable.sortOrder),
-    db.select().from(cashSnapshotsTable).orderBy(desc(cashSnapshotsTable.snapshotDate)),
+    // Fetch all spending log entries ordered oldest-first so we can build
+    // running-balance history in a single forward pass.
+    db.select().from(cashSpendingLogTable).orderBy(cashSpendingLogTable.loggedAt),
   ]);
 
-  // Snapshots arrive newest-first, so the first one seen per account is latest.
-  const latestByAccount = new Map<number, (typeof snapshots)[number]>();
-  for (const s of snapshots) {
-    if (!latestByAccount.has(s.cashAccountId)) latestByAccount.set(s.cashAccountId, s);
+  // Group entries by account
+  const byAccount = new Map<number, typeof entries>();
+  for (const e of entries) {
+    if (!byAccount.has(e.cashAccountId)) byAccount.set(e.cashAccountId, []);
+    byAccount.get(e.cashAccountId)!.push(e);
   }
 
   res.json(
     accounts.map((a) => {
-      const latest = latestByAccount.get(a.id);
-      return {
-        ...a,
-        currentBalance: latest ? Number(latest.balance) : null,
-        lastUpdated: latest ? latest.snapshotDate : null,
-      };
+      const acct = byAccount.get(a.id) ?? [];
+
+      // Running balance = sum of all signed amounts
+      const currentBalance = round(acct.reduce((s, e) => s + Number(e.amount), 0));
+
+      // Most-recent entry date
+      const lastEntry = acct.at(-1);
+      const lastUpdated = lastEntry?.loggedAt
+        ? new Date(lastEntry.loggedAt).toISOString().slice(0, 10)
+        : null;
+
+      // Balance history: cumulative sum by calendar day (for the sparkline chart)
+      const dayTotals = new Map<string, number>();
+      for (const e of acct) {
+        const day = e.loggedAt
+          ? new Date(e.loggedAt).toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10);
+        dayTotals.set(day, (dayTotals.get(day) ?? 0) + Number(e.amount));
+      }
+      let running = 0;
+      const balanceHistory = [...dayTotals.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, delta]) => ({ date, value: round((running += delta)) }));
+
+      return { ...a, currentBalance, lastUpdated, balanceHistory };
     }),
   );
 });
