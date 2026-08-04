@@ -236,6 +236,7 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
   const [description, setDesc]  = useState("");
   const [category, setCategory] = useState("");
   const [notes, setNotes]       = useState("");
+  const [showNotes, setShowNotes] = useState(false);
   const [busy, setBusy]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
@@ -244,9 +245,10 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
 
   // Inline edit state
   type EditDraft = { sign: "+" | "-"; amount: string; desc: string; cat: string; notes: string };
-  const [editingId, setEditingId]   = useState<number | null>(null);
-  const [editDraft, setEditDraft]   = useState<EditDraft | null>(null);
-  const [editBusy, setEditBusy]     = useState(false);
+  const [editingId, setEditingId]     = useState<number | null>(null);
+  const [editDraft, setEditDraft]     = useState<EditDraft | null>(null);
+  const [showEditNotes, setShowEditNotes] = useState(false);
+  const [editBusy, setEditBusy]       = useState(false);
 
   const amtRef     = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -293,6 +295,7 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
       setDesc("");
       setCategory("");
       setNotes("");
+      setShowNotes(false);
       amtRef.current?.focus();
       await refresh();
     } catch (err) {
@@ -314,6 +317,7 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
       cat:    entry.category,
       notes:  entry.notes ?? "",
     });
+    setShowEditNotes(!!entry.notes);
   }
 
   function cancelEdit() {
@@ -438,13 +442,22 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
           <datalist id="sl-cat-list">
             {knownCats.map((c) => <option key={c} value={c} />)}
           </datalist>
-          <input
-            className="sl-notes-input"
-            placeholder="Note (optional)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addEntry()}
-          />
+          {showNotes ? (
+            <input
+              autoFocus
+              className="sl-notes-input"
+              placeholder="Note…"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addEntry()}
+            />
+          ) : (
+            <button
+              type="button"
+              className="sl-notes-toggle"
+              onClick={() => setShowNotes(true)}
+            >+ note</button>
+          )}
           <button
             className="primary sl-log-btn"
             onClick={addEntry}
@@ -530,13 +543,21 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
                         </svg>
                       </button>
                       {/* Notes row */}
-                      <input
-                        className="sl-notes-input"
-                        placeholder="Note (optional)"
-                        value={editDraft.notes}
-                        onChange={(e) => setEditDraft({ ...editDraft, notes: e.target.value })}
-                        onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
-                      />
+                      {showEditNotes ? (
+                        <input
+                          className="sl-notes-input"
+                          placeholder="Note…"
+                          value={editDraft.notes}
+                          onChange={(e) => setEditDraft({ ...editDraft, notes: e.target.value })}
+                          onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          className="sl-notes-toggle"
+                          onClick={() => setShowEditNotes(true)}
+                        >+ note</button>
+                      )}
                     </div>
                   );
                 }

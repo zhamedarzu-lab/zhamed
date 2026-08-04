@@ -5687,7 +5687,19 @@ button.btn-icon {
 .sl-desc-input  { grid-column: 3; grid-row: 1; width: 100%; }
 .sl-cat-input   { grid-column: 4; grid-row: 1; width: 100%; }
 .sl-log-btn     { grid-column: 5; grid-row: 1; white-space: nowrap; }
-.sl-notes-input { grid-column: 1 / -1; grid-row: 2; font-size: 0.8rem; width: 100%; }
+.sl-notes-input  { grid-column: 1 / -1; grid-row: 2; font-size: 0.8rem; width: 100%; }
+.sl-notes-toggle {
+  grid-column: 1 / -1; grid-row: 2;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s;
+}
+.sl-notes-toggle:hover { color: var(--ink); }
 
 /* Mobile: stack into two rows so the button is never cut off */
 @media (max-width: 540px) {
