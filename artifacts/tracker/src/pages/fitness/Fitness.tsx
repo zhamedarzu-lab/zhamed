@@ -4,7 +4,8 @@ import { todayIso } from "../../lib/format";
 import { Empty, Loading, Notice } from "../../components/ui";
 import { ENTRY_COLORS } from "../journal/EntryModal";
 
-const FITNESS_COLORS = ENTRY_COLORS.slice(0, 7); // R O Y G B + pink + purple
+const FITNESS_COLOR_HEXES = new Set(["#e82020","#e55c00","#f5c800","#1fcc55","#2b7fff","#e04e8a","#9b4ee0"]);
+const FITNESS_COLORS = ENTRY_COLORS.filter(c => FITNESS_COLOR_HEXES.has(c.hex));
 const FITNESS_DEFAULT_COLOR = "#888888";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
