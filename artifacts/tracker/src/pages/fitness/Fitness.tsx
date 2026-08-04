@@ -1552,6 +1552,7 @@ function ExerciseRow({
               <button
                 type="button"
                 className="ft-period-cycle"
+                onTouchStart={(e) => e.stopPropagation()}
                 onTouchEnd={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
