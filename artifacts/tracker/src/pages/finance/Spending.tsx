@@ -1,284 +1,541 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { api, useApi } from "../../lib/api";
-import { dollars } from "../../lib/format";
-import { Loading, Empty } from "../../components/ui";
+import { dollars, currentMonth, shiftMonth, monthName, shortDate } from "../../lib/format";
+import { Empty, Loading, MonthPicker, Notice, Panel } from "../../components/ui";
 import FinanceNav from "./FinanceNav";
 
-type Statement = {
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+type Upload = {
   id: number;
-  filename: string;
+  originalFilename: string;
+  month: string;
+  rowCount: number;
   uploadedAt: string;
-  txCount: number;
 };
 
 type Transaction = {
   id: number;
-  statementId: number;
-  date: string;
-  description: string;
-  amountCents: number;
+  uploadId: number;
+  txnDate: string;
+  merchant: string;
+  amount: number;
   category: string;
-  notes: string | null;
+  note: string;
 };
 
-const CATEGORIES = [
-  "Fast Food", "Food Delivery", "Dining", "Groceries",
-  "Gas", "Transport", "Shopping", "Entertainment",
-  "Bills & Utilities", "Health", "Fitness", "Housing",
-  "Transfer", "Other",
-];
+type CategorySummary = {
+  category: string;
+  total: number;
+  count: number;
+};
 
-function fmt(date: string) {
-  const [y, m, d] = date.split("-");
-  return `${m}/${d}/${y}`;
+// ---------------------------------------------------------------------------
+// Category colours — fixed palette so the chart is consistent
+// ---------------------------------------------------------------------------
+const CATEGORY_COLORS: Record<string, string> = {
+  "Food & Dining":  "#e57c5a",
+  "Shopping":       "#cc8f7a",
+  "Transportation": "#7acc9a",
+  "Entertainment":  "#5ab8cc",
+  "Utilities":      "#6890cc",
+  "Housing":        "#9a7acc",
+  "Healthcare":     "#cc7a9a",
+  "Transfers":      "#ccb85a",
+  "Insurance":      "#a0cc7a",
+  "Other":          "#aaaaaa",
+};
+
+const ALL_CATEGORIES = Object.keys(CATEGORY_COLORS);
+
+function categoryColor(cat: string): string {
+  return CATEGORY_COLORS[cat] ?? "#aaaaaa";
 }
 
-function shortUploadDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
+// ---------------------------------------------------------------------------
+// Spend summary bar chart
+// ---------------------------------------------------------------------------
+function SpendingSummary({ summary }: { summary: CategorySummary[] }) {
+  // Only show positive totals (expenses); negative = credits
+  const expenses = summary.filter((s) => s.total > 0).sort((a, b) => b.total - a.total);
+  if (expenses.length === 0) return null;
 
-// ─── Category breakdown ──────────────────────────────────────────────
-
-function CategoryBreakdown({ txns }: { txns: Transaction[] }) {
-  const expenses = txns.filter((t) => t.amountCents < 0);
-  const totals = new Map<string, number>();
-  for (const t of expenses) {
-    totals.set(t.category, (totals.get(t.category) ?? 0) + Math.abs(t.amountCents));
-  }
-  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
-  const grand = sorted.reduce((s, [, v]) => s + v, 0);
-  if (sorted.length === 0) return null;
+  const maxTotal = expenses[0].total;
+  const grandTotal = expenses.reduce((s, c) => s + c.total, 0);
 
   return (
-    <div className="spending-breakdown">
-      <h3 className="spending-breakdown-title">By Category</h3>
-      {sorted.map(([cat, cents]) => {
-        const pct = grand > 0 ? (cents / grand) * 100 : 0;
-        return (
-          <div key={cat} className="spending-cat-row">
-            <span className="spending-cat-name">{cat}</span>
-            <div className="spending-cat-bar-wrap">
-              <div className="spending-cat-bar" style={{ width: `${pct}%` }} />
+    <Panel title="Spending by category">
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+        {expenses.map((row) => (
+          <div key={row.category} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            <div
+              style={{
+                width: "10rem",
+                fontSize: "0.8125rem",
+                color: "var(--text-muted)",
+                flexShrink: 0,
+                textAlign: "right",
+              }}
+            >
+              {row.category}
             </div>
-            <span className="spending-cat-amt">{dollars(cents / 100)}</span>
+            <div
+              style={{
+                flex: 1,
+                background: "var(--rule)",
+                borderRadius: "3px",
+                height: "12px",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${(row.total / maxTotal) * 100}%`,
+                  height: "100%",
+                  background: categoryColor(row.category),
+                  borderRadius: "3px",
+                  transition: "width 0.3s ease",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                width: "5rem",
+                fontSize: "0.8125rem",
+                textAlign: "right",
+                fontFamily: "var(--fig)",
+                flexShrink: 0,
+              }}
+            >
+              {dollars(row.total)}
+            </div>
+            <div
+              style={{
+                width: "2rem",
+                fontSize: "0.75rem",
+                color: "var(--text-muted)",
+                flexShrink: 0,
+              }}
+            >
+              {row.count}×
+            </div>
           </div>
-        );
-      })}
-      <div className="spending-cat-total">
-        <span>Total spent</span>
-        <span>{dollars(grand / 100)}</span>
+        ))}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            borderTop: "1px solid var(--rule)",
+            paddingTop: "0.4rem",
+            marginTop: "0.2rem",
+            fontSize: "0.875rem",
+            fontFamily: "var(--fig)",
+            gap: "1rem",
+          }}
+        >
+          <span style={{ color: "var(--text-muted)" }}>Total</span>
+          <span style={{ fontWeight: 600 }}>{dollars(grandTotal)}</span>
+        </div>
       </div>
+    </Panel>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Upload zone
+// ---------------------------------------------------------------------------
+function UploadZone({
+  month,
+  onUploaded,
+}: {
+  month: string;
+  onUploaded: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      setError(null);
+      setUploading(true);
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("month", month);
+        await api.upload("/api/finance/statements/upload", form);
+        onUploaded();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setUploading(false);
+        if (inputRef.current) inputRef.current.value = "";
+      }
+    },
+    [month, onUploaded],
+  );
+
+  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void handleFile(file);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) void handleFile(file);
+  };
+
+  return (
+    <div>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Upload bank statement"
+        className="upload-zone"
+        style={{
+          border: `2px dashed ${dragging ? "var(--accent)" : "var(--rule-strong)"}`,
+          borderRadius: "6px",
+          padding: "1.5rem 1rem",
+          textAlign: "center",
+          cursor: uploading ? "wait" : "pointer",
+          color: "var(--text-muted)",
+          transition: "border-color 0.15s",
+          background: dragging ? "var(--rule)" : undefined,
+        }}
+        onClick={() => !uploading && inputRef.current?.click()}
+        onKeyDown={(e) => e.key === "Enter" && !uploading && inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+      >
+        {uploading ? (
+          <span>Parsing statement…</span>
+        ) : (
+          <>
+            <div style={{ fontSize: "1.5rem", marginBottom: "0.4rem" }}>⬆</div>
+            <strong>Drop a CSV or PDF bank statement</strong>
+            <div style={{ fontSize: "0.8125rem", marginTop: "0.25rem" }}>
+              Chase, BofA, Capital One, Discover, and others
+            </div>
+            <div style={{ fontSize: "0.75rem", marginTop: "0.15rem", opacity: 0.7 }}>
+              or click to browse
+            </div>
+          </>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,.pdf,text/csv,application/pdf"
+        style={{ display: "none" }}
+        onChange={onInputChange}
+      />
+      <Notice>{error}</Notice>
     </div>
   );
 }
 
-// ─── Transaction row ─────────────────────────────────────────────────
-
-function TxRow({ tx, onUpdated }: { tx: Transaction; onUpdated: (t: Transaction) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [cat, setCat] = useState(tx.category);
-  const isExpense = tx.amountCents < 0;
-
-  async function saveCat(next: string) {
-    setCat(next);
-    setEditing(false);
-    const updated = await api.patch<Transaction>(`/api/finance/transactions/${tx.id}`, { category: next });
-    onUpdated(updated);
-  }
+// ---------------------------------------------------------------------------
+// Uploaded statements list
+// ---------------------------------------------------------------------------
+function UploadsList({
+  uploads,
+  onDelete,
+}: {
+  uploads: Upload[];
+  onDelete: (id: number) => void;
+}) {
+  if (uploads.length === 0) return null;
 
   return (
-    <tr className="spending-tx-row">
-      <td className="spending-tx-date">{fmt(tx.date)}</td>
-      <td className="spending-tx-desc">{tx.description}</td>
-      <td className="spending-tx-cat">
-        {editing ? (
-          <select
-            className="spending-cat-select"
-            value={cat}
-            autoFocus
-            onChange={(e) => void saveCat(e.target.value)}
-            onBlur={() => setEditing(false)}
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+      {uploads.map((u) => (
+        <div
+          key={u.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            fontSize: "0.8125rem",
+            color: "var(--text-muted)",
+          }}
+        >
+          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            📄 {u.originalFilename}
+          </span>
+          <span>{u.rowCount} transactions</span>
+          <button
+            type="button"
+            className="quiet"
+            aria-label={`Delete ${u.originalFilename}`}
+            style={{ fontSize: "0.875rem", color: "var(--text-muted)", padding: "0.1rem 0.3rem" }}
+            onClick={() => onDelete(u.id)}
           >
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        ) : (
-          <button className="spending-cat-pill" onClick={() => setEditing(true)}>
-            {cat}
+            ✕
           </button>
-        )}
-      </td>
-      <td className={`spending-tx-amt${isExpense ? " expense" : " credit"}`}>
-        {isExpense ? "−" : "+"}{dollars(Math.abs(tx.amountCents) / 100)}
-      </td>
-    </tr>
+        </div>
+      ))}
+    </div>
   );
 }
 
-// ─── Main page ───────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Category cell (inline select)
+// ---------------------------------------------------------------------------
+function CategoryCell({
+  txnId,
+  category,
+  onChange,
+}: {
+  txnId: number;
+  category: string;
+  onChange: (id: number, cat: string) => void;
+}) {
+  const [saving, setSaving] = useState(false);
 
-export default function Spending() {
-  const { data: statements, loading: stmtLoading, reload: reloadStmts } = useApi<Statement[]>("/api/finance/statements");
-  const [selectedId, setSelectedId] = useState<number | "all">("all");
-  const [txns, setTxns] = useState<Transaction[] | null>(null);
-  const [txLoading, setTxLoading] = useState(false);
-  const [catFilter, setCatFilter] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
-  const [dragOver, setDragOver] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  async function loadTxns(stmtId: number | "all") {
-    setSelectedId(stmtId);
-    setTxLoading(true);
-    setCatFilter("");
+  const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const cat = e.target.value;
+    setSaving(true);
     try {
-      const url = stmtId === "all"
-        ? "/api/finance/transactions"
-        : `/api/finance/transactions?statementId=${stmtId}`;
-      setTxns(await api.get<Transaction[]>(url));
+      await api.patch(`/api/finance/spending/transactions/${txnId}`, { category: cat });
+      onChange(txnId, cat);
+    } catch {
+      // silently revert by not calling onChange
     } finally {
-      setTxLoading(false);
+      setSaving(false);
     }
-  }
-
-  async function uploadFile(file: File) {
-    setUploading(true);
-    setUploadError("");
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const stmt = await api.upload<Statement>("/api/finance/statements/upload", form);
-      await reloadStmts();
-      await loadTxns(stmt.id);
-    } catch (e) {
-      setUploadError(e instanceof Error ? e.message : "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function deleteStatement(id: number) {
-    await api.del(`/api/finance/statements/${id}`);
-    await reloadStmts();
-    if (selectedId === id) { setSelectedId("all"); setTxns(null); }
-  }
-
-  function txUpdated(updated: Transaction) {
-    setTxns((prev) => prev?.map((t) => t.id === updated.id ? updated : t) ?? prev);
-  }
-
-  const visibleTxns = catFilter
-    ? (txns ?? []).filter((t) => t.category === catFilter)
-    : (txns ?? []);
-
-  const availableCats = txns
-    ? [...new Set(txns.map((t) => t.category))].sort()
-    : [];
+  };
 
   return (
-    <div className="finance-page">
+    <select
+      value={category}
+      onChange={handleChange}
+      disabled={saving}
+      aria-label="Category"
+      style={{
+        fontSize: "0.75rem",
+        padding: "0.1rem 0.2rem",
+        borderRadius: "3px",
+        border: "1px solid var(--rule-strong)",
+        background: "transparent",
+        color: categoryColor(category),
+        fontWeight: 500,
+        cursor: "pointer",
+        maxWidth: "9rem",
+      }}
+    >
+      {ALL_CATEGORIES.map((c) => (
+        <option key={c} value={c}>
+          {c}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Transaction table
+// ---------------------------------------------------------------------------
+function TransactionTable({
+  transactions,
+  onCategoryChange,
+}: {
+  transactions: Transaction[];
+  onCategoryChange: (id: number, cat: string) => void;
+}) {
+  if (transactions.length === 0) {
+    return (
+      <Empty title="No transactions">
+        Upload a bank statement above to see your spending.
+      </Empty>
+    );
+  }
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid var(--rule-strong)", textAlign: "left" }}>
+            <th style={{ padding: "0.4rem 0.5rem", fontWeight: 500, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+              Date
+            </th>
+            <th style={{ padding: "0.4rem 0.5rem", fontWeight: 500, color: "var(--text-muted)" }}>
+              Merchant
+            </th>
+            <th style={{ padding: "0.4rem 0.5rem", fontWeight: 500, color: "var(--text-muted)", textAlign: "right" }}>
+              Amount
+            </th>
+            <th style={{ padding: "0.4rem 0.5rem", fontWeight: 500, color: "var(--text-muted)" }}>
+              Category
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((t) => (
+            <tr
+              key={t.id}
+              style={{ borderBottom: "1px solid var(--rule)" }}
+            >
+              <td
+                style={{
+                  padding: "0.35rem 0.5rem",
+                  color: "var(--text-muted)",
+                  fontFamily: "var(--fig)",
+                  fontSize: "0.8125rem",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {shortDate(t.txnDate)}
+              </td>
+              <td style={{ padding: "0.35rem 0.5rem", maxWidth: "16rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {t.merchant}
+              </td>
+              <td
+                style={{
+                  padding: "0.35rem 0.5rem",
+                  textAlign: "right",
+                  fontFamily: "var(--fig)",
+                  color: t.amount < 0 ? "var(--positive, #5fc97a)" : undefined,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t.amount < 0 ? `+${dollars(-t.amount)}` : dollars(t.amount)}
+              </td>
+              <td style={{ padding: "0.35rem 0.5rem" }}>
+                <CategoryCell
+                  txnId={t.id}
+                  category={t.category}
+                  onChange={onCategoryChange}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
+export default function Spending() {
+  const [month, setMonth] = useState(currentMonth);
+
+  const {
+    data: uploads,
+    loading: uploadsLoading,
+    error: uploadsError,
+    reload: reloadUploads,
+  } = useApi<Upload[]>(`/api/finance/statements?month=${month}`, [month]);
+
+  const {
+    data: transactions,
+    loading: txnsLoading,
+    error: txnsError,
+    reload: reloadTxns,
+    setData: setTransactions,
+  } = useApi<Transaction[]>(`/api/finance/spending/transactions?month=${month}`, [month]);
+
+  const {
+    data: summary,
+    loading: summaryLoading,
+    reload: reloadSummary,
+  } = useApi<CategorySummary[]>(`/api/finance/spending/summary?month=${month}`, [month]);
+
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleUploaded = useCallback(() => {
+    void reloadUploads();
+    void reloadTxns();
+    void reloadSummary();
+  }, [reloadUploads, reloadTxns, reloadSummary]);
+
+  const handleDelete = useCallback(
+    async (id: number) => {
+      setDeleteError(null);
+      try {
+        await api.del(`/api/finance/statements/${id}`);
+        void reloadUploads();
+        void reloadTxns();
+        void reloadSummary();
+      } catch (err) {
+        setDeleteError(err instanceof Error ? err.message : "Delete failed");
+      }
+    },
+    [reloadUploads, reloadTxns, reloadSummary],
+  );
+
+  const handleCategoryChange = useCallback(
+    (id: number, cat: string) => {
+      setTransactions((prev) =>
+        prev
+          ? prev.map((t) => (t.id === id ? { ...t, category: cat } : t))
+          : prev,
+      );
+      // Refresh summary after category edit
+      void reloadSummary();
+    },
+    [setTransactions, reloadSummary],
+  );
+
+  const loading = uploadsLoading || txnsLoading || summaryLoading;
+
+  return (
+    <div className="page">
       <FinanceNav />
 
-      {/* ── Upload zone ── */}
-      <div
-        className={`spending-dropzone${dragOver ? " drag-over" : ""}`}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          const f = e.dataTransfer.files[0];
-          if (f) void uploadFile(f);
-        }}
-        onClick={() => fileRef.current?.click()}
-      >
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".pdf,.csv,.txt"
-          className="spending-file-input"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadFile(f); }}
-        />
-        {uploading ? (
-          <span className="spending-dropzone-label">Parsing…</span>
-        ) : (
-          <>
-            <span className="spending-dropzone-icon">↑</span>
-            <span className="spending-dropzone-label">Drop a bank CSV or PDF statement here</span>
-            <span className="spending-dropzone-sub">or click to browse</span>
-          </>
-        )}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+        <MonthPicker month={month} onChange={setMonth} />
       </div>
-      {uploadError && <p className="spending-upload-error">{uploadError}</p>}
 
-      {/* ── Statement list ── */}
-      {stmtLoading && <Loading />}
-      {!stmtLoading && statements && statements.length > 0 && (
-        <div className="spending-stmt-list">
-          {statements.map((s) => (
-            <div
-              key={s.id}
-              className={`spending-stmt-chip${selectedId === s.id ? " selected" : ""}`}
-              onClick={() => void loadTxns(s.id)}
-            >
-              <span className="spending-stmt-name">{s.filename}</span>
-              <span className="spending-stmt-meta">{s.txCount} txns · {shortUploadDate(s.uploadedAt)}</span>
-              <button
-                className="spending-stmt-del"
-                title="Remove"
-                onClick={(e) => { e.stopPropagation(); void deleteStatement(s.id); }}
-              >×</button>
-            </div>
-          ))}
+      <Notice>{uploadsError ?? txnsError ?? deleteError}</Notice>
+
+      {/* Upload panel */}
+      <Panel
+        title="Upload statement"
+        action={
+          uploads && uploads.length > 0 ? (
+            <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
+              {uploads.length} file{uploads.length > 1 ? "s" : ""}
+            </span>
+          ) : undefined
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <UploadZone month={month} onUploaded={handleUploaded} />
+          {uploads && uploads.length > 0 && (
+            <UploadsList uploads={uploads} onDelete={handleDelete} />
+          )}
         </div>
+      </Panel>
+
+      {loading && <Loading />}
+
+      {/* Spending by category chart */}
+      {!summaryLoading && summary && summary.length > 0 && (
+        <SpendingSummary summary={summary} />
       )}
 
-      {/* ── Transactions + breakdown ── */}
-      {txLoading && <Loading />}
-      {!txLoading && txns !== null && (
-        txns.length === 0
-          ? <Empty>No transactions in this statement.</Empty>
-          : (
-            <div className="spending-content">
-              <CategoryBreakdown txns={txns} />
-
-              <div className="spending-table-wrap">
-                {/* filter bar */}
-                <div className="spending-filter-bar">
-                  <span className="spending-filter-label">{visibleTxns.length} transactions</span>
-                  <select
-                    className="spending-cat-filter"
-                    value={catFilter}
-                    onChange={(e) => setCatFilter(e.target.value)}
-                  >
-                    <option value="">All categories</option>
-                    {availableCats.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                <table className="spending-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleTxns.map((t) => (
-                      <TxRow key={t.id} tx={t} onUpdated={txUpdated} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )
-      )}
-
-      {!txLoading && txns === null && statements && statements.length > 0 && (
-        <Empty>Select a statement above to view transactions.</Empty>
+      {/* Transaction table */}
+      {!txnsLoading && transactions !== null && (
+        <Panel
+          title={
+            transactions.length > 0
+              ? `${transactions.length} transaction${transactions.length > 1 ? "s" : ""}`
+              : "Transactions"
+          }
+          bodyless
+        >
+          <TransactionTable
+            transactions={transactions}
+            onCategoryChange={handleCategoryChange}
+          />
+        </Panel>
       )}
     </div>
   );

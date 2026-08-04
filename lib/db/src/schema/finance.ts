@@ -166,6 +166,20 @@ export const monthlyBillItemsTable = pgTable(
   ],
 );
 
+export const statementUploadsTable = pgTable(
+  "statement_uploads",
+  {
+    id:               serial("id").primaryKey(),
+    originalFilename: text("original_filename").notNull(),
+    storageKey:       text("storage_key").notNull().default(""),
+    month:            text("month").notNull(), // YYYY-MM
+    rowCount:         integer("row_count").notNull().default(0),
+    uploadedAt:       timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("statement_uploads_month_idx").on(t.month),
+  ],
+);
 export type MonthlyBillItem = typeof monthlyBillItemsTable.$inferSelect;
 export const statementsTable = pgTable("statements", {
   id:         serial("id").primaryKey(),
@@ -202,3 +216,26 @@ export type Transaction = typeof transactionsTable.$inferSelect;
 export type InsertDebtAccount = typeof debtAccountsTable.$inferInsert;
 export type InsertCashAccount = typeof cashAccountsTable.$inferInsert;
 export type InsertPaycheck = typeof paychecksTable.$inferInsert;
+
+export type SpendingTransaction = typeof spendingTransactionsTable.$inferSelect;
+
+export const spendingTransactionsTable = pgTable(
+  "spending_transactions",
+  {
+    id:       serial("id").primaryKey(),
+    uploadId: integer("upload_id")
+      .notNull()
+      .references(() => statementUploadsTable.id, { onDelete: "cascade" }),
+    txnDate:  date("txn_date", { mode: "string" }).notNull(),
+    merchant: text("merchant").notNull().default(""),
+    amount:   numeric("amount", { precision: 10, scale: 2 }).notNull(),
+    category: text("category").notNull().default("Other"),
+    note:     text("note").notNull().default(""),
+  },
+  (t) => [
+    index("spending_transactions_upload_id_idx").on(t.uploadId),
+    index("spending_transactions_txn_date_idx").on(t.txnDate),
+  ],
+);
+
+export type StatementUpload = typeof statementUploadsTable.$inferSelect;

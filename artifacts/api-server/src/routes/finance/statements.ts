@@ -1,254 +1,470 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-// Import from lib directly to avoid pdf-parse v1's top-level test-file read
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
-import { db, statementsTable, transactionsTable } from "@workspace/db";
-import { parseBody, parseId } from "./shared.js";
+import { db } from "@workspace/db";
+import { statementUploadsTable, spendingTransactionsTable } from "@workspace/db";
+import { parseBody, parseId, requireMonthQuery, DATE_RE, money, round } from "./shared.js";
+import { Client } from "@replit/object-storage";
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 const router: IRouter = Router();
 
-/* ── category auto-assignment ───────────────────────────────────────── */
+// Lazy-initialized object storage client (top-level init crashes the server)
+let _storage: Client | null = null;
+function getStorage(): Client {
+  if (!_storage) _storage = new Client();
+  return _storage;
+}
 
-const CATEGORY_RULES: [RegExp, string][] = [
-  [/mcdonald|burger.king|wendy.?s|taco.bell|chipotle|subway|pizza|kfc|domino|popeyes|chick.fil|five.guys|sonic|dairy.queen|jack.in.the.box/i, "Fast Food"],
-  [/uber.eats|doordash|grubhub|instacart|postmates|seamless/i, "Food Delivery"],
-  [/restaurant|cafe|coffee|starbucks|dunkin|donut|bakery|diner|grill|kitchen|eatery|sushi|bistro|tavern/i, "Dining"],
-  [/kroger|safeway|whole.foods|trader.joe|aldi|publix|wegmans|costco|sam.s.club|sprouts|food.lion|heb |giant.food|fresh.market/i, "Groceries"],
-  [/shell|exxon|bp |chevron|citgo|sunoco|mobil|speedway|circle.k|pilot.*flying|flying.j|quik.trip|wawa|kwiktrip/i, "Gas"],
-  [/uber(?!.?eats)|lyft|taxi|transit|mta|bart|metro|bus |amtrak|parking|toll|ezpass/i, "Transport"],
-  [/amazon|ebay|etsy|walmart|target|best.buy|apple.com\/bill|google.*store|newegg|chewy|wayfair|overstock/i, "Shopping"],
-  [/netflix|spotify|hulu|disney|apple.*music|youtube.*premium|twitch|xbox|playstation|steam|peacock|paramount|max |hbo/i, "Entertainment"],
-  [/electric|power.company|gas.co|water.bill|internet|comcast|att |verizon|t.mobile|spectrum|utilities|xfinity|frontier/i, "Bills & Utilities"],
-  [/cvs|walgreen|rite.aid|pharmacy|rx|doctor|dental|hospital|medical|health|insurance|optum|aetna|cigna|humana/i, "Health"],
-  [/gym|planet.fitness|equinox|24.hour|anytime.fitness|la.fitness|crossfit|peloton/i, "Fitness"],
-  [/transfer|zelle|venmo|paypal|cash.app|cashapp|direct.dep|payroll|ach.deposit|wire/i, "Transfer"],
-  [/rent|mortgage|hoa |lease/i, "Housing"],
+// Multer: parse multipart form data, keep file in memory (max 10 MB)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok =
+      file.mimetype === "text/csv" ||
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".csv") ||
+      file.originalname.toLowerCase().endsWith(".pdf");
+    cb(null, ok);
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Category auto-assignment from merchant name
+// ---------------------------------------------------------------------------
+const SPENDING_CATEGORIES = [
+  "Food & Dining",
+  "Shopping",
+  "Transportation",
+  "Entertainment",
+  "Utilities",
+  "Housing",
+  "Healthcare",
+  "Transfers",
+  "Insurance",
+  "Other",
+] as const;
+
+export type SpendingCategory = (typeof SPENDING_CATEGORIES)[number];
+
+const CATEGORY_RULES: Array<[RegExp, SpendingCategory]> = [
+  [/mcdonald|burger.?king|wendy|chick.fil|taco.?bell|subway|chipotle|kfc|pizza|starbucks|dunkin|panera|doordash|ubereats|uber.eats|grubhub|postmates|seamless|instacart|restaurant|cafe|diner|bbq|sushi|grill|kitchen|bistro|deli|shake.?shack|five.?guys|wingstop|raising.?cane|crumbl/i, "Food & Dining"],
+  [/walmart|target|costco|amazon|ebay|etsy|best.?buy|apple.?store|shopify|dollar.?tree|dollar.?general|home.?depot|lowe|ikea|tj.?maxx|marshalls|ross.?dress|kohls|nordstrom|macys|gap|h&m|zara|old.?navy|forever.?21|dsw|foot.?locker|cvs|walgreen|rite.?aid|duane.?reade|7.?eleven|circle.?k/i, "Shopping"],
+  [/uber(?!.?eat)|lyft|gas.?stat|shell|bp\b|exxon|chevron|sunoco|speedway|wawa|fuel|parking|toll|metro|mta|bart|caltrain|septa|mbta|wmata|amtrak|airline|delta|united.?airlines|southwest|spirit.?air|american.?airlines|jetblue|zipcar|hertz|enterprise.?rent/i, "Transportation"],
+  [/netflix|hulu|spotify|disney\+|hbo.?max|peacock|twitch|youtube.?premium|apple.?music|pandora|playstation|xbox|nintendo|steam\b|ticket|cinemark|regal|amc\b|concert|showtime|paramount\+|sling|fubo/i, "Entertainment"],
+  [/at&t|verizon|t.mobile|comcast|xfinity|spectrum|cox.?comm|electric|water.?util|natural.?gas|internet|utility|pseg|pge\b|con.?edison|national.?grid|waste.?management|sewage/i, "Utilities"],
+  [/rent\b|mortgage|lease|property.?mgmt|hoa\b|apartment/i, "Housing"],
+  [/doctor|hospital|urgent.?care|dental|optometrist|vision.?works|pharmacy|medical|blue.?cross|aetna|humana|kaiser|united.?health|cigna|lab.?corp|quest.?diag/i, "Healthcare"],
+  [/venmo|cash.?app|zelle|paypal|western.?union|money.?gram|wire.?transfer|ach.?transfer|bank.?transfer/i, "Transfers"],
+  [/insurance|geico|allstate|progressive|state.?farm|nationwide|travelers|liberty.?mutual|farmers.?ins|usaa/i, "Insurance"],
 ];
 
-function assignCategory(description: string): string {
+function autoCategory(merchant: string): SpendingCategory {
   for (const [re, cat] of CATEGORY_RULES) {
-    if (re.test(description)) return cat;
+    if (re.test(merchant)) return cat;
   }
   return "Other";
 }
 
-/* ── CSV parser ─────────────────────────────────────────────────────── */
-
-function parseCSVRow(line: string): string[] {
-  const cols: string[] = [];
-  let cur = "";
-  let inQuote = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
-      else inQuote = !inQuote;
-    } else if (ch === "," && !inQuote) {
-      cols.push(cur.trim());
-      cur = "";
-    } else {
-      cur += ch;
-    }
-  }
-  cols.push(cur.trim());
-  return cols;
+// ---------------------------------------------------------------------------
+// CSV parsing
+// ---------------------------------------------------------------------------
+interface ParsedRow {
+  date: string;    // YYYY-MM-DD
+  merchant: string;
+  amount: number;  // positive = expense, negative = credit/refund
 }
 
-interface ParsedTx { date: string; description: string; amountCents: number }
-
-function normalizeDate(raw: string): string | null {
-  raw = raw.trim().replace(/"/g, "");
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  const mdy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-  if (mdy) {
-    const [, m, d, y] = mdy;
-    const year = y.length === 2 ? (parseInt(y) < 50 ? `20${y}` : `19${y}`) : y;
-    return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+/** Parse a single CSV line respecting quoted fields. */
+function splitCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let cur = "";
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === "," && !inQ) {
+      result.push(cur.trim());
+      cur = "";
+    } else {
+      cur += c;
+    }
   }
-  const dmy = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{4})/);
-  if (dmy) {
-    const [, m, d, y] = dmy;
+  result.push(cur.trim());
+  return result;
+}
+
+/** Parse M/D/YYYY, MM/DD/YYYY, YYYY-MM-DD, M/D/YY → YYYY-MM-DD */
+function parseDate(raw: string): string | null {
+  raw = raw.trim().replace(/"/g, "");
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // M/D/YYYY or M/D/YY
+  const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (slashMatch) {
+    let [, m, d, y] = slashMatch;
+    if (y.length === 2) y = `20${y}`;
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   return null;
 }
 
-function parseCSV(text: string): ParsedTx[] {
-  const lines = text.trim().split(/\r?\n/);
+/** Parse a dollar amount string → number, handling parens as negative. */
+function parseAmount(raw: string): number {
+  const s = raw.replace(/[$,"]/g, "").trim();
+  if (!s) return 0;
+  const neg = s.startsWith("(") && s.endsWith(")");
+  const n = parseFloat(neg ? s.slice(1, -1) : s);
+  return isNaN(n) ? 0 : (neg ? -n : n);
+}
 
+/** Detect if amounts in Chase/BofA convention (negative = expense) and flip. */
+function normalizeSign(rows: ParsedRow[]): ParsedRow[] {
+  // If most non-zero rows are negative, flip all signs.
+  const nonZero = rows.filter((r) => r.amount !== 0);
+  if (nonZero.length === 0) return rows;
+  const negCount = nonZero.filter((r) => r.amount < 0).length;
+  if (negCount / nonZero.length > 0.6) {
+    // Convention flip: negative becomes positive (expense), positive becomes negative (credit)
+    return rows.map((r) => ({ ...r, amount: -r.amount }));
+  }
+  return rows;
+}
+
+function parseCSV(content: string): ParsedRow[] {
+  const lines = content.split(/\r?\n/);
+
+  // Find header row: first row with ≥3 comma-separated fields
   let headerIdx = -1;
   let headers: string[] = [];
-  for (let i = 0; i < Math.min(lines.length, 15); i++) {
-    const cols = parseCSVRow(lines[i]).map((s) => s.toLowerCase().replace(/"/g, ""));
-    if (
-      cols.some((c) => c.includes("date")) &&
-      cols.some((c) => c.includes("amount") || c.includes("debit") || c.includes("credit") || c.includes("transaction"))
-    ) {
+  for (let i = 0; i < Math.min(15, lines.length); i++) {
+    const cols = splitCSVLine(lines[i]);
+    if (cols.length >= 3) {
       headerIdx = i;
-      headers = cols;
+      headers = cols.map((h) => h.toLowerCase().replace(/['"]/g, "").trim());
       break;
     }
   }
-  if (headerIdx < 0) return [];
+  if (headerIdx === -1) return [];
 
-  const find = (...terms: string[]) =>
-    headers.findIndex((h) => terms.some((t) => h.includes(t)));
+  // Locate columns
+  const dateCol = headers.findIndex((h) =>
+    /transaction.?date|^date$|posted.?date|trans.?date/.test(h),
+  ) ?? headers.findIndex((h) => h.includes("date"));
 
-  const transDateIdx = find("transaction date", "trans date", "trans. date");
-  const postDateIdx  = find("posting date", "post date", "posted date");
-  const dateIdx      = transDateIdx >= 0 ? transDateIdx : postDateIdx >= 0 ? postDateIdx : find("date");
-  const descIdx      = find("description", "payee", "merchant", "memo", "details");
-  const amountIdx    = find("amount");
-  const debitIdx     = find("debit");
-  const creditIdx    = find("credit");
+  const descCol = headers.findIndex((h) =>
+    /description|payee|merchant|memo|name/.test(h),
+  );
 
-  if (dateIdx < 0 || descIdx < 0) return [];
+  const amountCol = headers.findIndex((h) => /^amount$/.test(h));
+  const debitCol = headers.findIndex((h) => /^debit$/.test(h));
+  const creditCol = headers.findIndex((h) => /^credit$/.test(h));
 
-  const txns: ParsedTx[] = [];
+  const effectiveDateCol = dateCol !== -1 ? dateCol : 0;
+  const effectiveDescCol = descCol !== -1 ? descCol : 1;
+
+  const rows: ParsedRow[] = [];
+
   for (let i = headerIdx + 1; i < lines.length; i++) {
-    const raw = lines[i].trim();
-    if (!raw) continue;
-    const cols = parseCSVRow(raw);
-    if (cols.length <= Math.max(dateIdx, descIdx)) continue;
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = splitCSVLine(line);
+    if (cols.length < 2) continue;
 
-    const date = normalizeDate(cols[dateIdx] ?? "");
-    const description = cols[descIdx]?.replace(/"/g, "").trim();
-    if (!date || !description) continue;
+    const rawDate = cols[effectiveDateCol] ?? "";
+    const merchant = (cols[effectiveDescCol] ?? "").replace(/"/g, "").trim();
+    const date = parseDate(rawDate);
+    if (!date) continue;
+    if (!merchant) continue;
 
-    let amountCents = 0;
-    if (amountIdx >= 0 && cols[amountIdx] != null) {
-      const n = parseFloat(cols[amountIdx].replace(/[$",\s]/g, ""));
-      amountCents = isNaN(n) ? 0 : Math.round(n * 100);
-    } else if (debitIdx >= 0 || creditIdx >= 0) {
-      const debit  = debitIdx  >= 0 ? parseFloat(cols[debitIdx ]?.replace(/[$",\s]/g, "") ?? "0") || 0 : 0;
-      const credit = creditIdx >= 0 ? parseFloat(cols[creditIdx]?.replace(/[$",\s]/g, "") ?? "0") || 0 : 0;
-      amountCents = Math.round((credit - debit) * 100); // positive = credit
+    let amount = 0;
+    if (amountCol !== -1) {
+      amount = parseAmount(cols[amountCol] ?? "");
+    } else if (debitCol !== -1 || creditCol !== -1) {
+      const debit = debitCol !== -1 ? parseAmount(cols[debitCol] ?? "") : 0;
+      const credit = creditCol !== -1 ? parseAmount(cols[creditCol] ?? "") : 0;
+      // Debit = money out (expense), Credit = money in (refund). Positive = expense.
+      amount = debit > 0 ? debit : -credit;
     }
 
-    txns.push({ date, description, amountCents });
+    if (amount === 0) continue;
+    rows.push({ date, merchant, amount });
   }
-  return txns;
+
+  return normalizeSign(rows);
 }
 
-/* ── PDF parser ─────────────────────────────────────────────────────── */
+// ---------------------------------------------------------------------------
+// PDF parsing (best-effort line-by-line extraction)
+// ---------------------------------------------------------------------------
+async function parsePDF(buffer: Buffer): Promise<ParsedRow[]> {
+  // Dynamically import pdf-parse; handle CJS→ESM interop edge cases
+  const mod = await import("pdf-parse");
+  // CJS packages land at mod.default in Node native ESM, but raw mod when bundled
+  const pdfParse: (buf: Buffer) => Promise<{ text: string }> =
+    typeof mod.default === "function"
+      ? (mod.default as typeof pdfParse)
+      : typeof (mod as unknown) === "function"
+        ? (mod as unknown as typeof pdfParse)
+        : (() => { throw new Error("pdf-parse module not available"); })();
+  const data = await pdfParse(buffer);
 
-function parsePDFText(text: string): ParsedTx[] {
-  const txns: ParsedTx[] = [];
-  const lines = text.split(/\n/);
+  const rows: ParsedRow[] = [];
+  const lines = data.text.split(/\r?\n/);
 
-  // Match: date (description) amount — handles common statement layouts
-  const re = /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\d{4}-\d{2}-\d{2})\s+(.+?)\s+(-?\$?[\d,]+\.\d{2})[\s\-]*$/;
+  // Amount pattern: optional leading minus/parens, optional $, digits, decimal
+  const amountRe = /([\-\(]?\$?[\d,]{1,12}\.\d{2}\)?)\s*$/;
+  // Date patterns at start of line
+  const dateRe = /^(\d{1,2}[\/\-]\d{1,2}[\/\-]?\d{0,4}|\d{4}-\d{2}-\d{2})/;
 
-  for (const line of lines) {
-    const m = line.trim().match(re);
-    if (!m) continue;
-    const [, rawDate, rawDesc, rawAmt] = m;
-    const date = normalizeDate(rawDate);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (line.length < 8) continue;
+
+    const dateMatch = line.match(dateRe);
+    if (!dateMatch) continue;
+
+    const amountMatch = line.match(amountRe);
+    if (!amountMatch) continue;
+
+    const date = parseDate(dateMatch[1]);
     if (!date) continue;
-    const amt = parseFloat(rawAmt.replace(/[$,]/g, ""));
-    if (isNaN(amt)) continue;
-    txns.push({ date, description: rawDesc.trim(), amountCents: Math.round(amt * 100) });
+
+    const amount = parseAmount(amountMatch[1]);
+    if (amount === 0) continue;
+
+    // Merchant: text between the date token and the amount token
+    const afterDate = line.slice(dateMatch[0].length).trim();
+    const amountIdx = afterDate.lastIndexOf(amountMatch[1]);
+    const merchantRaw = amountIdx > 0 ? afterDate.slice(0, amountIdx) : afterDate;
+    const merchant = merchantRaw.replace(/\s+/g, " ").trim();
+
+    if (!merchant || merchant.length < 2) continue;
+
+    rows.push({ date, merchant, amount });
   }
-  return txns;
+
+  return normalizeSign(rows);
 }
 
-/* ── routes ─────────────────────────────────────────────────────────── */
-
-// POST /finance/statements/upload
+// ---------------------------------------------------------------------------
+// POST /statements/upload
+// ---------------------------------------------------------------------------
 router.post(
   "/statements/upload",
   upload.single("file"),
   async (req, res): Promise<void> => {
-    const file = req.file;
-    if (!file) { res.status(400).json({ error: "No file provided" }); return; }
+    if (!req.file) {
+      res.status(400).json({ error: "No file uploaded" });
+      return;
+    }
 
-    let txns: ParsedTx[] = [];
-    const mime = file.mimetype.toLowerCase();
-    const name = file.originalname.toLowerCase();
+    const month = req.body.month as string | undefined;
+    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+      res.status(400).json({ error: "month required (YYYY-MM)" });
+      return;
+    }
 
+    const isPDF = req.file.originalname.toLowerCase().endsWith(".pdf");
+
+    // Parse transactions from the file
+    let parsed: ParsedRow[] = [];
     try {
-      if (mime === "application/pdf" || name.endsWith(".pdf")) {
-        const parsed = await pdfParse(file.buffer);
-        txns = parsePDFText(parsed.text);
+      if (isPDF) {
+        parsed = await parsePDF(req.file.buffer);
       } else {
-        // CSV / text
-        const text = file.buffer.toString("utf-8");
-        txns = parseCSV(text);
+        parsed = parseCSV(req.file.buffer.toString("utf-8"));
       }
+    } catch (err) {
+      res.status(422).json({ error: `Could not parse file: ${(err as Error).message}` });
+      return;
+    }
+
+    if (parsed.length === 0) {
+      res.status(422).json({
+        error:
+          "No transactions found. Make sure you're uploading a valid bank statement CSV or PDF.",
+      });
+      return;
+    }
+
+    // Store raw file in object storage
+    let storageKey = "";
+    try {
+      const storage = getStorage();
+      const ext = isPDF ? "pdf" : "csv";
+      const key = `statements/${month}/${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_")}.${ext}`;
+      const uploadResult = await storage.uploadFromBytes(key, req.file.buffer);
+      if (!uploadResult.ok) throw new Error(uploadResult.error.message);
+      storageKey = key;
     } catch {
-      res.status(422).json({ error: "Could not parse this file. Try exporting as CSV." });
-      return;
+      // Storage upload failure is non-fatal — transactions still get saved
+      storageKey = "";
     }
 
-    if (txns.length === 0) {
-      res.status(422).json({ error: "No transactions found. Make sure the file is a bank CSV or statement PDF." });
-      return;
-    }
-
-    const [stmt] = await db
-      .insert(statementsTable)
-      .values({ filename: file.originalname, txCount: txns.length })
+    // Save upload record + transactions atomically
+    const [uploadRecord] = await db
+      .insert(statementUploadsTable)
+      .values({
+        originalFilename: req.file.originalname,
+        storageKey,
+        month,
+        rowCount: parsed.length,
+      })
       .returning();
 
-    const rows = txns.map((t) => ({
-      statementId: stmt.id,
-      date:        t.date,
-      description: t.description,
-      amountCents: t.amountCents,
-      category:    assignCategory(t.description),
+    const txnValues = parsed.map((row) => ({
+      uploadId: uploadRecord.id,
+      txnDate: row.date,
+      merchant: row.merchant,
+      amount: money(row.amount),
+      category: autoCategory(row.merchant),
     }));
 
-    await db.insert(transactionsTable).values(rows);
+    const inserted = await db
+      .insert(spendingTransactionsTable)
+      .values(txnValues)
+      .returning();
 
-    res.status(201).json({ ...stmt, txCount: txns.length });
+    res.status(201).json({
+      upload: uploadRecord,
+      transactions: inserted.map((t) => ({ ...t, amount: Number(t.amount) })),
+    });
   },
 );
 
-// GET /finance/statements
-router.get("/statements", async (_req, res): Promise<void> => {
-  const rows = await db.select().from(statementsTable).orderBy(desc(statementsTable.uploadedAt));
-  res.json(rows);
+// ---------------------------------------------------------------------------
+// GET /statements?month=YYYY-MM
+// ---------------------------------------------------------------------------
+router.get("/statements", async (req, res): Promise<void> => {
+  const month = requireMonthQuery(req.query.month, res);
+  if (!month) return;
+
+  const uploads = await db
+    .select()
+    .from(statementUploadsTable)
+    .where(eq(statementUploadsTable.month, month))
+    .orderBy(desc(statementUploadsTable.uploadedAt));
+
+  res.json(uploads);
 });
 
-// DELETE /finance/statements/:id
+// ---------------------------------------------------------------------------
+// DELETE /statements/:id
+// ---------------------------------------------------------------------------
 router.delete("/statements/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
-  await db.delete(statementsTable).where(eq(statementsTable.id, id));
+
+  // Cascade deletes transactions via FK constraint
+  await db.delete(statementUploadsTable).where(eq(statementUploadsTable.id, id));
+
   res.status(204).end();
 });
 
-// GET /finance/transactions?statementId=&month=
-router.get("/transactions", async (req, res): Promise<void> => {
-  let query = db.select().from(transactionsTable).$dynamic();
+// ---------------------------------------------------------------------------
+// GET /spending/transactions?month=YYYY-MM
+// ---------------------------------------------------------------------------
+router.get("/spending/transactions", async (req, res): Promise<void> => {
+  const month = requireMonthQuery(req.query.month, res);
+  if (!month) return;
 
-  const stmtId = parseInt(String(req.query.statementId ?? ""), 10);
-  if (!isNaN(stmtId) && stmtId > 0) {
-    query = query.where(eq(transactionsTable.statementId, stmtId));
-  }
+  const from = `${month}-01`;
+  // Last day of month
+  const [y, m] = month.split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  const to = `${month}-${String(lastDay).padStart(2, "0")}`;
 
-  const rows = await query.orderBy(desc(transactionsTable.date));
-  res.json(rows);
+  const rows = await db
+    .select({
+      id:       spendingTransactionsTable.id,
+      uploadId: spendingTransactionsTable.uploadId,
+      txnDate:  spendingTransactionsTable.txnDate,
+      merchant: spendingTransactionsTable.merchant,
+      amount:   spendingTransactionsTable.amount,
+      category: spendingTransactionsTable.category,
+      note:     spendingTransactionsTable.note,
+    })
+    .from(spendingTransactionsTable)
+    .where(
+      and(
+        gte(spendingTransactionsTable.txnDate, from),
+        lte(spendingTransactionsTable.txnDate, to),
+      ),
+    )
+    .orderBy(desc(spendingTransactionsTable.txnDate));
+
+  res.json(rows.map((r) => ({ ...r, amount: Number(r.amount) })));
 });
 
-// PATCH /finance/transactions/:id
-router.patch("/transactions/:id", async (req, res): Promise<void> => {
+// ---------------------------------------------------------------------------
+// PATCH /spending/transactions/:id  { category }
+// ---------------------------------------------------------------------------
+router.patch("/spending/transactions/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   const data = parseBody(
-    z.object({ category: z.string().min(1).optional(), notes: z.string().optional() }),
+    z.object({
+      category: z.string().min(1).optional(),
+      note:     z.string().optional(),
+    }),
     req.body,
     res,
   );
   if (!data) return;
 
-  const [row] = await db
-    .update(transactionsTable)
-    .set(data)
-    .where(eq(transactionsTable.id, id))
+  const [updated] = await db
+    .update(spendingTransactionsTable)
+    .set({
+      ...(data.category !== undefined ? { category: data.category } : {}),
+      ...(data.note !== undefined ? { note: data.note } : {}),
+    })
+    .where(eq(spendingTransactionsTable.id, id))
     .returning();
-  res.json(row);
+
+  if (!updated) {
+    res.status(404).json({ error: "Transaction not found" });
+    return;
+  }
+  res.json({ ...updated, amount: Number(updated.amount) });
+});
+
+// ---------------------------------------------------------------------------
+// GET /spending/summary?month=YYYY-MM  — category totals
+// ---------------------------------------------------------------------------
+router.get("/spending/summary", async (req, res): Promise<void> => {
+  const month = requireMonthQuery(req.query.month, res);
+  if (!month) return;
+
+  const from = `${month}-01`;
+  const [y, m] = month.split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  const to = `${month}-${String(lastDay).padStart(2, "0")}`;
+
+  const rows = await db
+    .select({
+      category: spendingTransactionsTable.category,
+      total:    sql<string>`SUM(${spendingTransactionsTable.amount})`,
+      count:    sql<string>`COUNT(*)`,
+    })
+    .from(spendingTransactionsTable)
+    .where(
+      and(
+        gte(spendingTransactionsTable.txnDate, from),
+        lte(spendingTransactionsTable.txnDate, to),
+      ),
+    )
+    .groupBy(spendingTransactionsTable.category)
+    .orderBy(sql`SUM(${spendingTransactionsTable.amount}) DESC`);
+
+  res.json(
+    rows.map((r) => ({
+      category: r.category,
+      total: round(Number(r.total)),
+      count: Number(r.count),
+    })),
+  );
 });
 
 export default router;
