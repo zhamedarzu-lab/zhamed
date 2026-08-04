@@ -14,32 +14,6 @@ type SpendingEntry = {
   loggedAt: string;
 };
 
-type Summary = {
-  todaySpent: number;
-  weekSpent:  number;
-  monthSpent: number;
-  byCategory: Array<{ category: string; total: number }>;
-};
-
-// ── Category tag colours (hash-stable) ───────────────────────────────────────
-
-const TAG_PALETTE = [
-  { bg: "rgba(93,232,160,0.13)",  color: "#5de8a0" },
-  { bg: "rgba(192,132,252,0.13)", color: "#c084fc" },
-  { bg: "rgba(251,146,60,0.13)",  color: "#fb923c" },
-  { bg: "rgba(96,165,250,0.13)",  color: "#60a5fa" },
-  { bg: "rgba(248,113,113,0.13)", color: "#f87171" },
-  { bg: "rgba(163,230,53,0.13)",  color: "#a3e635" },
-  { bg: "rgba(251,191,36,0.13)",  color: "#fbbf24" },
-  { bg: "rgba(34,211,238,0.13)",  color: "#22d3ee" },
-];
-
-function tagColor(cat: string) {
-  let h = 0;
-  for (let i = 0; i < cat.length; i++) h = (h * 31 + cat.charCodeAt(i)) & 0xffff;
-  return TAG_PALETTE[h % TAG_PALETTE.length];
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function logTime(iso: string): string {
@@ -63,14 +37,11 @@ interface Props {
 
 export default function SpendingLogModal({ accountId, accountName, onClose }: Props) {
   const entries = useApi<SpendingEntry[]>(`/api/finance/cash-spending?accountId=${accountId}`);
-  const summary  = useApi<Summary>(`/api/finance/cash-spending/summary?accountId=${accountId}`);
 
-  const [sign, setSign]         = useState<"+" | "-">("-");
-  const [amount, setAmount]     = useState("");
-  const [description, setDesc]  = useState("");
-  const [category, setCategory] = useState("");
-  const [busy, setBusy]         = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [amount, setAmount]    = useState("");
+  const [description, setDesc] = useState("");
+  const [busy, setBusy]        = useState(false);
+  const [error, setError]      = useState<string | null>(null);
 
   const amtRef     = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -82,38 +53,24 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const refresh = useCallback(
-    () => Promise.all([entries.reload(), summary.reload()]),
-    [entries, summary],
-  );
+  const refresh = useCallback(() => entries.reload(), [entries]);
 
-  const currentBalance = (entries.data ?? []).reduce(
-    (s, e) => s + Number(e.amount), 0,
-  );
-  const balColor =
-    currentBalance > 0 ? "#5de8a0"
-    : currentBalance < 0 ? "var(--stamp)"
-    : "var(--ink-faint)";
-
-  const knownCats = [...new Set((entries.data ?? []).map((e) => e.category))]
-    .filter(Boolean).sort();
+  // ── Add entry (always an expense — amount is negated) ─────────────────────
 
   async function addEntry() {
     const rawAmt = Math.abs(toAmount(amount));
     if (!rawAmt || !description.trim()) return;
-    const signedAmt = sign === "-" ? -rawAmt : rawAmt;
     setBusy(true);
     setError(null);
     try {
       await api.post("/api/finance/cash-spending", {
         cashAccountId: accountId,
-        amount: signedAmt,
+        amount: -rawAmt,          // always stored as negative (expense)
         description: description.trim(),
-        category: category.trim() || "Other",
+        category: "Other",
       });
       setAmount("");
       setDesc("");
-      setCategory("");
       amtRef.current?.focus();
       await refresh();
     } catch (err) {
@@ -122,6 +79,8 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
       setBusy(false);
     }
   }
+
+  // ── Delete ────────────────────────────────────────────────────────────────
 
   async function deleteEntry(id: number) {
     setError(null);
@@ -133,8 +92,9 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
     }
   }
 
-  const s    = summary.data;
   const list = entries.data ?? [];
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div
@@ -146,12 +106,7 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
 
         {/* Header */}
         <div className="sl-header">
-          <div className="sl-header-left">
-            <span className="sl-header-name">{accountName}</span>
-            <span className="sl-header-bal" style={{ color: balColor }}>
-              {dollars(currentBalance)}
-            </span>
-          </div>
+          <span className="sl-header-name">{accountName}</span>
           <button className="quiet btn-icon" onClick={onClose} aria-label="Close">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -160,40 +115,8 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
           </button>
         </div>
 
-        {/* Spending stats */}
-        <div className="sl-stats">
-          <div className="sl-stat">
-            <span className="eyebrow">Spent today</span>
-            <span className="sl-stat-fig">{s ? dollars(s.todaySpent) : "—"}</span>
-          </div>
-          <div className="sl-stat">
-            <span className="eyebrow">This week</span>
-            <span className="sl-stat-fig">{s ? dollars(s.weekSpent) : "—"}</span>
-          </div>
-          <div className="sl-stat">
-            <span className="eyebrow">This month</span>
-            <span className="sl-stat-fig">{s ? dollars(s.monthSpent) : "—"}</span>
-          </div>
-        </div>
-
-        {/* Add entry form */}
+        {/* Add form */}
         <div className="sl-add-form">
-          <div className="sl-sign-toggle" role="group" aria-label="Entry type">
-            <button
-              type="button"
-              className={`sl-sign-btn${sign === "-" ? " active expense" : ""}`}
-              onClick={() => { setSign("-"); amtRef.current?.focus(); }}
-            >
-              − Expense
-            </button>
-            <button
-              type="button"
-              className={`sl-sign-btn${sign === "+" ? " active deposit" : ""}`}
-              onClick={() => { setSign("+"); amtRef.current?.focus(); }}
-            >
-              + Deposit
-            </button>
-          </div>
           <input
             ref={amtRef}
             className="sl-amt-input"
@@ -210,17 +133,6 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
             onChange={(e) => setDesc(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addEntry()}
           />
-          <input
-            className="sl-cat-input"
-            placeholder="Category"
-            value={category}
-            list="sl-cat-list"
-            onChange={(e) => setCategory(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addEntry()}
-          />
-          <datalist id="sl-cat-list">
-            {knownCats.map((c) => <option key={c} value={c} />)}
-          </datalist>
           <button
             className="primary sl-log-btn"
             onClick={addEntry}
@@ -232,50 +144,21 @@ export default function SpendingLogModal({ accountId, accountName, onClose }: Pr
 
         {error && <p className="sl-error">{error}</p>}
 
-        {/* Scrollable body */}
+        {/* Entry list */}
         <div className="sl-body">
           {entries.loading && <Loading />}
-
-          {/* Category breakdown */}
-          {s && s.byCategory.length > 0 && (
-            <div className="sl-breakdown">
-              <span className="eyebrow sl-breakdown-label">This month by category</span>
-              {s.byCategory.map((row) => {
-                const pct = s.monthSpent > 0 ? (row.total / s.monthSpent) * 100 : 0;
-                const c = tagColor(row.category);
-                return (
-                  <div key={row.category} className="sl-cat-row">
-                    <span className="sl-cat-tag" style={{ background: c.bg, color: c.color }}>
-                      {row.category}
-                    </span>
-                    <div className="sl-cat-bar-wrap">
-                      <div className="sl-cat-bar" style={{ width: `${pct.toFixed(1)}%`, background: c.color }} />
-                    </div>
-                    <span className="sl-cat-amt">{dollars(row.total)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Entry list */}
           {!entries.loading && list.length === 0 ? (
-            <p className="sl-empty">No entries yet — log your starting balance above with + Deposit.</p>
+            <p className="sl-empty">No entries yet.</p>
           ) : (
             <div className="sl-log">
               {list.map((entry) => {
                 const amt = Number(entry.amount);
-                const isExpense = amt < 0;
-                const c = tagColor(entry.category);
                 return (
                   <div key={entry.id} className="sl-log-row">
                     <span className="sl-log-time">{logTime(entry.loggedAt)}</span>
                     <span className="sl-log-desc">{entry.description}</span>
-                    <span className="sl-log-cat" style={{ background: c.bg, color: c.color }}>
-                      {entry.category}
-                    </span>
-                    <span className="sl-log-amt" style={{ color: isExpense ? "var(--stamp)" : "#5de8a0" }}>
-                      {isExpense ? `−${dollars(Math.abs(amt))}` : `+${dollars(amt)}`}
+                    <span className="sl-log-amt" style={{ color: amt < 0 ? "var(--stamp)" : "#5de8a0" }}>
+                      {amt < 0 ? `−${dollars(Math.abs(amt))}` : `+${dollars(amt)}`}
                     </span>
                     <button
                       className="quiet danger btn-icon sl-log-del"
