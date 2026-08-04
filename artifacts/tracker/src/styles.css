@@ -3053,7 +3053,7 @@ button {
   transition: background 0.12s ease;
 }
 button:hover:not(:disabled) {
-  background: var(--hover);
+  background: color-mix(in srgb, var(--ink) 8%, var(--paper));
 }
 button:disabled {
   opacity: 0.45;
@@ -3066,7 +3066,7 @@ button.primary {
   color: var(--ledger);
 }
 button.primary:hover:not(:disabled) {
-  background: #141c18;
+  background: color-mix(in srgb, var(--paper) 15%, var(--ink));
 }
 
 button.quiet {
