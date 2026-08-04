@@ -363,7 +363,7 @@ const MONTH_ABBR: Record<string, string> = {
 };
 
 /** Detect Cash App plain-text format by looking for abbreviated-month dates and header markers. */
-function isCashAppText(lines: string[]): boolean {
+export function isCashAppText(lines: string[]): boolean {
   const sample = lines.slice(0, 40).join("\n");
   const hasCashAppMarker =
     /cash\s*app/i.test(sample) ||
@@ -374,7 +374,7 @@ function isCashAppText(lines: string[]): boolean {
 }
 
 /** Parse a Cash App account statement (copied from PDF) into ParsedRow[]. */
-function parseCashAppText(content: string): ParseResult {
+export function parseCashAppText(content: string): ParseResult {
   const rawLines = content.split(/\r?\n/);
 
   // Infer statement year from a "Month YYYY" header line (e.g. "July 2026")
