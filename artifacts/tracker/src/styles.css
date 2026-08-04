@@ -4631,7 +4631,7 @@ button.btn-icon {
   box-shadow: 0 2px 0 0 var(--accent);
 }
 
-.ft-add-btn {
+.ft-log-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4647,7 +4647,7 @@ button.btn-icon {
   -webkit-user-select: none;
   opacity: 0.6;
 }
-.ft-add-btn:active { opacity: 1; }
+.ft-log-btn:active { opacity: 1; }
 
 .ft-row-main {
   display: flex;

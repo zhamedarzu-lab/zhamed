@@ -1509,7 +1509,7 @@ function ExerciseRow({
           >
             {/* + zone — tap to log reps; hold the card body to drag-to-reorder */}
             <div
-              className="ft-add-btn"
+              className="ft-log-btn"
               role="button"
               aria-label="Log reps"
               tabIndex={0}

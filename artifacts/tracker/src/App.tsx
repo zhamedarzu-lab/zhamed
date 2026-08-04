@@ -1,4 +1,4 @@
-import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Biweekly from "./pages/finance/Biweekly";
 import PaycheckEditor from "./pages/finance/PaycheckEditor";
@@ -14,6 +14,20 @@ import Fitness from "./pages/fitness/Fitness";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import PaydayCountdown from "./components/PaydayCountdown";
+
+// Dev-only: ?goto=/fitness navigates immediately on load so the screenshot
+// tool can capture client-side routes without needing real navigation.
+function GotoShim() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      const p = new URLSearchParams(window.location.search).get("goto");
+      if (p) navigate(p, { replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
 
 function WordmarkNav() {
   const { pathname } = useLocation();
@@ -55,6 +69,7 @@ function AuthedApp() {
   const isHome = useLocation().pathname === "/";
   return (
     <div className="shell">
+      <GotoShim />
       {!isHome && (
         <header className="masthead">
           <div className="masthead-inner">
