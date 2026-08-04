@@ -4723,11 +4723,12 @@ button.btn-icon {
 }
 .ft-row-stat-target {
   font-family: var(--fig);
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.65rem;
+  font-weight: 400;
   color: var(--ink-faint);
-  opacity: 0.45;
+  opacity: 0.35;
   line-height: 1;
+  letter-spacing: 0.01em;
 }
 .ft-row-stat-unit {
   font-size: 0.62rem;
