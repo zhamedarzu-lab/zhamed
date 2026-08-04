@@ -458,18 +458,22 @@ function parseCashAppText(content: string): ParseResult {
       }
     }
 
-    // Need at least two amounts: fee (second-to-last) and transaction (last)
-    if (amounts.length < 2) continue;
+    // Need at least one amount
+    if (amounts.length < 1) continue;
 
     const txnAmt = amounts[amounts.length - 1];
-    const feeEntry = amounts[amounts.length - 2];
+    // When two+ amounts exist, the second-to-last is the fee and bounds the
+    // description. When only one amount exists (no fee), it bounds the description.
+    const descBound = amounts.length >= 2
+      ? amounts[amounts.length - 2]
+      : txnAmt;
 
-    // Description: everything between the date token and the fee amount
-    const merchant = rest.slice(0, feeEntry.index).replace(/\s+/g, " ").trim();
+    // Description: everything between the date token and the bounding amount
+    const merchant = rest.slice(0, descBound.index).replace(/\s+/g, " ").trim();
     if (!merchant) continue;
 
-    // Skip rows where both amounts are zero
-    if (txnAmt.value === 0 && feeEntry.value === 0) continue;
+    // Skip zero-amount rows
+    if (txnAmt.value === 0) continue;
 
     rows.push({ date, merchant, amount: txnAmt.value });
   }
