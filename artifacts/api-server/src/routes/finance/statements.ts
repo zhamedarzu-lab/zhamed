@@ -371,13 +371,55 @@ router.post(
       return;
     }
 
-    const isPDF = req.file.originalname.toLowerCase().endsWith(".pdf");
+    const name = req.file.originalname.toLowerCase();
+    const isPDF = name.endsWith(".pdf");
+    // Plain-text pastes (.txt) or TSV files route through a dual-path: try CSV/TSV
+    // first, then fall back to the PDF line-extractor on the raw text so that text
+    // copied straight out of a bank PDF also works.
+    const isPlainText =
+      name.endsWith(".txt") ||
+      name.endsWith(".tsv") ||
+      req.file.mimetype === "text/plain" ||
+      req.file.mimetype === "text/tab-separated-values";
 
     // Parse transactions from the file
     let parseResult: ParseResult = { rows: [] };
     try {
       if (isPDF) {
         parseResult = await parsePDF(req.file.buffer);
+      } else if (isPlainText) {
+        // Try structured CSV/TSV first (handles .tsv and well-formed plain-text exports)
+        const content = req.file.buffer.toString("utf-8");
+        parseResult = parseCSV(content);
+        // If CSV found nothing, run the PDF line-extractor directly on the raw text —
+        // this handles text that was copy-pasted out of a bank PDF viewer.
+        if (parseResult.rows.length === 0) {
+          const lines = content.split(/\r?\n/);
+          let pdfRows = extractPDFRows(lines);
+          // Two-pass merge for wrapped lines (same as parsePDF)
+          if (pdfRows.length < 3) {
+            const merged: string[] = [];
+            for (let i = 0; i < lines.length; i++) {
+              const cur = lines[i].trim();
+              const next = (lines[i + 1] ?? "").trim();
+              if (cur && next) { merged.push(`${cur} ${next}`); i++; }
+              else if (cur) merged.push(cur);
+            }
+            const mergedRows = extractPDFRows(merged);
+            if (mergedRows.length > pdfRows.length) pdfRows = mergedRows;
+          }
+          if (pdfRows.length > 0) {
+            parseResult = { rows: normalizeSign(pdfRows) };
+          } else {
+            parseResult = {
+              rows: [],
+              diagnostic:
+                parseResult.diagnostic ??
+                "No transactions found in pasted text. " +
+                "Make sure you copied the full statement — including dates, descriptions, and amounts.",
+            };
+          }
+        }
       } else {
         parseResult = parseCSV(req.file.buffer.toString("utf-8"));
       }

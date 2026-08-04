@@ -272,6 +272,8 @@ function UploadZone({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [tab, setTab] = useState<"file" | "paste">("file");
+  const [pasteText, setPasteText] = useState("");
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -283,6 +285,7 @@ function UploadZone({
         form.append("month", month);
         await api.upload("/api/finance/statements/upload", form);
         onUploaded();
+        setPasteText("");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Upload failed");
       } finally {
@@ -305,48 +308,78 @@ function UploadZone({
     if (file) void handleFile(file);
   };
 
+  const handlePasteSubmit = () => {
+    const trimmed = pasteText.trim();
+    if (!trimmed) return;
+    const file = new File([trimmed], "paste.txt", { type: "text/plain" });
+    void handleFile(file);
+  };
+
   return (
     <div>
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label="Upload bank statement"
-        className="upload-zone"
-        style={{
-          border: `2px dashed ${dragging ? "var(--accent)" : "var(--rule-strong)"}`,
-          borderRadius: "6px",
-          padding: "1.5rem 1rem",
-          textAlign: "center",
-          cursor: uploading ? "wait" : "pointer",
-          color: "var(--text-muted)",
-          transition: "border-color 0.15s",
-          background: dragging ? "var(--rule)" : undefined,
-        }}
-        onClick={() => !uploading && inputRef.current?.click()}
-        onKeyDown={(e) => e.key === "Enter" && !uploading && inputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-      >
-        {uploading ? (
-          <span>Parsing statement…</span>
-        ) : (
-          <>
-            <div style={{ fontSize: "1.5rem", marginBottom: "0.4rem" }}>⬆</div>
-            <strong>Drop a CSV or PDF bank statement</strong>
-            <div style={{ fontSize: "0.8125rem", marginTop: "0.25rem" }}>
-              Chase, BofA, Capital One, Discover, and others
-            </div>
-            <div style={{ fontSize: "0.75rem", marginTop: "0.15rem", opacity: 0.7 }}>
-              or click to browse
-            </div>
-          </>
-        )}
+      {/* Tab row */}
+      <div className="upload-tab-row">
+        <button
+          className={`upload-tab${tab === "file" ? " active" : ""}`}
+          onClick={() => { setTab("file"); setError(null); }}
+        >
+          Upload file
+        </button>
+        <button
+          className={`upload-tab${tab === "paste" ? " active" : ""}`}
+          onClick={() => { setTab("paste"); setError(null); }}
+        >
+          Paste text
+        </button>
       </div>
+
+      {tab === "file" ? (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload bank statement"
+          className={`spending-dropzone${dragging ? " drag-over" : ""}`}
+          style={{ cursor: uploading ? "wait" : "pointer", margin: 0 }}
+          onClick={() => !uploading && inputRef.current?.click()}
+          onKeyDown={(e) => e.key === "Enter" && !uploading && inputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+        >
+          {uploading ? (
+            <span className="spending-dropzone-label">Parsing statement…</span>
+          ) : (
+            <>
+              <div className="spending-dropzone-icon">⬆</div>
+              <strong className="spending-dropzone-label">Drop a CSV or PDF bank statement</strong>
+              <div className="spending-dropzone-sub">Chase, BofA, Capital One, Discover, and others</div>
+              <div className="spending-dropzone-sub" style={{ opacity: 0.6 }}>or click to browse — also accepts .tsv and .txt</div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="upload-paste-wrap">
+          <textarea
+            className="upload-paste-textarea"
+            placeholder={"Paste your statement text here…\n\nOpen your bank PDF, press Ctrl+A then Ctrl+C, and paste below.\nWorks with most bank PDF exports and CSV/TSV files."}
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            disabled={uploading}
+          />
+          <button
+            className="upload-paste-btn"
+            onClick={handlePasteSubmit}
+            disabled={uploading || !pasteText.trim()}
+          >
+            {uploading ? "Parsing…" : "Parse transactions"}
+          </button>
+        </div>
+      )}
+
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,.pdf,text/csv,application/pdf"
+        accept=".csv,.pdf,.tsv,.txt,text/csv,text/tab-separated-values,text/plain,application/pdf"
         style={{ display: "none" }}
         onChange={onInputChange}
       />
