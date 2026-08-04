@@ -177,6 +177,9 @@ export const cashSpendingLogTable = pgTable(
     description:  text("description").notNull().default(""),
     category:     text("category").notNull().default("Other"),
     loggedAt:     timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
+    // Set on CSV-imported rows to prevent re-importing the same transaction.
+    // NULL for manually-created entries (multiple NULLs are allowed by Postgres unique).
+    sourceHash:   text("source_hash"),
   },
   (t) => [
     index("cash_spending_log_account_id_idx").on(t.cashAccountId),
