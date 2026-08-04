@@ -3,6 +3,7 @@ import { monthlyBillItemsTable, monthlySubscriptionItemsTable } from "@workspace
 import paychecksRouter from "./paychecks.js";
 import debtRouter from "./debt.js";
 import cashRouter from "./cash.js";
+import cashSpendingRouter from "./cash-spending.js";
 import summaryRouter from "./summary.js";
 import { createMonthlyItemsRouter } from "./monthly-items.js";
 
@@ -34,6 +35,7 @@ router.use(
 
 router.use(debtRouter);
 router.use(cashRouter);
+router.use(cashSpendingRouter);
 router.use(summaryRouter);
 
 export default router;

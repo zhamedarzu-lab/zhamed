@@ -166,6 +166,26 @@ export const monthlyBillItemsTable = pgTable(
   ],
 );
 
+export const cashSpendingLogTable = pgTable(
+  "cash_spending_log",
+  {
+    id:           serial("id").primaryKey(),
+    cashAccountId: integer("cash_account_id")
+      .notNull()
+      .references(() => cashAccountsTable.id, { onDelete: "cascade" }),
+    amount:       numeric("amount", { precision: 10, scale: 2 }).notNull(),
+    description:  text("description").notNull().default(""),
+    category:     text("category").notNull().default("Other"),
+    loggedAt:     timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("cash_spending_log_account_id_idx").on(t.cashAccountId),
+    index("cash_spending_log_logged_at_idx").on(t.loggedAt),
+  ],
+);
+
+export type CashSpendingEntry = typeof cashSpendingLogTable.$inferSelect;
+
 export type MonthlyBillItem = typeof monthlyBillItemsTable.$inferSelect;
 
 export type DebtAccount = typeof debtAccountsTable.$inferSelect;

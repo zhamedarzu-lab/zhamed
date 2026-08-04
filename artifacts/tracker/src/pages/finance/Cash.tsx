@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { dollars, seqLabel, shortDate, shortMonth, todayIso, toAmount } from "../../lib/format";
 import { isPayday, nextPayday } from "../../lib/payday";
@@ -236,6 +237,7 @@ function AccountPanel({
   onChanged: () => Promise<unknown>;
   onError: (m: string | null) => void;
 }) {
+  const navigate = useNavigate();
   const [balInput, setBalInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [showLog, setShowLog] = useState(false);
@@ -332,6 +334,9 @@ function AccountPanel({
 
       {/* Update balance — only on payday */}
       <div className="debt-card-footer">
+        <button className="quiet cd-log-link" onClick={() => navigate(`/finance/cash/${account.id}`)}>
+          Spending log →
+        </button>
         {log.length > 0 && (
           <button className="quiet bal-log-trigger" onClick={() => setShowLog(true)}>
             Log <span className="bal-log-count">{log.length}</span>
