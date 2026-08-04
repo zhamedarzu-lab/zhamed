@@ -1225,6 +1225,27 @@ function GoalBar({ stat }: { stat: ExerciseStat }) {
   );
 }
 
+// ─── Goal pace helper ─────────────────────────────────────────────────────────
+
+function getPeriodTarget(stat: ExerciseStat, period: "D" | "W" | "M"): number | null {
+  if (!stat.goalAmount || !stat.goalPeriod || stat.goalDeadline) return null;
+  const amount = stat.goalAmount;
+  const gp = stat.goalPeriod;
+
+  if (period === "D") {
+    if (gp === "day")   return amount;
+    if (gp === "week")  return Math.ceil(amount / 7);
+    if (gp === "month") {
+      const t = new Date(todayIso() + "T12:00:00");
+      const days = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+      return Math.ceil(amount / days);
+    }
+  }
+  if (period === "W" && gp === "week")  return amount;
+  if (period === "M" && gp === "month") return amount;
+  return null;
+}
+
 // ─── ExerciseRow ──────────────────────────────────────────────────────────────
 
 function ExerciseRow({
@@ -1517,13 +1538,20 @@ function ExerciseRow({
                 <span className="ft-period-cycle-lbl">
                   {period === "D" ? "Day" : period === "W" ? "Week" : "Month"}
                 </span>
-                <span className={`ft-row-stat-val${
-                  period === "D" && stat.todayTotal > 0 ? " ft-row-stat-val--active" : ""
-                }`}>
-                  {(period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal) > 0
-                    ? (period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal).toLocaleString()
-                    : "—"}
-                </span>
+                <div className="ft-row-stat-num">
+                  <span className={`ft-row-stat-val${
+                    period === "D" && stat.todayTotal > 0 ? " ft-row-stat-val--active" : ""
+                  }`}>
+                    {(period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal) > 0
+                      ? (period === "D" ? stat.todayTotal : period === "W" ? stat.weekTotal : stat.monthTotal).toLocaleString()
+                      : "—"}
+                  </span>
+                  {getPeriodTarget(stat, period) !== null && (
+                    <span className="ft-row-stat-target">
+                      / {getPeriodTarget(stat, period)!.toLocaleString()}
+                    </span>
+                  )}
+                </div>
                 <span className="ft-row-stat-unit">{stat.unit}</span>
               </button>
             </div>

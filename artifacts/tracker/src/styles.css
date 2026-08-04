@@ -4715,6 +4715,20 @@ button.btn-icon {
 .ft-row-stat-val--active {
   color: #5fc97a;
 }
+.ft-row-stat-num {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25em;
+  justify-content: flex-end;
+}
+.ft-row-stat-target {
+  font-family: var(--fig);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  opacity: 0.45;
+  line-height: 1;
+}
 .ft-row-stat-unit {
   font-size: 0.62rem;
   color: var(--ink-faint);
