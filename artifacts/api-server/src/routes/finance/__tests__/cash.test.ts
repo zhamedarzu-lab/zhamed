@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { eq } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { cashAccountsTable, cashSnapshotsTable, paychecksTable } from "@workspace/db";
+import { cashAccountsTable, cashSnapshotsTable, cashSpendingLogTable, paychecksTable } from "@workspace/db";
 import app from "../../../app.js";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -60,7 +60,8 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  // Children first — snapshots reference both the account and the paycheck.
+  // Children first — spending log + snapshots reference the account.
+  await db.delete(cashSpendingLogTable).where(eq(cashSpendingLogTable.cashAccountId, accountId));
   await db.delete(cashSnapshotsTable).where(eq(cashSnapshotsTable.cashAccountId, accountId));
   await db.delete(cashAccountsTable).where(eq(cashAccountsTable.id, accountId));
   await db.delete(paychecksTable).where(eq(paychecksTable.id, paycheckId));
@@ -69,17 +70,20 @@ afterEach(async () => {
 // ─── GET /api/finance/cash-accounts ───────────────────────────────────────────
 
 describe("GET /api/finance/cash-accounts", () => {
-  it("reports a null balance for an account with no snapshots", async () => {
+  it("reports zero balance for an account with no spending log entries", async () => {
     const res = await request(app).get("/api/finance/cash-accounts");
 
     expect(res.status).toBe(200);
     const mine = res.body.find((a: { id: number }) => a.id === accountId);
-    expect(mine).toMatchObject({ currentBalance: null, lastUpdated: null });
+    expect(mine).toMatchObject({ currentBalance: 0, lastUpdated: null });
   });
 
-  it("reports the most recent snapshot as the current balance", async () => {
-    await makeSnapshot(accountId, { balance: 100, snapshotDate: "2099-03-01" });
-    await makeSnapshot(accountId, { balance: 320, snapshotDate: "2099-03-20" });
+  it("reports the running sum of spending log entries as the current balance", async () => {
+    // Deposit $500, spend $180 → net $320
+    await db.insert(cashSpendingLogTable).values([
+      { cashAccountId: accountId, amount: "500.00", description: "Starting balance", category: "Deposit", loggedAt: new Date("2099-03-01T10:00:00Z") },
+      { cashAccountId: accountId, amount: "-180.00", description: "Groceries", category: "Card", loggedAt: new Date("2099-03-20T15:00:00Z") },
+    ]);
 
     const res = await request(app).get("/api/finance/cash-accounts");
 

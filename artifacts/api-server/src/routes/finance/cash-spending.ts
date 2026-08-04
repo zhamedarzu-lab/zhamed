@@ -123,63 +123,6 @@ router.post("/cash-spending", async (req, res): Promise<void> => {
   res.status(201).json(entry);
 });
 
-// ── Bulk import from CSV (Cash App export) ────────────────────────────────────
-
-const importRowSchema = z.object({
-  amount:      z.number().refine((n) => n !== 0, "Amount cannot be zero"),
-  description: z.string().min(1).max(200),
-  category:    z.string().min(1).max(50),
-  loggedAt:    z.string(), // ISO datetime string
-  sourceHash:  z.string().min(1).max(500),
-});
-
-const importSchema = z.object({
-  cashAccountId: z.number().int().positive(),
-  rows:          z.array(importRowSchema).min(1).max(20000),
-});
-
-router.post("/cash-spending/import", async (req, res): Promise<void> => {
-  const body = parseBody(importSchema, req.body, res);
-  if (!body) return;
-
-  const account = await db
-    .select({ id: cashAccountsTable.id })
-    .from(cashAccountsTable)
-    .where(eq(cashAccountsTable.id, body.cashAccountId))
-    .limit(1);
-
-  if (!account.length) {
-    res.status(404).json({ error: "Account not found" });
-    return;
-  }
-
-  // Insert in batches of 500, skipping rows whose source_hash already exists.
-  const BATCH = 500;
-  let imported = 0;
-
-  for (let i = 0; i < body.rows.length; i += BATCH) {
-    const batch = body.rows.slice(i, i + BATCH);
-    const result = await db
-      .insert(cashSpendingLogTable)
-      .values(
-        batch.map((r) => ({
-          cashAccountId: body.cashAccountId,
-          amount:        money(r.amount),
-          description:   r.description,
-          category:      r.category,
-          loggedAt:      new Date(r.loggedAt),
-          sourceHash:    r.sourceHash,
-        })),
-      )
-      .onConflictDoNothing()
-      .returning({ id: cashSpendingLogTable.id });
-    imported += result.length;
-  }
-
-  const duplicates = body.rows.length - imported;
-  res.status(201).json({ imported, duplicates });
-});
-
 // ── Delete an entry ───────────────────────────────────────────────────────────
 
 router.delete("/cash-spending/:id", async (req, res): Promise<void> => {
