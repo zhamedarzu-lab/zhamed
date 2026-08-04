@@ -5673,6 +5673,21 @@ button.btn-icon {
   overflow: hidden;
 }
 
+/* On phones: full-screen sheet — no page scroll ever */
+@media (max-width: 600px) {
+  .sl-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+  .sl-modal {
+    width: 100%;
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+}
+
 /* Header */
 .sl-header {
   display: flex;
