@@ -4897,6 +4897,16 @@ button.btn-icon {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.ft-row-goal {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--ink-faint);
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .ft-row-right {
   display: flex;
   flex-direction: column;

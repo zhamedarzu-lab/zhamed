@@ -1639,6 +1639,26 @@ function ExerciseRow({
 
             <div className="ft-row-left">
               <span className="ft-row-name">{stat.name}</span>
+              {stat.goalAmount !== null && (() => {
+                if (stat.goalDeadline) {
+                  const d = new Date(stat.goalDeadline + "T12:00:00Z");
+                  const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  return (
+                    <span className="ft-row-goal">
+                      {stat.goalAmount.toLocaleString()} {stat.unit} by {label}
+                    </span>
+                  );
+                }
+                if (stat.goalPeriod) {
+                  const per = stat.goalPeriod === "day" ? "day" : stat.goalPeriod === "week" ? "week" : "month";
+                  return (
+                    <span className="ft-row-goal">
+                      {stat.goalAmount.toLocaleString()} {stat.unit} / {per}
+                    </span>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             <div className="ft-row-right">
