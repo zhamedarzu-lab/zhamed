@@ -41,13 +41,14 @@ type Summary = {
 };
 
 type HealthExercise = {
-  exerciseId: number;
-  name:       string;
-  color:      string | null;
-  goalAmount: number;
-  goalPeriod: GoalPeriod;
-  score:      number;
-  periods:    Array<{ start: string; end: string; completion: number; daysAgo: number }>;
+  exerciseId:   number;
+  name:         string;
+  color:        string | null;
+  goalAmount:   number;
+  goalPeriod:   GoalPeriod;
+  score:        number;
+  periodsHit:   number;
+  periodsTotal: number;
 };
 
 type HealthPeriodGroup = { score: number; exercises: HealthExercise[] };
@@ -61,7 +62,7 @@ type HealthData = {
   };
 };
 
-// ─── Vitality Panel ───────────────────────────────────────────────────────────
+// ─── Health Panel ─────────────────────────────────────────────────────────────
 
 function healthColor(score: number) {
   if (score >= 75) return "#1fcc55";
@@ -70,85 +71,64 @@ function healthColor(score: number) {
   return "#e82020";
 }
 
-const PERIOD_LABEL: Record<GoalPeriod, string> = {
-  day:   "Daily",
-  week:  "Weekly",
-  month: "Monthly",
-};
+const PERIOD_LABEL: Record<GoalPeriod, string> = { day: "Daily", week: "Weekly", month: "Monthly" };
+const PERIOD_UNIT:  Record<GoalPeriod, string> = { day: "days",  week: "weeks",  month: "months"  };
 
-function PeriodCard({ period, group }: { period: GoalPeriod; group: HealthPeriodGroup }) {
+function PeriodRow({ period, group }: { period: GoalPeriod; group: HealthPeriodGroup }) {
   const [open, setOpen] = useState(false);
   const { score, exercises } = group;
-  const color    = healthColor(score);
-  const message  = score >= 80 ? "Crushing it"
-                 : score >= 65 ? "On track"
-                 : score >= 40 ? "Falling behind"
-                 :               "Needs work";
-  const msgColor = score >= 65 ? "#1fcc55" : score >= 40 ? "#e55c00" : "#e82020";
-  const onTrack  = exercises.filter(e => e.score >= 65).length;
+  const color      = healthColor(score);
+  const maxPeriods = exercises.reduce((m, e) => Math.max(m, e.periodsTotal), 0);
 
   return (
-    <div className="vb-card">
-      <button className="vb-card-btn" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        {/* Heart */}
-        <svg viewBox="0 0 24 24" fill={color} width="14" height="14" style={{ flexShrink: 0 }}>
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
-        <span className="vb-card-period">{PERIOD_LABEL[period]}</span>
-        <svg className={`vb-chevron${open ? " vb-chevron--open" : ""}`}
+    <div className="vh-row-wrap">
+      <button className="vh-row" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="vh-row-label">{PERIOD_LABEL[period]}</span>
+        <div className="vh-bar-track">
+          <div className="vh-bar-fill" style={{ width: `${score}%`, background: color }} />
+        </div>
+        <span className="vh-row-score" style={{ color }}>{score}%</span>
+        <svg className={`vh-chevron${open ? " vh-chevron--open" : ""}`}
           viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          width="11" height="11" style={{ marginLeft: "auto", flexShrink: 0 }}>
+          width="11" height="11">
           <polyline points="6 9 12 15 18 9"/>
         </svg>
       </button>
 
-      {/* Bar + score row */}
-      <div className="vb-card-bar-row">
-        <div className="vb-bar-track">
-          <div className="vb-bar-fill" style={{ width: `${score}%`, background: color }} />
-        </div>
-        <span className="vb-card-score" style={{ color }}>{score}</span>
-      </div>
-
-      {/* Message + on-track count */}
-      <p className="vb-card-msg" style={{ color: msgColor }}>{message}</p>
-      {exercises.length > 1 && (
-        <p className="vb-card-sub">{onTrack} of {exercises.length} on track</p>
-      )}
-
-      {/* Expandable breakdown */}
       {open && (
-        <div className="vb-breakdown">
+        <div className="vh-breakdown">
           {exercises.map(ex => {
             const c = healthColor(ex.score);
             return (
-              <div key={ex.exerciseId} className="vb-row">
-                <span className="vb-row-dot" style={{ background: ex.color ?? "#888" }} />
-                <span className="vb-row-name">{ex.name}</span>
-                <div className="vb-row-track">
-                  <div className="vb-row-fill" style={{ width: `${ex.score}%`, background: c }} />
-                </div>
-                <span className="vb-row-pct" style={{ color: c }}>{ex.score}%</span>
+              <div key={ex.exerciseId} className="vh-ex-row">
+                <span className="vh-ex-dot" style={{ background: ex.color ?? "#888" }} />
+                <span className="vh-ex-name">{ex.name}</span>
+                <span className="vh-ex-count">{ex.periodsHit}/{ex.periodsTotal}</span>
+                <span className="vh-ex-pct" style={{ color: c }}>{ex.score}%</span>
               </div>
             );
           })}
-          <p className="vb-subtitle">last 28 days · recent periods weighted more</p>
+          {maxPeriods > 0 && (
+            <p className="vh-breakdown-note">
+              {maxPeriods} {PERIOD_UNIT[period]} tracked since goal was set
+            </p>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function VitalityBar({ data }: { data: HealthData }) {
+function VitalityPanel({ data }: { data: HealthData }) {
   if (!data.hasGoals || !data.byPeriod) return null;
   const periods = (["day", "week", "month"] as GoalPeriod[]).filter(p => data.byPeriod[p]);
   if (periods.length === 0) return null;
-
   return (
-    <div className="vb-wrap">
+    <div className="vh-panel">
+      <p className="vh-heading">Health</p>
       {periods.map(p => (
-        <PeriodCard key={p} period={p} group={data.byPeriod[p]!} />
+        <PeriodRow key={p} period={p} group={data.byPeriod[p]!} />
       ))}
     </div>
   );
@@ -332,7 +312,7 @@ export default function Fitness() {
         <>
           <WeekGrid exercises={displayOrder} />
           <OverallGoalBar exercises={localOrder} />
-          {health.data && <VitalityBar data={health.data} />}
+          {health.data && <VitalityPanel data={health.data} />}
 
           {displayOrder.length === 0 ? (
             <Empty title="No exercises yet">

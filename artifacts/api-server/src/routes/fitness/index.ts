@@ -316,9 +316,7 @@ router.get("/summary", async (req, res): Promise<void> => {
 router.get("/health", async (req, res): Promise<void> => {
   const todayParam = typeof req.query.today === "string" && DATE_RE.test(req.query.today)
     ? req.query.today : null;
-  const today    = todayParam ?? todayIso();
-  const todayMs  = new Date(today + "T12:00:00Z").getTime();
-  const LOOKBACK = 28;
+  const today = todayParam ?? todayIso();
 
   // Only active exercises with repeating periodic goals
   const exercises = await db.select().from(exercisesTable)
@@ -332,10 +330,16 @@ router.get("/health", async (req, res): Promise<void> => {
     return;
   }
 
-  // Fetch last 60 days of efforts (buffer for weekly/monthly math)
-  const from60  = offsetDate(today, -60);
+  // Fetch all efforts back to the earliest goal start date (or 2 years max)
+  const explicitStart = goalExercises
+    .map(ex => ex.goalStartDate)
+    .filter(Boolean) as string[];
+  const effortsFrom = explicitStart.length
+    ? explicitStart.reduce((a, b) => (a < b ? a : b))
+    : offsetDate(today, -730);
+
   const efforts = await db.select().from(effortsTable)
-    .where(and(gte(effortsTable.date, from60), lte(effortsTable.date, today)));
+    .where(and(gte(effortsTable.date, effortsFrom), lte(effortsTable.date, today)));
 
   // exerciseId → date → total
   const byExDate = new Map<number, Map<string, number>>();
@@ -343,6 +347,13 @@ router.get("/health", async (req, res): Promise<void> => {
     let m = byExDate.get(e.exerciseId);
     if (!m) { m = new Map(); byExDate.set(e.exerciseId, m); }
     m.set(e.date, (m.get(e.date) ?? 0) + Number(e.amount));
+  }
+
+  // exerciseId → earliest effort date (used as anchor when goalStartDate is null)
+  const firstEffortDate = new Map<number, string>();
+  for (const [exId, dateMap] of byExDate) {
+    const earliest = [...dateMap.keys()].sort()[0];
+    if (earliest) firstEffortDate.set(exId, earliest);
   }
 
   function rangeTotal(exerciseId: number, start: string, end: string): number {
@@ -353,80 +364,74 @@ router.get("/health", async (req, res): Promise<void> => {
     return tot;
   }
 
-  // Recency weight: full this week, tapering to 25% three-four weeks ago
-  function recencyWeight(daysAgo: number): number {
-    if (daysAgo <=  7) return 1.00;
-    if (daysAgo <= 14) return 0.70;
-    if (daysAgo <= 21) return 0.45;
-    return 0.25;
-  }
-
-  // Enumerate past *completed* periods for a given goal cadence
-  function completedPeriods(goalPeriod: "day" | "week" | "month") {
-    const out: Array<{ start: string; end: string; daysAgo: number }> = [];
+  // All fully-closed periods from `anchor` to yesterday (today is still in progress)
+  function periodsFrom(anchor: string, goalPeriod: "day" | "week" | "month") {
+    const out: Array<{ start: string; end: string }> = [];
 
     if (goalPeriod === "day") {
-      // Each past day (today excluded — day isn't over yet)
-      for (let i = 1; i <= LOOKBACK; i++) {
-        const d = offsetDate(today, -i);
-        out.push({ start: d, end: d, daysAgo: i });
+      const yesterday = offsetDate(today, -1);
+      let d = anchor <= yesterday ? anchor : yesterday;
+      while (d <= yesterday && out.length < 730) {
+        out.push({ start: d, end: d });
+        d = offsetDate(d, 1);
       }
 
     } else if (goalPeriod === "week") {
-      // Sun-Sat weeks whose Saturday already passed
-      const dow = new Date(today + "T12:00:00Z").getUTCDay(); // 0=Sun…6=Sat
-      const daysToLastSat = dow === 6 ? 7 : dow + 1;
-      let satEnd = new Date(today + "T12:00:00Z");
-      satEnd.setUTCDate(satEnd.getUTCDate() - daysToLastSat);
-      for (let i = 0; i < 5; i++) {
-        const endStr  = satEnd.toISOString().slice(0, 10);
-        const daysAgo = Math.round((todayMs - satEnd.getTime()) / 86_400_000);
-        if (daysAgo > LOOKBACK) break;
-        const sunStart = new Date(satEnd);
-        sunStart.setUTCDate(sunStart.getUTCDate() - 6);
-        out.push({ start: sunStart.toISOString().slice(0, 10), end: endStr, daysAgo });
-        satEnd.setUTCDate(satEnd.getUTCDate() - 7);
+      // Sun–Sat weeks where the Saturday is < today
+      const anchorDate = new Date(anchor + "T12:00:00Z");
+      const dow = anchorDate.getUTCDay(); // 0=Sun
+      // Roll back to the Sunday of the week containing anchor
+      const firstSun = new Date(anchorDate);
+      firstSun.setUTCDate(firstSun.getUTCDate() - dow);
+
+      let sunDate = new Date(firstSun);
+      while (out.length < 260) {
+        const satDate = new Date(sunDate);
+        satDate.setUTCDate(satDate.getUTCDate() + 6);
+        const satStr = satDate.toISOString().slice(0, 10);
+        if (satStr >= today) break; // week not complete yet
+        const sunStr = sunDate.toISOString().slice(0, 10);
+        out.push({ start: sunStr, end: satStr });
+        sunDate.setUTCDate(sunDate.getUTCDate() + 7);
       }
 
     } else { // month
-      // Completed calendar months (last day < today)
-      let yr = new Date(today + "T12:00:00Z").getUTCFullYear();
-      let mo = new Date(today + "T12:00:00Z").getUTCMonth();
-      for (let i = 0; i < 3; i++) {
-        mo--; if (mo < 0) { mo = 11; yr--; }
-        const startStr = `${yr}-${String(mo + 1).padStart(2, "0")}-01`;
-        const lastDay  = new Date(Date.UTC(yr, mo + 1, 0));
-        const endStr   = lastDay.toISOString().slice(0, 10);
-        const daysAgo  = Math.round((todayMs - lastDay.getTime()) / 86_400_000);
-        if (daysAgo > LOOKBACK) break;
-        out.push({ start: startStr, end: endStr, daysAgo });
+      const todayYM = today.slice(0, 7); // YYYY-MM
+      let yr = parseInt(anchor.slice(0, 4));
+      let mo = parseInt(anchor.slice(5, 7)) - 1; // 0-indexed
+      while (out.length < 60) {
+        const ym = `${yr}-${String(mo + 1).padStart(2, "0")}`;
+        if (ym >= todayYM) break; // current month not done yet
+        const lastDay = new Date(Date.UTC(yr, mo + 1, 0));
+        out.push({ start: `${ym}-01`, end: lastDay.toISOString().slice(0, 10) });
+        if (++mo > 11) { mo = 0; yr++; }
       }
     }
+
     return out;
   }
 
   function scoreExercise(ex: typeof exercises[number]) {
-    const goal    = Number(ex.goalAmount!);
-    const period  = ex.goalPeriod as "day" | "week" | "month";
-    const periods = completedPeriods(period);
+    const goal   = Number(ex.goalAmount!);
+    const period = ex.goalPeriod as "day" | "week" | "month";
+    // Anchor priority: explicit goalStartDate → first logged effort → today (no history = 100%)
+    const anchor = ex.goalStartDate ?? firstEffortDate.get(ex.id) ?? today;
+    const periods = periodsFrom(anchor, period);
 
     if (periods.length === 0) {
-      // No completed periods yet (brand new goal) — full score, no history
-      return { exerciseId: ex.id, name: ex.name, color: ex.color, goalAmount: goal, goalPeriod: period, score: 100, periods: [] };
+      // Brand-new goal — no closed periods yet → perfect health
+      return { exerciseId: ex.id, name: ex.name, color: ex.color, goalAmount: goal, goalPeriod: period, score: 100, periodsHit: 0, periodsTotal: 0 };
     }
 
-    let wMissSum = 0, wSum = 0;
-    const periodDetails = periods.map(p => {
-      const actual     = rangeTotal(ex.id, p.start, p.end);
-      const completion = Math.min(1, actual / goal);
-      const weight     = recencyWeight(p.daysAgo);
-      wMissSum += (1 - completion) * weight;
-      wSum     += weight;
-      return { start: p.start, end: p.end, completion, daysAgo: p.daysAgo };
-    });
+    let completionSum = 0, periodsHit = 0;
+    for (const p of periods) {
+      const completion = Math.min(1, rangeTotal(ex.id, p.start, p.end) / goal);
+      completionSum += completion;
+      if (completion >= 1) periodsHit++;
+    }
 
-    const score = wSum > 0 ? Math.round((1 - wMissSum / wSum) * 100) : 100;
-    return { exerciseId: ex.id, name: ex.name, color: ex.color, goalAmount: goal, goalPeriod: period, score, periods: periodDetails };
+    const score = Math.round((completionSum / periods.length) * 100);
+    return { exerciseId: ex.id, name: ex.name, color: ex.color, goalAmount: goal, goalPeriod: period, score, periodsHit, periodsTotal: periods.length };
   }
 
   // Group by period type
