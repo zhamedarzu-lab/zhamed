@@ -5540,10 +5540,13 @@ button.btn-icon {
 /* Spending log button on account cards */
 /* ── Cash account drag-to-reorder ────────────────────────────────────── */
 .ca-card-wrapper {
-  transition: opacity 0.15s, outline 0.1s;
+  transition: transform 0.15s ease, opacity 0.15s;
+  position: relative;
 }
 .ca-card--dragging {
-  opacity: 0.35;
+  opacity: 0.4;
+  z-index: 10;
+  transition: opacity 0.15s;
 }
 .ca-card--drop-target > .panel {
   outline: 2px solid var(--accent);
@@ -5570,12 +5573,22 @@ button.btn-icon {
 }
 .ca-drag-handle:active { cursor: grabbing; }
 
-.cd-log-link {
-  font-size: 0.8rem;
-  color: var(--ink-faint);
-  padding: 0.2rem 0.4rem;
+.cd-log-btn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  min-height: 36px;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
-.cd-log-link:hover { color: var(--accent); }
+.cd-log-btn:active {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
 
 /* Entry list */
 .cd-log {

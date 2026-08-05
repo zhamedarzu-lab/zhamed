@@ -25,7 +25,7 @@ type Account = {
   balanceHistory: Array<{ date: string; value: number }>;
 };
 
-type DragState = { fromId: number; overId: number };
+type DragState = { fromId: number; overId: number; startY: number; currentY: number; rowHeight: number };
 
 // ── Drag handle icon ──────────────────────────────────────────────────────────
 
@@ -76,28 +76,42 @@ export default function Cash() {
     return arr;
   }, [localOrder, dragState]);
 
-  function handleDragStart(id: number) {
-    const state: DragState = { fromId: id, overId: id };
+  function getTranslateY(accountId: number, ds: DragState | null): number {
+    if (!ds) return 0;
+    const { fromId, overId, startY, currentY, rowHeight } = ds;
+    if (accountId === fromId) return currentY - startY;
+    const fromIdx = localOrder.findIndex((a) => a.id === fromId);
+    const overIdx = localOrder.findIndex((a) => a.id === overId);
+    const myIdx   = localOrder.findIndex((a) => a.id === accountId);
+    if (fromIdx === -1 || overIdx === -1 || myIdx === -1) return 0;
+    if (fromIdx < overIdx && myIdx > fromIdx && myIdx <= overIdx) return -rowHeight;
+    if (fromIdx > overIdx && myIdx >= overIdx && myIdx < fromIdx) return  rowHeight;
+    return 0;
+  }
+
+  function handleDragStart(id: number, clientY: number, rowHeight: number) {
+    const state: DragState = { fromId: id, overId: id, startY: clientY, currentY: clientY, rowHeight };
     dragRef.current = state;
     setDragState({ ...state });
+    document.documentElement.style.overflow = "hidden";
     document.body.style.userSelect = "none";
   }
 
-  function handleDragOver(clientX: number, clientY: number) {
+  function handleDragMove(clientX: number, clientY: number) {
     if (!dragRef.current) return;
+    dragRef.current.currentY = clientY;
     const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
     const card = el?.closest("[data-account-id]") as HTMLElement | null;
     if (card) {
       const id = parseInt(card.dataset.accountId ?? "", 10);
-      if (!isNaN(id) && id !== dragRef.current.overId) {
-        dragRef.current.overId = id;
-        setDragState({ ...dragRef.current });
-      }
+      if (!isNaN(id)) dragRef.current.overId = id;
     }
+    setDragState({ ...dragRef.current });
   }
 
   function handleDragEnd() {
     if (!dragRef.current) return;
+    document.documentElement.style.overflow = "";
     document.body.style.userSelect = "";
     const { fromId, overId } = dragRef.current;
     dragRef.current = null;
@@ -169,8 +183,9 @@ export default function Cash() {
               account={account}
               isDragging={dragState?.fromId === account.id}
               isDropTarget={dragState?.overId === account.id && dragState.fromId !== account.id}
+              translateY={getTranslateY(account.id, dragState)}
               onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
+              onDragMove={handleDragMove}
               onDragEnd={handleDragEnd}
               onChanged={() => accounts.reload()}
               onError={setError}
@@ -211,8 +226,9 @@ function AccountPanel({
   account,
   isDragging,
   isDropTarget,
+  translateY,
   onDragStart,
-  onDragOver,
+  onDragMove,
   onDragEnd,
   onChanged,
   onError,
@@ -220,8 +236,9 @@ function AccountPanel({
   account: Account;
   isDragging: boolean;
   isDropTarget: boolean;
-  onDragStart: (id: number) => void;
-  onDragOver: (x: number, y: number) => void;
+  translateY: number;
+  onDragStart: (id: number, clientY: number, rowHeight: number) => void;
+  onDragMove: (x: number, y: number) => void;
   onDragEnd: () => void;
   onChanged: () => void;
   onError: (m: string | null) => void;
@@ -248,11 +265,13 @@ function AccountPanel({
   function onHandlePointerDown(e: React.PointerEvent) {
     e.stopPropagation();
     handleRef.current?.setPointerCapture(e.pointerId);
-    onDragStart(account.id);
+    const rowEl = (e.currentTarget as HTMLElement).closest("[data-account-id]") as HTMLElement | null;
+    const rowHeight = rowEl?.getBoundingClientRect().height ?? 80;
+    onDragStart(account.id, e.clientY, rowHeight);
   }
   function onHandlePointerMove(e: React.PointerEvent) {
     if (!handleRef.current?.hasPointerCapture(e.pointerId)) return;
-    onDragOver(e.clientX, e.clientY);
+    onDragMove(e.clientX, e.clientY);
   }
   function onHandlePointerUp(e: React.PointerEvent) {
     if (!handleRef.current?.hasPointerCapture(e.pointerId)) return;
@@ -268,6 +287,7 @@ function AccountPanel({
         isDragging    ? "ca-card--dragging"    : "",
         isDropTarget  ? "ca-card--drop-target" : "",
       ].filter(Boolean).join(" ")}
+      style={translateY !== 0 ? { transform: `translateY(${translateY}px)`, zIndex: isDragging ? 10 : undefined } : undefined}
     >
       <Panel bodyless>
         <div className="debt-card-body">
@@ -331,8 +351,8 @@ function AccountPanel({
 
         {/* Footer */}
         <div className="debt-card-footer">
-          <button className="quiet cd-log-link" onClick={() => setShowSpendingLog(true)}>
-            Spending log →
+          <button className="cd-log-btn" onClick={() => setShowSpendingLog(true)}>
+            Log
           </button>
           {showSpendingLog && (
             <SpendingLogModal
