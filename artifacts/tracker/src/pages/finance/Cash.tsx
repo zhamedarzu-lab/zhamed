@@ -339,6 +339,7 @@ function AccountPanel({
               accountId={account.id}
               accountName={account.name}
               balance={account.currentBalance}
+              onChanged={onChanged}
               onClose={() => { setShowSpendingLog(false); onChanged(); }}
             />
           )}

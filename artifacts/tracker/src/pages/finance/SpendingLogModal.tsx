@@ -226,9 +226,10 @@ interface Props {
   accountName: string;
   balance:     number;
   onClose:     () => void;
+  onChanged?:  () => void;
 }
 
-export default function SpendingLogModal({ accountId, accountName, balance, onClose }: Props) {
+export default function SpendingLogModal({ accountId, accountName, balance, onClose, onChanged }: Props) {
   const entries = useApi<SpendingEntry[]>(`/api/finance/cash-spending?accountId=${accountId}`);
   const summary  = useApi<Summary>(`/api/finance/cash-spending/summary?accountId=${accountId}`);
 
@@ -298,6 +299,7 @@ export default function SpendingLogModal({ accountId, accountName, balance, onCl
       setShowNotes(false);
       amtRef.current?.focus();
       await refresh();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save.");
     } finally {
@@ -340,6 +342,7 @@ export default function SpendingLogModal({ accountId, accountName, balance, onCl
       });
       cancelEdit();
       await refresh();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save.");
     } finally {
@@ -354,16 +357,13 @@ export default function SpendingLogModal({ accountId, accountName, balance, onCl
     try {
       await api.del(`/api/finance/cash-spending/${id}`);
       await refresh();
+      onChanged?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete.");
     }
   }
 
   const list = entries.data ?? [];
-
-  // Responsive initial limit: phone → 5, tablet → 10, desktop → all
-  const initialLimit = window.innerWidth < 600 ? 5 : window.innerWidth < 1024 ? 10 : Infinity;
-  const [visibleCount, setVisibleCount] = useState(initialLimit);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -485,7 +485,7 @@ export default function SpendingLogModal({ accountId, accountName, balance, onCl
             <p className="sl-empty">No entries yet.</p>
           ) : (
             <div className="sl-log">
-              {list.slice(0, visibleCount).map((entry) => {
+              {list.slice(0, 25).map((entry) => {
                 const amt = Number(entry.amount);
                 const c = tagColor(entry.category);
 
@@ -612,15 +612,6 @@ export default function SpendingLogModal({ accountId, accountName, balance, onCl
                 );
               })}
             </div>
-          )}
-          {list.length > visibleCount && (
-            <button
-              className="sl-show-more"
-              onClick={() => setVisibleCount((n) => n + initialLimit)}
-            >
-              Show {Math.min(list.length - visibleCount, initialLimit)} more
-              <span className="sl-show-more-total"> ({list.length - visibleCount} remaining)</span>
-            </button>
           )}
         </div>
 

@@ -34,12 +34,18 @@ router.get("/entries", async (req, res) => {
   res.json(rows);
 });
 
-// GET /api/journal/loose-ends — all open-end entries
+// GET /api/journal/loose-ends — open-end entries that have NOT been closed
 router.get("/loose-ends", async (_req, res) => {
   const rows = await db
     .select()
     .from(journalEntriesTable)
-    .where(eq(journalEntriesTable.looseEndType, "open"))
+    .where(and(
+      eq(journalEntriesTable.looseEndType, "open"),
+      sql`${journalEntriesTable.id} NOT IN (
+        SELECT loose_end_link FROM journal_entries
+        WHERE loose_end_type = 'close' AND loose_end_link IS NOT NULL
+      )`
+    ))
     .orderBy(desc(journalEntriesTable.startTime));
   res.json(rows);
 });
