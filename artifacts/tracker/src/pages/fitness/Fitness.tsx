@@ -74,27 +74,58 @@ function healthColor(score: number) {
 const PERIOD_LABEL: Record<GoalPeriod, string> = { day: "Daily", week: "Weekly", month: "Monthly" };
 const PERIOD_UNIT:  Record<GoalPeriod, string> = { day: "days",  week: "weeks",  month: "months"  };
 
-function PeriodRow({ period, group }: { period: GoalPeriod; group: HealthPeriodGroup }) {
+function VitalityPanel({ data }: { data: HealthData }) {
+  if (!data.hasGoals || !data.byPeriod) return null;
+  const periods = (["day", "week", "month"] as GoalPeriod[]).filter(p => data.byPeriod[p]);
+  if (periods.length === 0) return null;
+
+  const [idx,  setIdx]  = useState(0);
   const [open, setOpen] = useState(false);
+
+  const activeIdx = idx % periods.length;
+  const period    = periods[activeIdx];
+  const group     = data.byPeriod[period]!;
   const { score, exercises } = group;
   const color      = healthColor(score);
   const maxPeriods = exercises.reduce((m, e) => Math.max(m, e.periodsTotal), 0);
 
+  function cycle(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIdx(i => (i + 1) % periods.length);
+  }
+
   return (
-    <div className="vh-row-wrap">
-      <button className="vh-row" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        <span className="vh-row-label">{PERIOD_LABEL[period]}</span>
-        <div className="vh-bar-track">
-          <div className="vh-bar-fill" style={{ width: `${score}%`, background: color }} />
-        </div>
-        <span className="vh-row-score" style={{ color }}>{score}%</span>
-        <svg className={`vh-chevron${open ? " vh-chevron--open" : ""}`}
-          viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-          width="11" height="11">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </button>
+    <div className="vh-panel">
+      <div className="vh-header">
+        <p className="vh-heading">Health</p>
+        {periods.length > 1 && (
+          <div className="vh-dots" aria-hidden="true">
+            {periods.map((_, i) => (
+              <span key={i} className={`vh-dot${i === activeIdx ? " vh-dot--active" : ""}`} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="vh-main-row">
+        <button className="vh-cycle-btn" onClick={cycle}
+          title="Tap to switch period" aria-label={`Current: ${PERIOD_LABEL[period]} — tap to switch`}>
+          <span className="vh-row-label">{PERIOD_LABEL[period]}</span>
+          <div className="vh-bar-track">
+            <div className="vh-bar-fill" style={{ width: `${score}%`, background: color }} />
+          </div>
+          <span className="vh-row-score" style={{ color }}>{score}%</span>
+        </button>
+        <button className="vh-expand-btn" onClick={() => setOpen(o => !o)}
+          aria-expanded={open} aria-label={open ? "Collapse details" : "Expand details"}>
+          <svg className={`vh-chevron${open ? " vh-chevron--open" : ""}`}
+            viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            width="11" height="11">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+      </div>
 
       {open && (
         <div className="vh-breakdown">
@@ -116,20 +147,6 @@ function PeriodRow({ period, group }: { period: GoalPeriod; group: HealthPeriodG
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function VitalityPanel({ data }: { data: HealthData }) {
-  if (!data.hasGoals || !data.byPeriod) return null;
-  const periods = (["day", "week", "month"] as GoalPeriod[]).filter(p => data.byPeriod[p]);
-  if (periods.length === 0) return null;
-  return (
-    <div className="vh-panel">
-      <p className="vh-heading">Health</p>
-      {periods.map(p => (
-        <PeriodRow key={p} period={p} group={data.byPeriod[p]!} />
-      ))}
     </div>
   );
 }

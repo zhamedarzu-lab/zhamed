@@ -4677,31 +4677,62 @@ button.btn-icon {
   overflow: hidden;
   margin-bottom: 1rem;
 }
+.vh-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem 0.4rem;
+}
 .vh-heading {
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  padding: 0.65rem 1rem 0.4rem;
   margin: 0;
 }
-.vh-row-wrap {
+.vh-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.vh-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rule);
+  transition: background 0.2s ease;
+}
+.vh-dot--active {
+  background: var(--ink-faint);
+}
+.vh-main-row {
+  display: flex;
+  align-items: center;
   border-top: 1px solid var(--rule);
 }
-.vh-row-wrap:first-of-type {
-  border-top: none;
-}
-.vh-row {
+.vh-cycle-btn {
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  width: 100%;
-  padding: 0.6rem 1rem;
+  flex: 1;
+  padding: 0.6rem 0 0.6rem 1rem;
   background: none;
+  border: none;
   cursor: pointer;
   touch-action: manipulation;
   text-align: left;
+  min-width: 0;
+}
+.vh-expand-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1rem 0.6rem 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  flex-shrink: 0;
 }
 .vh-row-label {
   font-size: 0.78rem;
@@ -4716,6 +4747,7 @@ button.btn-icon {
   background: var(--rule);
   border-radius: 999px;
   overflow: hidden;
+  min-width: 0;
 }
 .vh-bar-fill {
   height: 100%;
