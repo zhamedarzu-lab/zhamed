@@ -411,15 +411,21 @@ router.get("/health", async (req, res): Promise<void> => {
     return out;
   }
 
-  function scoreExercise(ex: typeof exercises[number]) {
-    const goal   = Number(ex.goalAmount!);
-    const period = ex.goalPeriod as "day" | "week" | "month";
-    // Anchor priority: explicit goalStartDate → first logged effort → today (no history = 100%)
-    const anchor = ex.goalStartDate ?? firstEffortDate.get(ex.id) ?? today;
+  type ScoredExercise = {
+    exerciseId: number; name: string; color: string | null;
+    goalAmount: number; goalPeriod: "day" | "week" | "month";
+    score: number; periodsHit: number; periodsTotal: number;
+  };
+
+  function scoreAgainst(
+    ex: typeof exercises[number],
+    goal: number,
+    period: "day" | "week" | "month",
+  ): ScoredExercise {
+    const anchor  = ex.goalStartDate ?? firstEffortDate.get(ex.id) ?? today;
     const periods = periodsFrom(anchor, period);
 
     if (periods.length === 0) {
-      // Brand-new goal — no closed periods yet → perfect health
       return { exerciseId: ex.id, name: ex.name, color: ex.color, goalAmount: goal, goalPeriod: period, score: 100, periodsHit: 0, periodsTotal: 0 };
     }
 
@@ -434,10 +440,28 @@ router.get("/health", async (req, res): Promise<void> => {
     return { exerciseId: ex.id, name: ex.name, color: ex.color, goalAmount: goal, goalPeriod: period, score, periodsHit, periodsTotal: periods.length };
   }
 
-  // Group by period type
-  const byPeriod: Record<string, { score: number; exercises: ReturnType<typeof scoreExercise>[] }> = {};
+  function scoreExercise(ex: typeof exercises[number]): ScoredExercise {
+    return scoreAgainst(ex, Number(ex.goalAmount!), ex.goalPeriod as "day" | "week" | "month");
+  }
 
-  for (const periodType of ["day", "week", "month"] as const) {
+  const byPeriod: Record<string, { score: number; exercises: ScoredExercise[] }> = {};
+
+  // Daily group: explicit day-goals + weekly-goal exercises scored at weeklyGoal/7 per day
+  const dailyScored: ScoredExercise[] = [
+    ...goalExercises.filter(ex => ex.goalPeriod === "day").map(scoreExercise),
+    ...goalExercises.filter(ex => ex.goalPeriod === "week").map(ex =>
+      scoreAgainst(ex, Number(ex.goalAmount!) / 7, "day")
+    ),
+  ];
+  if (dailyScored.length > 0) {
+    byPeriod["day"] = {
+      score: Math.round(dailyScored.reduce((s, e) => s + e.score, 0) / dailyScored.length),
+      exercises: dailyScored,
+    };
+  }
+
+  // Weekly and monthly groups (scored against their own period)
+  for (const periodType of ["week", "month"] as const) {
     const group = goalExercises.filter(ex => ex.goalPeriod === periodType);
     if (group.length === 0) continue;
     const scored = group.map(scoreExercise);
