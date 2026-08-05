@@ -4975,6 +4975,15 @@ button.btn-icon {
     opacity: 1;
   }
 }
+.ft-desktop-goal-hint {
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  padding: 0 0.1rem 0 0.25rem;
+  opacity: 0.8;
+  pointer-events: none;
+}
 .ft-desktop-action-btn {
   background: transparent;
   border: none;

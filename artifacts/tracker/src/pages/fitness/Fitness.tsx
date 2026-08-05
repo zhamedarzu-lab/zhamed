@@ -1661,6 +1661,15 @@ function ExerciseRow({
                   title="History"
                   onClick={(e) => { e.stopPropagation(); onOpenHistory(stat); }}
                 >↗</button>
+                {stat.goalAmount !== null && (
+                  <span className="ft-desktop-goal-hint">
+                    {stat.goalDeadline
+                      ? `${stat.goalAmount.toLocaleString()} by ${new Date(stat.goalDeadline + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                      : stat.goalPeriod
+                        ? `${stat.goalAmount.toLocaleString()} / ${stat.goalPeriod === "day" ? "day" : stat.goalPeriod === "week" ? "wk" : "mo"}`
+                        : null}
+                  </span>
+                )}
                 <button
                   type="button"
                   className="ft-desktop-action-btn"
