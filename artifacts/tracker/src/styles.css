@@ -1967,6 +1967,14 @@ a:hover {
 .punch-banner-row:not(:last-child) {
   border-bottom: 1px solid color-mix(in srgb, var(--amber) 15%, var(--rule));
 }
+.punch-banner-max-note {
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  text-align: center;
+  padding: 0.35rem 1.25rem 0.5rem;
+  margin: 0;
+  border-top: 1px solid color-mix(in srgb, var(--amber) 15%, var(--rule));
+}
 .punch-banner-live {
   flex-shrink: 0;
   width: 8px;
@@ -4412,6 +4420,33 @@ button.btn-icon {
   background: var(--hover);
   color: var(--ink);
 }
+.jle-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.jle-resolve-btn {
+  align-self: flex-end;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.jle-resolve-btn:hover {
+  background: color-mix(in srgb, var(--surface) 80%, var(--rule));
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+.jle-resolve-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 .jle-tab.active {
   background: var(--amber);
   border-color: var(--amber);
@@ -4705,6 +4740,12 @@ button.btn-icon {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  margin: 0;
+}
+.vb-card-sub {
+  font-size: 0.65rem;
+  color: var(--ink-faint);
+  margin: 0;
 }
 
 /* Chevron */
@@ -5706,6 +5747,19 @@ button.btn-icon {
   background: color-mix(in srgb, var(--ink-faint) 12%, transparent);
 }
 .ca-drag-handle:active { cursor: grabbing; }
+
+.ca-chart-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.3rem;
+}
+.ca-chart-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 
 .cd-log-btn {
   font-size: 0.78rem;

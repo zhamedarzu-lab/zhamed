@@ -79,9 +79,13 @@ const PERIOD_LABEL: Record<GoalPeriod, string> = {
 function PeriodCard({ period, group }: { period: GoalPeriod; group: HealthPeriodGroup }) {
   const [open, setOpen] = useState(false);
   const { score, exercises } = group;
-  const color   = healthColor(score);
-  const message = score >= 65 ? "Keep it up" : "You suck";
-  const msgColor = score >= 65 ? "#1fcc55" : "#e82020";
+  const color    = healthColor(score);
+  const message  = score >= 80 ? "Crushing it"
+                 : score >= 65 ? "On track"
+                 : score >= 40 ? "Falling behind"
+                 :               "Needs work";
+  const msgColor = score >= 65 ? "#1fcc55" : score >= 40 ? "#e55c00" : "#e82020";
+  const onTrack  = exercises.filter(e => e.score >= 65).length;
 
   return (
     <div className="vb-card">
@@ -107,8 +111,11 @@ function PeriodCard({ period, group }: { period: GoalPeriod; group: HealthPeriod
         <span className="vb-card-score" style={{ color }}>{score}</span>
       </div>
 
-      {/* Message */}
+      {/* Message + on-track count */}
       <p className="vb-card-msg" style={{ color: msgColor }}>{message}</p>
+      {exercises.length > 1 && (
+        <p className="vb-card-sub">{onTrack} of {exercises.length} on track</p>
+      )}
 
       {/* Expandable breakdown */}
       {open && (

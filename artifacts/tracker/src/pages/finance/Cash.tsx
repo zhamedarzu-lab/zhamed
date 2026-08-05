@@ -343,6 +343,11 @@ function AccountPanel({
           {/* Running balance sparkline */}
           {points.length > 1 && (
             <div style={{ margin: "0.75rem 0 0" }}>
+              <div className="ca-chart-header">
+                <span className="ca-chart-label">
+                  {points.length}d history
+                </span>
+              </div>
               <BalanceChart points={points} color={SPENDING_COLOR} height={100} />
             </div>
           )}

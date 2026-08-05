@@ -1241,6 +1241,11 @@ export default function Journal() {
           {punches.map(p => (
             <PunchRow key={p.id} punch={p} onUpdate={updatePunch} onPunchOut={punchOut} onCancel={cancelPunch} />
           ))}
+          {punches.length >= PUNCH_MAX && (
+            <p className="punch-banner-max-note">
+              {PUNCH_MAX} timers running — punch one out to start another
+            </p>
+          )}
         </div>
       )}
     </div>

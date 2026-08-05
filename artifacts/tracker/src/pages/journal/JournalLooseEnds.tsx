@@ -14,10 +14,35 @@ type Tab = "open" | "close";
 
 export default function JournalLooseEnds() {
   const navigate = useNavigate();
-  const [tab,      setTab]      = useState<Tab>("open");
-  const [entries,  setEntries]  = useState<Entry[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [selected, setSelected] = useState<Entry | null>(null);
+  const [tab,        setTab]        = useState<Tab>("open");
+  const [entries,    setEntries]    = useState<Entry[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [selected,   setSelected]   = useState<Entry | null>(null);
+  const [resolving,  setResolving]  = useState<number | null>(null);
+
+  async function resolveEnd(opener: Entry) {
+    if (resolving != null) return;
+    setResolving(opener.id);
+    try {
+      const now  = new Date();
+      const pad  = (n: number) => String(n).padStart(2, "0");
+      const ymd  = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      const hms  = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const row  = await api.post<Entry>("/api/journal/entries", {
+        content:      `resolved: ${opener.subject || opener.content || "loose end"}`,
+        entryDate:    ymd,
+        startTime:    `${ymd} ${hms}`,
+        color:        opener.color,
+        looseEndLink: opener.id,
+        looseEndType: "close",
+      });
+      setEntries(prev => [...prev, row]);
+    } catch {
+      /* leave state intact */
+    } finally {
+      setResolving(null);
+    }
+  }
 
   useEffect(() => {
     api.get<Entry[]>("/api/journal/entries")
@@ -98,20 +123,32 @@ export default function JournalLooseEnds() {
               const isOpener = e.looseEndType === "open";
               const isCloser = e.looseEndType === "close";
               return (
-                <button key={e.id} className="jsearch-card" onClick={() => setSelected(e)}>
-                  <div className="jsearch-card-accent" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)" } : {}) }} />
-                  <div className="jsearch-card-body">
-                    <p className="jsearch-card-time">{fmtRange(e.startTime, e.endTime)}</p>
-                    {e.subject && (
-                      <p className="jsearch-card-subject">
-                        {isOpener && <span className="loose-end-badge loose-end-badge--open">◎</span>}
-                        {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉</span>}
-                        {" "}{e.subject}
-                      </p>
-                    )}
-                    {e.content && <p className="jsearch-card-content">{e.content}</p>}
-                  </div>
-                </button>
+                <div key={e.id} className="jle-card-wrap">
+                  <button className="jsearch-card" onClick={() => setSelected(e)}>
+                    <div className="jsearch-card-accent" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)" } : {}) }} />
+                    <div className="jsearch-card-body">
+                      <p className="jsearch-card-time">{fmtRange(e.startTime, e.endTime)}</p>
+                      {e.subject && (
+                        <p className="jsearch-card-subject">
+                          {isOpener && <span className="loose-end-badge loose-end-badge--open">◎</span>}
+                          {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉</span>}
+                          {" "}{e.subject}
+                        </p>
+                      )}
+                      {e.content && <p className="jsearch-card-content">{e.content}</p>}
+                    </div>
+                  </button>
+                  {isOpener && (
+                    <button
+                      className="jle-resolve-btn"
+                      disabled={resolving === e.id}
+                      onClick={() => resolveEnd(e)}
+                      title="Mark as resolved"
+                    >
+                      {resolving === e.id ? "…" : "Resolve ◉"}
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
