@@ -311,6 +311,138 @@ router.get("/summary", async (req, res): Promise<void> => {
   res.json({ consistencyStrip, exercises: perExercise });
 });
 
+// ─── Vitality / Health Score ─────────────────────────────────────────────────
+
+router.get("/health", async (req, res): Promise<void> => {
+  const todayParam = typeof req.query.today === "string" && DATE_RE.test(req.query.today)
+    ? req.query.today : null;
+  const today    = todayParam ?? todayIso();
+  const todayMs  = new Date(today + "T12:00:00Z").getTime();
+  const LOOKBACK = 28;
+
+  // Only active exercises with repeating periodic goals
+  const exercises = await db.select().from(exercisesTable)
+    .where(eq(exercisesTable.active, true));
+  const goalExercises = exercises.filter(
+    ex => ex.goalAmount && ["day", "week", "month"].includes(ex.goalPeriod ?? "")
+  );
+
+  if (goalExercises.length === 0) {
+    res.json({ hasGoals: false, byPeriod: {} });
+    return;
+  }
+
+  // Fetch last 60 days of efforts (buffer for weekly/monthly math)
+  const from60  = offsetDate(today, -60);
+  const efforts = await db.select().from(effortsTable)
+    .where(and(gte(effortsTable.date, from60), lte(effortsTable.date, today)));
+
+  // exerciseId → date → total
+  const byExDate = new Map<number, Map<string, number>>();
+  for (const e of efforts) {
+    let m = byExDate.get(e.exerciseId);
+    if (!m) { m = new Map(); byExDate.set(e.exerciseId, m); }
+    m.set(e.date, (m.get(e.date) ?? 0) + Number(e.amount));
+  }
+
+  function rangeTotal(exerciseId: number, start: string, end: string): number {
+    let tot = 0;
+    for (const [d, v] of (byExDate.get(exerciseId) ?? new Map())) {
+      if (d >= start && d <= end) tot += v;
+    }
+    return tot;
+  }
+
+  // Recency weight: full this week, tapering to 25% three-four weeks ago
+  function recencyWeight(daysAgo: number): number {
+    if (daysAgo <=  7) return 1.00;
+    if (daysAgo <= 14) return 0.70;
+    if (daysAgo <= 21) return 0.45;
+    return 0.25;
+  }
+
+  // Enumerate past *completed* periods for a given goal cadence
+  function completedPeriods(goalPeriod: "day" | "week" | "month") {
+    const out: Array<{ start: string; end: string; daysAgo: number }> = [];
+
+    if (goalPeriod === "day") {
+      // Each past day (today excluded — day isn't over yet)
+      for (let i = 1; i <= LOOKBACK; i++) {
+        const d = offsetDate(today, -i);
+        out.push({ start: d, end: d, daysAgo: i });
+      }
+
+    } else if (goalPeriod === "week") {
+      // Sun-Sat weeks whose Saturday already passed
+      const dow = new Date(today + "T12:00:00Z").getUTCDay(); // 0=Sun…6=Sat
+      const daysToLastSat = dow === 6 ? 7 : dow + 1;
+      let satEnd = new Date(today + "T12:00:00Z");
+      satEnd.setUTCDate(satEnd.getUTCDate() - daysToLastSat);
+      for (let i = 0; i < 5; i++) {
+        const endStr  = satEnd.toISOString().slice(0, 10);
+        const daysAgo = Math.round((todayMs - satEnd.getTime()) / 86_400_000);
+        if (daysAgo > LOOKBACK) break;
+        const sunStart = new Date(satEnd);
+        sunStart.setUTCDate(sunStart.getUTCDate() - 6);
+        out.push({ start: sunStart.toISOString().slice(0, 10), end: endStr, daysAgo });
+        satEnd.setUTCDate(satEnd.getUTCDate() - 7);
+      }
+
+    } else { // month
+      // Completed calendar months (last day < today)
+      let yr = new Date(today + "T12:00:00Z").getUTCFullYear();
+      let mo = new Date(today + "T12:00:00Z").getUTCMonth();
+      for (let i = 0; i < 3; i++) {
+        mo--; if (mo < 0) { mo = 11; yr--; }
+        const startStr = `${yr}-${String(mo + 1).padStart(2, "0")}-01`;
+        const lastDay  = new Date(Date.UTC(yr, mo + 1, 0));
+        const endStr   = lastDay.toISOString().slice(0, 10);
+        const daysAgo  = Math.round((todayMs - lastDay.getTime()) / 86_400_000);
+        if (daysAgo > LOOKBACK) break;
+        out.push({ start: startStr, end: endStr, daysAgo });
+      }
+    }
+    return out;
+  }
+
+  function scoreExercise(ex: typeof exercises[number]) {
+    const goal    = Number(ex.goalAmount!);
+    const period  = ex.goalPeriod as "day" | "week" | "month";
+    const periods = completedPeriods(period);
+
+    if (periods.length === 0) {
+      // No completed periods yet (brand new goal) — full score, no history
+      return { exerciseId: ex.id, name: ex.name, color: ex.color, goalAmount: goal, goalPeriod: period, score: 100, periods: [] };
+    }
+
+    let wMissSum = 0, wSum = 0;
+    const periodDetails = periods.map(p => {
+      const actual     = rangeTotal(ex.id, p.start, p.end);
+      const completion = Math.min(1, actual / goal);
+      const weight     = recencyWeight(p.daysAgo);
+      wMissSum += (1 - completion) * weight;
+      wSum     += weight;
+      return { start: p.start, end: p.end, completion, daysAgo: p.daysAgo };
+    });
+
+    const score = wSum > 0 ? Math.round((1 - wMissSum / wSum) * 100) : 100;
+    return { exerciseId: ex.id, name: ex.name, color: ex.color, goalAmount: goal, goalPeriod: period, score, periods: periodDetails };
+  }
+
+  // Group by period type
+  const byPeriod: Record<string, { score: number; exercises: ReturnType<typeof scoreExercise>[] }> = {};
+
+  for (const periodType of ["day", "week", "month"] as const) {
+    const group = goalExercises.filter(ex => ex.goalPeriod === periodType);
+    if (group.length === 0) continue;
+    const scored = group.map(scoreExercise);
+    const score  = Math.round(scored.reduce((s, e) => s + e.score, 0) / scored.length);
+    byPeriod[periodType] = { score, exercises: scored };
+  }
+
+  res.json({ hasGoals: true, byPeriod });
+});
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function todayIso(): string {

@@ -4635,6 +4635,140 @@ button.btn-icon {
 }
 
 /* ── Exercise list ──────────────────────────────────────────────────── */
+/* ── Vitality Bar ───────────────────────────────────────────────────── */
+/* ── Vitality cards ─────────────────────────────────────────────── */
+.vb-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+.vb-card {
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+  padding: 0.75rem 0.85rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Top row: heart + label + chevron */
+.vb-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  width: 100%;
+  padding: 0;
+}
+.vb-card-period {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Bar + score */
+.vb-card-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.vb-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.vb-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+.vb-card-score {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  flex-shrink: 0;
+  min-width: 2.4ch;
+  text-align: right;
+}
+
+/* Message */
+.vb-card-msg {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Chevron */
+.vb-chevron {
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  transition: transform 0.2s ease;
+}
+.vb-chevron--open { transform: rotate(180deg); }
+
+/* Breakdown (expanded) */
+.vb-breakdown {
+  border-top: 1px solid var(--rule);
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.vb-subtitle {
+  font-size: 0.65rem;
+  color: var(--ink-faint);
+  margin-top: 0.15rem;
+}
+.vb-row {
+  display: grid;
+  grid-template-columns: 7px 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  row-gap: 0.2rem;
+}
+.vb-row-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.vb-row-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vb-row-track {
+  grid-column: 2;
+  height: 3px;
+  background: var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.vb-row-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.vb-row-pct {
+  font-size: 0.7rem;
+  font-weight: 700;
+  grid-row: 1;
+  grid-column: 3;
+}
+
 .ft-list {
   border: 1px solid var(--rule);
   border-radius: 18px;

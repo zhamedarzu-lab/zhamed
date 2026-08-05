@@ -40,6 +40,113 @@ type Summary = {
   exercises: ExerciseStat[];
 };
 
+type HealthExercise = {
+  exerciseId: number;
+  name:       string;
+  color:      string | null;
+  goalAmount: number;
+  goalPeriod: GoalPeriod;
+  score:      number;
+  periods:    Array<{ start: string; end: string; completion: number; daysAgo: number }>;
+};
+
+type HealthPeriodGroup = { score: number; exercises: HealthExercise[] };
+
+type HealthData = {
+  hasGoals: boolean;
+  byPeriod: {
+    day?:   HealthPeriodGroup;
+    week?:  HealthPeriodGroup;
+    month?: HealthPeriodGroup;
+  };
+};
+
+// ─── Vitality Panel ───────────────────────────────────────────────────────────
+
+function healthColor(score: number) {
+  if (score >= 75) return "#1fcc55";
+  if (score >= 50) return "#f5c800";
+  if (score >= 25) return "#e55c00";
+  return "#e82020";
+}
+
+const PERIOD_LABEL: Record<GoalPeriod, string> = {
+  day:   "Daily",
+  week:  "Weekly",
+  month: "Monthly",
+};
+
+function PeriodCard({ period, group }: { period: GoalPeriod; group: HealthPeriodGroup }) {
+  const [open, setOpen] = useState(false);
+  const { score, exercises } = group;
+  const color   = healthColor(score);
+  const message = score >= 65 ? "Keep it up" : "You suck";
+  const msgColor = score >= 65 ? "#1fcc55" : "#e82020";
+
+  return (
+    <div className="vb-card">
+      <button className="vb-card-btn" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        {/* Heart */}
+        <svg viewBox="0 0 24 24" fill={color} width="14" height="14" style={{ flexShrink: 0 }}>
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <span className="vb-card-period">{PERIOD_LABEL[period]}</span>
+        <svg className={`vb-chevron${open ? " vb-chevron--open" : ""}`}
+          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          width="11" height="11" style={{ marginLeft: "auto", flexShrink: 0 }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {/* Bar + score row */}
+      <div className="vb-card-bar-row">
+        <div className="vb-bar-track">
+          <div className="vb-bar-fill" style={{ width: `${score}%`, background: color }} />
+        </div>
+        <span className="vb-card-score" style={{ color }}>{score}</span>
+      </div>
+
+      {/* Message */}
+      <p className="vb-card-msg" style={{ color: msgColor }}>{message}</p>
+
+      {/* Expandable breakdown */}
+      {open && (
+        <div className="vb-breakdown">
+          {exercises.map(ex => {
+            const c = healthColor(ex.score);
+            return (
+              <div key={ex.exerciseId} className="vb-row">
+                <span className="vb-row-dot" style={{ background: ex.color ?? "#888" }} />
+                <span className="vb-row-name">{ex.name}</span>
+                <div className="vb-row-track">
+                  <div className="vb-row-fill" style={{ width: `${ex.score}%`, background: c }} />
+                </div>
+                <span className="vb-row-pct" style={{ color: c }}>{ex.score}%</span>
+              </div>
+            );
+          })}
+          <p className="vb-subtitle">last 28 days · recent periods weighted more</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VitalityBar({ data }: { data: HealthData }) {
+  if (!data.hasGoals || !data.byPeriod) return null;
+  const periods = (["day", "week", "month"] as GoalPeriod[]).filter(p => data.byPeriod[p]);
+  if (periods.length === 0) return null;
+
+  return (
+    <div className="vb-wrap">
+      {periods.map(p => (
+        <PeriodCard key={p} period={p} group={data.byPeriod[p]!} />
+      ))}
+    </div>
+  );
+}
+
 function currentSlot() {
   const h = new Date().getHours();
   if (h >=  5 && h <  8) return "early morning";
@@ -55,7 +162,10 @@ function currentSlot() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Fitness() {
-  const summary  = useApi<Summary>(`/api/fitness/summary?today=${todayIso()}`);
+  const summary = useApi<Summary>(`/api/fitness/summary?today=${todayIso()}`);
+  const health  = useApi<HealthData>(`/api/fitness/health?today=${todayIso()}`);
+
+  function reloadAll() { void summary.reload(); void health.reload(); }
   const [error,    setError]    = useState<string | null>(null);
   const [addOpen,       setAddOpen]       = useState(false);
   const [newName,       setNewName]       = useState("");
@@ -215,6 +325,7 @@ export default function Fitness() {
         <>
           <WeekGrid exercises={displayOrder} />
           <OverallGoalBar exercises={localOrder} />
+          {health.data && <VitalityBar data={health.data} />}
 
           {displayOrder.length === 0 ? (
             <Empty title="No exercises yet">
@@ -232,7 +343,7 @@ export default function Fitness() {
                   onOpenEdit={setEditStat}
                   onOpenHistory={setHistoryStat}
                   onOpenGoal={setGoalStat}
-                  onChanged={summary.reload}
+                  onChanged={reloadAll}
                   onError={setError}
                   isDragging={dragState?.fromId === ex.exerciseId}
                   isDropTarget={
@@ -256,7 +367,7 @@ export default function Fitness() {
         <Numpad
           stat={numpadStat}
           onClose={() => setNumpadStat(null)}
-          onChanged={summary.reload}
+          onChanged={reloadAll}
           onError={setError}
         />
       )}
@@ -265,7 +376,7 @@ export default function Fitness() {
           stat={editStat}
           color={editStat.color ?? FITNESS_DEFAULT_COLOR}
           onClose={() => setEditStat(null)}
-          onChanged={summary.reload}
+          onChanged={reloadAll}
           onError={setError}
         />
       )}
@@ -274,7 +385,7 @@ export default function Fitness() {
           stat={historyStat}
           color={historyStat.color ?? FITNESS_DEFAULT_COLOR}
           onClose={() => setHistoryStat(null)}
-          onChanged={summary.reload}
+          onChanged={reloadAll}
         />
       )}
       {goalStat && (
@@ -282,7 +393,7 @@ export default function Fitness() {
           stat={goalStat}
           color={goalStat.color ?? FITNESS_DEFAULT_COLOR}
           onClose={() => setGoalStat(null)}
-          onChanged={summary.reload}
+          onChanged={reloadAll}
           onError={setError}
         />
       )}
