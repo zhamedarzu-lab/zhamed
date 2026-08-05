@@ -4897,16 +4897,6 @@ button.btn-icon {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ft-row-goal {
-  display: block;
-  font-size: 0.62rem;
-  font-weight: 500;
-  color: var(--ink-faint);
-  margin-top: 0.15rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .ft-row-right {
   display: flex;
   flex-direction: column;
@@ -5060,6 +5050,21 @@ button.btn-icon {
 .ft-swipe-btn--goal {
   background: #2e7048;
   color: #c8f0d8;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+.ft-swipe-btn-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+}
+.ft-swipe-goal-hint {
+  font-size: 0.58rem;
+  font-weight: 500;
+  opacity: 0.7;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 /* ── Goal modal ─────────────────────────────────────────────── */
