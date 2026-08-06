@@ -41,8 +41,14 @@ type Payment = {
 
 type PaycheckOption = { id: number; month: string; seq: number };
 
-/** "Jul 2/2" — the same style already used for the paycheck payment history. */
+/** "Jul 2/2" — short payday label used in the balance log and chart. */
 const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seqLabel(seq)}`;
+
+/** "Aug 1/2" — fraction format for the payday picker so it doesn't look like a calendar date. */
+function paydayPickerLabel(p: PaycheckOption, all: PaycheckOption[]) {
+  const maxSeq = Math.max(...all.filter(x => x.month === p.month).map(x => x.seq));
+  return `${shortMonth(p.month)} ${p.seq}/${maxSeq}`;
+}
 
 /** Morning / Noon / Evening / Night based on the hour a snapshot was saved. */
 function timeOfDay(iso: string | null): string {
@@ -489,7 +495,7 @@ function CardPanel({
                 <option value="">No paycheck</option>
                 {paychecks.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {paydayLabel(p.month, p.seq)}
+                    {paydayPickerLabel(p, paychecks)}
                   </option>
                 ))}
               </select>
