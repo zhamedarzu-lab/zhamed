@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { currentMonth, dollars, seqLabel, signed } from "../../lib/format";
+import { currentMonth, dollars, signed } from "../../lib/format";
 import {
   AllocBar,
   tagColor,
@@ -189,7 +189,7 @@ export default function PaycheckEditor() {
                     aria-pressed={seq === n}
                     onClick={() => setSeq(n)}
                   >
-                    {seqLabel(n)}
+                    {n}
                   </button>
                 ))}
               </div>

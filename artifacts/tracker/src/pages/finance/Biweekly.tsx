@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { dollars, seqLabel, shortMonth, signed } from "../../lib/format";
+import { dollars, seqFrac, shortMonth, signed } from "../../lib/format";
 import {
   AllocBar,
   tagColor,
@@ -71,7 +71,10 @@ export default function Biweekly() {
       )}
 
       <div className="grid" style={{ gap: "1rem" }}>
-        {data?.map((p) => {
+        {(() => {
+          const maxSeqByMonth = new Map<string, number>();
+          for (const p of data ?? []) maxSeqByMonth.set(p.month, Math.max(maxSeqByMonth.get(p.month) ?? 0, p.seq));
+          return data?.map((p) => {
           const extraTotal = p.extraIncome.reduce((s, e) => s + e.amount, 0);
           return (
             <Panel
@@ -80,7 +83,7 @@ export default function Biweekly() {
                 <div>
                   <h2 style={{ marginTop: "0.1rem" }}>
                     <span className="fig">{shortMonth(p.month)}</span>
-                    <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em", marginLeft: "0.4rem" }}>{seqLabel(p.seq)}</span>
+                    <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em", marginLeft: "0.4rem" }}>{seqFrac(p.seq, maxSeqByMonth.get(p.month) ?? p.seq)}</span>
                     <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
                     <span className="fig">{dollars(p.amount)}</span>
                     {extraTotal > 0.005 && (
@@ -129,7 +132,8 @@ export default function Biweekly() {
               </div>
             </Panel>
           );
-        })}
+        });
+        })()}
       </div>
     </>
   );

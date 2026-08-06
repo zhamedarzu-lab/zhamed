@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
-import { dollars, seqLabel, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
+import { dollars, seqFrac, shortDate, shortMonth, toAmount, todayIso } from "../../lib/format";
 import { BalanceChart, Empty, Loading, Notice, Panel, type Point } from "../../components/ui";
 import { AddItemRow } from "../../components/finance-ui";
 import FinanceNav from "./FinanceNav";
@@ -41,8 +41,8 @@ type Payment = {
 
 type PaycheckOption = { id: number; month: string; seq: number };
 
-/** "Jul 2/2" — short payday label used in the balance log and chart. */
-const paydayLabel = (month: string, seq: number) => `${shortMonth(month)} ${seqLabel(seq)}`;
+/** "Aug 1/2" — payday label using fraction format. */
+const paydayLabel = (month: string, seq: number, total: number) => `${shortMonth(month)} ${seqFrac(seq, total)}`;
 
 /** "Aug 1/2" — fraction format for the payday picker so it doesn't look like a calendar date. */
 function paydayPickerLabel(p: PaycheckOption, all: PaycheckOption[]) {
@@ -278,12 +278,19 @@ function CardPanel({
   // Keep picker defaulted to the most recent paycheck once data arrives
   const effectivePaycheckId = selectedPaycheckId ?? currentPaycheckId;
 
+  // Max seq per month (from all paychecks) — used to build "1/2", "2/2" labels
+  const maxSeqByMonth = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of paychecks) m.set(p.month, Math.max(m.get(p.month) ?? 0, p.seq));
+    return m;
+  }, [paychecks]);
+
   const sorted = [...snapshots].sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
   const points: Point[] = sorted.map((s) => ({
     date: s.snapshotDate,
     value: s.balance,
     label: s.paycheckMonth != null && s.paycheckSeq != null
-      ? paydayLabel(s.paycheckMonth, s.paycheckSeq)
+      ? paydayLabel(s.paycheckMonth, s.paycheckSeq, maxSeqByMonth.get(s.paycheckMonth) ?? s.paycheckSeq)
       : undefined,
   }));
   // Latest first, for the log list.
@@ -296,7 +303,7 @@ function CardPanel({
 
   const latest = sorted[sorted.length - 1];
   const asOfLabel = latest && latest.paycheckMonth != null && latest.paycheckSeq != null
-    ? paydayLabel(latest.paycheckMonth, latest.paycheckSeq)
+    ? paydayLabel(latest.paycheckMonth, latest.paycheckSeq, maxSeqByMonth.get(latest.paycheckMonth) ?? latest.paycheckSeq)
     : account.lastUpdated ? shortDate(account.lastUpdated) : null;
 
   function applyPending() {
@@ -449,7 +456,7 @@ function CardPanel({
             log={log}
             paydayLabel={(s) =>
               s.paycheckId != null && s.paycheckMonth != null && s.paycheckSeq != null
-                ? paydayLabel(s.paycheckMonth, s.paycheckSeq)
+                ? paydayLabel(s.paycheckMonth, s.paycheckSeq, maxSeqByMonth.get(s.paycheckMonth) ?? s.paycheckSeq)
                 : null
             }
             onClose={() => setShowLog(false)}
@@ -464,7 +471,7 @@ function CardPanel({
               {payments.map((p) => (
                 <li key={p.id}>
                   <Link to={`/finance/paycheck/${p.paycheckId}`} className="debt-history-when">
-                    {shortMonth(p.month)} {seqLabel(p.seq)}
+                    {shortMonth(p.month)} {seqFrac(p.seq, maxSeqByMonth.get(p.month) ?? p.seq)}
                   </Link>
                   <span className="debt-history-note">{p.note || <em>Untitled</em>}</span>
                   <span className="debt-history-amt">{dollars(p.amount)}</span>

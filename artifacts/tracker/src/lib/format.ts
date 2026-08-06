@@ -61,6 +61,8 @@ export function ordinal(n: number) {
  * error. "1st" is right whether the month held two or three.
  */
 export const seqLabel = (seq: number) => ordinal(seq);
+/** "1/2", "2/2" — fraction label when you know the total paychecks in the month. */
+export const seqFrac = (seq: number, total: number) => `${seq}/${total}`;
 
 export const todayIso = () => {
   const d = new Date();

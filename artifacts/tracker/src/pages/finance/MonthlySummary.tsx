@@ -1,7 +1,7 @@
 import { Suspense, lazy, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../../lib/api";
-import { currentMonth, dollars, monthName, seqLabel, signed } from "../../lib/format";
+import { currentMonth, dollars, monthName, seqFrac, signed } from "../../lib/format";
 import {
   AllocBar,
   Empty,
@@ -195,7 +195,9 @@ export default function MonthlySummary() {
 
       {/* ── Per-paycheck cards (collapsible, start collapsed) ──────── */}
       <div className="grid" style={{ gap: "0.75rem", marginTop: "1rem" }}>
-        {paychecks.data?.map((p) => {
+        {(() => {
+          const maxSeq = Math.max(...(paychecks.data ?? []).map(p => p.seq), 1);
+          return paychecks.data?.map((p) => {
           const open = openIds.has(p.id);
           const extraTotal = p.extraIncome.reduce((s, e) => s + e.amount, 0);
           const pool = p.amount + extraTotal;
@@ -211,7 +213,7 @@ export default function MonthlySummary() {
                   <IcChevron open={open} />
                   <h2 style={{ margin: 0 }}>
                     <span className="muted" style={{ fontFamily: "var(--fig)", fontSize: "0.85em" }}>
-                      {seqLabel(p.seq)}
+                      {seqFrac(p.seq, maxSeq)}
                     </span>
                     <span className="muted" style={{ margin: "0 0.4rem" }}>·</span>
                     <span className="fig">{dollars(p.amount)}</span>
@@ -264,7 +266,8 @@ export default function MonthlySummary() {
               )}
             </Panel>
           );
-        })}
+        });
+        })()}
       </div>
 
       <Suspense fallback={<Loading />}>
