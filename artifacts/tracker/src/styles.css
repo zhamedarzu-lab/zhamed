@@ -3869,6 +3869,33 @@ button.btn-icon {
   border-top: 1px solid var(--rule);
 }
 
+.debt-log-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.debt-log-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.debt-payday-select {
+  width: 100%;
+  background: var(--surface-raised, var(--surface));
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.28rem 0.5rem;
+  cursor: pointer;
+  appearance: auto;
+}
+
 .debt-bal-input {
   flex: 1;
 }
