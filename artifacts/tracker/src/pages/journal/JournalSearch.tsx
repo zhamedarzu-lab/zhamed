@@ -232,7 +232,7 @@ export default function JournalSearch() {
 
         {groups.map(([date, group]) => (
           <div key={date} className="jsearch-group">
-            <p className="jsearch-group-date">{fmtFullDate(date)}</p>
+            <p className="jsearch-group-date">{fmtFullDate(date + "T00:00:00")}</p>
             {group.map(e => {
               const isOpener = e.looseEndType === "open";
               const isCloser = e.looseEndType === "close";
