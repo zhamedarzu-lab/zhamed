@@ -247,14 +247,10 @@ type DayPopupProps = {
   onGoToWeek: () => void;
   onHighlight: () => void;
   onAddEntry: () => void;
-  onAddDayNote: (content: string) => Promise<void>;
   onDeleteDayNote: (id: number) => Promise<void>;
 };
-function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoToDay, onGoToWeek, onHighlight, onAddEntry, onAddDayNote, onDeleteDayNote }: DayPopupProps) {
-  const [noteOpen,      setNoteOpen]      = useState(dayNotes.length > 0);
-  const [noteInputOpen, setNoteInputOpen] = useState(false);
-  const [noteInput,     setNoteInput]     = useState("");
-  const [noteSaving,    setNoteSaving]    = useState(false);
+function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoToDay, onGoToWeek, onHighlight, onAddEntry, onDeleteDayNote }: DayPopupProps) {
+  const [noteOpen, setNoteOpen] = useState(dayNotes.length > 0);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -265,17 +261,6 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
   const sorted = [...entries].sort(
     (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
-
-  async function handleAddNote() {
-    const c = noteInput.trim();
-    if (!c || noteSaving) return;
-    setNoteSaving(true);
-    try {
-      await onAddDayNote(c);
-      setNoteInput("");
-      setNoteInputOpen(false);
-    } finally { setNoteSaving(false); }
-  }
 
   return (
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -310,21 +295,6 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
                       </li>
                     ))}
                   </ul>
-                )}
-                {noteInputOpen ? (
-                  <div className="dp-note-input-row">
-                    <input
-                      className="dp-note-input"
-                      placeholder="Add a note…"
-                      value={noteInput}
-                      onChange={e => setNoteInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") void handleAddNote(); if (e.key === "Escape") setNoteInputOpen(false); }}
-                      autoFocus
-                    />
-                    <button className="dp-note-save" onClick={() => void handleAddNote()} disabled={!noteInput.trim() || noteSaving}>+</button>
-                  </div>
-                ) : (
-                  <button className="dp-note-trigger" onClick={() => setNoteInputOpen(true)} aria-label="Add note">+</button>
                 )}
               </div>
             )}
@@ -656,7 +626,6 @@ export default function Journal() {
             const ymd = toYMD(dayPopup.date);
             setHlModal({ date: ymd, existing: highlights.find(h => h.date === ymd) ?? null });
           }}
-          onAddDayNote={content => addDayNoteForDate(toYMD(dayPopup.date), content)}
           onDeleteDayNote={deleteDayNoteForDate}
         />
       )}
