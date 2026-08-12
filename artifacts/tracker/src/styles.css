@@ -721,6 +721,44 @@ a:hover {
   color: var(--ink-soft);
   font-weight: 600;
 }
+.jsearch-hits--notes {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.jsearch-note-card {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255,255,255,0.035);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.jsearch-note-period {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.jsearch-note-period-type {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.3);
+}
+.jsearch-note-period-label {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.45);
+}
+.jsearch-note-content {
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.8);
+  margin: 0;
+  line-height: 1.45;
+  word-break: break-word;
+}
 
 /* Add form */
 .journal-add-form {

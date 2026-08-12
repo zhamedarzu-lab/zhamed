@@ -3,6 +3,32 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { type Entry, ENTRY_COLORS, fmtTime, fmtRange, fmtFullDate, EntryModal } from "./EntryModal";
 
+type PeriodNote = { id: number; periodType: string; periodKey: string; content: string; createdAt: string };
+
+function notePeriodLabel(type: string, key: string): string {
+  if (type === "day") {
+    const d = new Date(key + "T00:00:00");
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    if (key === todayKey) return "Today";
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  }
+  if (type === "week") {
+    const [year, wk] = key.split("-W");
+    return `Week ${wk}, ${year}`;
+  }
+  if (type === "month") {
+    const [year, mo] = key.split("-");
+    const d = new Date(Number(year), Number(mo) - 1, 1);
+    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }
+  return key; // year
+}
+
+function notePeriodTypeLabel(type: string): string {
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -42,11 +68,16 @@ export default function JournalSearch() {
   const [loading,      setLoading]      = useState(true);
   const [activeColors, setActiveColors] = useState<Set<string>>(new Set());
   const [selected,     setSelected]     = useState<Entry | null>(null);
+  const [periodNotes,  setPeriodNotes]  = useState<PeriodNote[]>([]);
 
   useEffect(() => {
-    api.get<Entry[]>("/api/journal/entries")
-      .then(setEntries)
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get<Entry[]>("/api/journal/entries"),
+      api.get<PeriodNote[]>("/api/journal/period-notes/all"),
+    ]).then(([ents, notes]) => {
+      setEntries(ents);
+      setPeriodNotes(notes);
+    }).finally(() => setLoading(false));
     setTimeout(() => inputRef.current?.focus(), 80);
   }, []);
 
@@ -121,6 +152,13 @@ export default function JournalSearch() {
     }
     return Array.from(map.entries());
   }, [results]);
+
+  // Period notes — only shown on text queries (no color/mode filter applies)
+  const noteResults = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || filterMode !== "normal") return [];
+    return periodNotes.filter(n => n.content.toLowerCase().includes(q));
+  }, [query, periodNotes, filterMode]);
 
   const q = query.trim();
   const hasFilter = q.length > 0 || activeColors.size > 0 || filterMode !== "normal";
@@ -260,6 +298,25 @@ export default function JournalSearch() {
             })}
           </div>
         ))}
+
+        {noteResults.length > 0 && (
+          <>
+            <p className="jsearch-hits jsearch-hits--notes">
+              <strong>{noteResults.length}</strong> {noteResults.length === 1 ? "note" : "notes"}
+            </p>
+            {noteResults.map(n => (
+              <div key={n.id} className="jsearch-note-card">
+                <div className="jsearch-note-period">
+                  <span className="jsearch-note-period-type">{notePeriodTypeLabel(n.periodType)}</span>
+                  <span className="jsearch-note-period-label">{notePeriodLabel(n.periodType, n.periodKey)}</span>
+                </div>
+                <p className="jsearch-note-content">
+                  <Highlight text={n.content} query={q} />
+                </p>
+              </div>
+            ))}
+          </>
+        )}
 
         {selected && (
           <EntryModal

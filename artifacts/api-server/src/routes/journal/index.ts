@@ -284,6 +284,15 @@ router.get("/period-notes", async (req, res) => {
   res.json(rows);
 });
 
+// GET /api/journal/period-notes/all — returns every note for search
+router.get("/period-notes/all", async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(journalPeriodNotesTable)
+    .orderBy(desc(journalPeriodNotesTable.createdAt));
+  res.json(rows);
+});
+
 // POST /api/journal/period-notes
 router.post("/period-notes", async (req, res) => {
   const Input = z.object({
