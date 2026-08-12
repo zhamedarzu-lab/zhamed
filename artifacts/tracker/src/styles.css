@@ -6734,15 +6734,23 @@ button.btn-icon {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  padding: 0.2rem 0;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.pnote-item:last-child { border-bottom: none; }
+.pnote-item::before {
+  content: "–";
+  color: rgba(255,255,255,0.2);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  line-height: 1.5;
 }
 .pnote-text {
   flex: 1;
   font-size: 0.84rem;
-  color: rgba(255,255,255,0.72);
+  color: rgba(255,255,255,0.75);
   line-height: 1.5;
   word-break: break-word;
-  font-style: italic;
 }
 .pnote-del {
   flex-shrink: 0;
