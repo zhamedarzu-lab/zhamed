@@ -306,8 +306,9 @@ export default function JournalSearch() {
             </p>
             {noteResults.map(n => (
               <div key={n.id} className="jsearch-note-card">
-                <div className="jsearch-note-period">
-                  <span className="jsearch-note-period-type">{notePeriodTypeLabel(n.periodType)}</span>
+                <div className="jsearch-note-meta">
+                  <span className="jsearch-note-type-badge">{notePeriodTypeLabel(n.periodType)}</span>
+                  <span className="jsearch-note-meta-sep">·</span>
                   <span className="jsearch-note-period-label">{notePeriodLabel(n.periodType, n.periodKey)}</span>
                 </div>
                 <p className="jsearch-note-content">

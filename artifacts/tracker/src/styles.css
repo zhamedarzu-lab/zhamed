@@ -734,27 +734,34 @@ a:hover {
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
-.jsearch-note-period {
+.jsearch-note-meta {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
-.jsearch-note-period-type {
-  font-size: 0.68rem;
+.jsearch-note-type-badge {
+  font-size: 0.63rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.07em;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.4);
+  border-radius: 4px;
+  padding: 0.1rem 0.38rem;
+}
+.jsearch-note-meta-sep {
+  color: rgba(255,255,255,0.18);
+  font-size: 0.7rem;
 }
 .jsearch-note-period-label {
   font-size: 0.75rem;
-  color: rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.5);
 }
 .jsearch-note-content {
   font-size: 0.875rem;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255,255,255,0.82);
   margin: 0;
   line-height: 1.45;
   word-break: break-word;
