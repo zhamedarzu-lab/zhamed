@@ -1827,16 +1827,16 @@ a:hover {
 .dp-note-trigger {
   align-self: flex-start;
   background: none;
-  border: 1px dashed rgba(255,255,255,0.12);
-  border-radius: 6px;
-  color: rgba(255,255,255,0.3);
+  border: none;
+  color: rgba(255,255,255,0.22);
   font: inherit;
-  font-size: 0.75rem;
-  padding: 0.2rem 0.55rem;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.1rem 0.25rem;
   cursor: pointer;
-  transition: color 0.12s, border-color 0.12s;
+  transition: color 0.12s;
 }
-.dp-note-trigger:hover { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.22); }
+.dp-note-trigger:hover { color: rgba(255,255,255,0.55); }
 
 .day-popup-highlight-badge {
   font-size: 0.7rem;

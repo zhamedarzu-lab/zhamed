@@ -324,7 +324,7 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
                     <button className="dp-note-save" onClick={() => void handleAddNote()} disabled={!noteInput.trim() || noteSaving}>+</button>
                   </div>
                 ) : (
-                  <button className="dp-note-trigger" onClick={() => setNoteInputOpen(true)} aria-label="Add note">+ add note</button>
+                  <button className="dp-note-trigger" onClick={() => setNoteInputOpen(true)} aria-label="Add note">+</button>
                 )}
               </div>
             )}
