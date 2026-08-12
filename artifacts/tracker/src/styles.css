@@ -1728,6 +1728,116 @@ a:hover {
   color: var(--ink);
   border-color: var(--ink-soft);
 }
+/* Day popup — inline note block */
+.dp-note-block {
+  border-bottom: 1px solid var(--rule);
+}
+.dp-note-hd {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  text-align: left;
+  transition: color 0.12s;
+}
+.dp-note-hd:hover { color: var(--ink); }
+.dp-note-hd-label { flex: 1; }
+.dp-note-chevron {
+  font-size: 0.8rem;
+  display: inline-block;
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+.dp-note-chevron.collapsed { transform: rotate(0deg); }
+.dp-note-body {
+  padding: 0 1rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.dp-note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.dp-note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.dp-note-text {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.dp-note-del {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 0.1rem;
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.12s, color 0.12s;
+}
+.dp-note-del:hover { opacity: 1; color: var(--stamp); }
+.dp-note-input-row {
+  display: flex;
+  gap: 0.4rem;
+}
+.dp-note-input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.55rem;
+  outline: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+.dp-note-input:focus { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); }
+.dp-note-input::placeholder { color: rgba(255,255,255,0.25); }
+.dp-note-save {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.dp-note-save:hover:not(:disabled) { background: rgba(255,255,255,0.12); color: var(--ink); }
+.dp-note-save:disabled { opacity: 0.3; cursor: default; }
+.dp-note-trigger {
+  align-self: flex-start;
+  background: none;
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.3);
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.dp-note-trigger:hover { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.22); }
+
 .day-popup-highlight-badge {
   font-size: 0.7rem;
   font-weight: 600;
@@ -2638,6 +2748,43 @@ a:hover {
   z-index: 1;
   transform: translateX(-50%);
 }
+/* Day-note corner band — subtle diagonal triangle top-right */
+.journal-month-cell.has-day-note::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 13px;
+  height: 13px;
+  background: rgba(255,255,255,0.18);
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+  pointer-events: none;
+  border-radius: 0 6px 0 0;
+}
+.journal-month-cell.out-of-month.has-day-note::after {
+  opacity: 0.35;
+}
+
+/* Week note dash marks — inside Saturday cell, right edge */
+.journal-month-week-marks {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  pointer-events: none;
+}
+.journal-month-week-dash {
+  display: block;
+  width: 8px;
+  height: 2px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 1px;
+}
+
 /* Highlight ring on month cells — toned down */
 .journal-month-cell.has-highlight {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--hl-color, #4eaaee) 45%, transparent);

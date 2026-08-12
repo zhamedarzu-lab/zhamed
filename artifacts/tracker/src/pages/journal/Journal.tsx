@@ -240,14 +240,22 @@ type DayPopupProps = {
   date: Date;
   entries: Entry[];
   highlight: DayHighlight | null;
+  dayNotes: PeriodNote[];
   onClose: () => void;
   onSelect: (e: Entry) => void;
   onGoToDay: () => void;
   onGoToWeek: () => void;
   onHighlight: () => void;
   onAddEntry: () => void;
+  onAddDayNote: (content: string) => Promise<void>;
+  onDeleteDayNote: (id: number) => Promise<void>;
 };
-function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onGoToWeek, onHighlight, onAddEntry }: DayPopupProps) {
+function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoToDay, onGoToWeek, onHighlight, onAddEntry, onAddDayNote, onDeleteDayNote }: DayPopupProps) {
+  const [noteOpen,      setNoteOpen]      = useState(dayNotes.length > 0);
+  const [noteInputOpen, setNoteInputOpen] = useState(false);
+  const [noteInput,     setNoteInput]     = useState("");
+  const [noteSaving,    setNoteSaving]    = useState(false);
+
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -257,6 +265,17 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onGo
   const sorted = [...entries].sort(
     (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
+
+  async function handleAddNote() {
+    const c = noteInput.trim();
+    if (!c || noteSaving) return;
+    setNoteSaving(true);
+    try {
+      await onAddDayNote(c);
+      setNoteInput("");
+      setNoteInputOpen(false);
+    } finally { setNoteSaving(false); }
+  }
 
   return (
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -274,6 +293,42 @@ function DayPopup({ date, entries, highlight, onClose, onSelect, onGoToDay, onGo
           <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className="day-popup-list">
+          {/* Note block — collapsible, sits at the top */}
+          <div className="dp-note-block">
+            <button className="dp-note-hd" onClick={() => setNoteOpen(o => !o)}>
+              <span className="dp-note-hd-label">Note{dayNotes.length > 0 ? ` (${dayNotes.length})` : ""}</span>
+              <span className={`dp-note-chevron${noteOpen ? "" : " collapsed"}`}>›</span>
+            </button>
+            {noteOpen && (
+              <div className="dp-note-body">
+                {dayNotes.length > 0 && (
+                  <ul className="dp-note-list">
+                    {dayNotes.map(n => (
+                      <li key={n.id} className="dp-note-item">
+                        <span className="dp-note-text">{n.content}</span>
+                        <button className="dp-note-del" onClick={() => void onDeleteDayNote(n.id)} aria-label="Remove">×</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {noteInputOpen ? (
+                  <div className="dp-note-input-row">
+                    <input
+                      className="dp-note-input"
+                      placeholder="Add a note…"
+                      value={noteInput}
+                      onChange={e => setNoteInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") void handleAddNote(); if (e.key === "Escape") setNoteInputOpen(false); }}
+                      autoFocus
+                    />
+                    <button className="dp-note-save" onClick={() => void handleAddNote()} disabled={!noteInput.trim() || noteSaving}>+</button>
+                  </div>
+                ) : (
+                  <button className="dp-note-trigger" onClick={() => setNoteInputOpen(true)} aria-label="Add note">+ add note</button>
+                )}
+              </div>
+            )}
+          </div>
           {highlight && (
             <button className="day-popup-row day-popup-row--highlight" onClick={() => { onClose(); onHighlight(); }}>
               <span className="day-popup-dot" style={{ background: highlight.color, ...br(highlight.color) }} />
@@ -344,9 +399,10 @@ export default function Journal() {
   const hdayScrollRef = useRef<HTMLDivElement>(null);
   const [periodNotesOpen, setPeriodNotesOpen] = useState(false);
   const [periodInputOpen, setPeriodInputOpen] = useState(false);
-  const [periodNotes,  setPeriodNotes]  = useState<PeriodNote[]>([]);
-  const [periodInput,  setPeriodInput]  = useState("");
-  const [periodSaving, setPeriodSaving] = useState(false);
+  const [periodNotes,    setPeriodNotes]    = useState<PeriodNote[]>([]);
+  const [periodInput,    setPeriodInput]    = useState("");
+  const [periodSaving,   setPeriodSaving]   = useState(false);
+  const [allPeriodNotes, setAllPeriodNotes] = useState<PeriodNote[]>([]);
 
   function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
 
@@ -415,9 +471,17 @@ export default function Journal() {
     } catch { /* silently ignore */ }
   }, []);
 
+  const fetchAllPeriodNotes = useCallback(async () => {
+    try {
+      const data = await api.get<PeriodNote[]>("/api/journal/period-notes/all");
+      setAllPeriodNotes(data);
+    } catch {}
+  }, []);
+
   useEffect(() => { void fetchEntries(); }, [fetchEntries]);
   useEffect(() => { void fetchHighlights(); }, [fetchHighlights]);
   useEffect(() => { void fetchOpenEnds(); }, [fetchOpenEnds]);
+  useEffect(() => { void fetchAllPeriodNotes(); }, [fetchAllPeriodNotes]);
 
   // Fetch period notes whenever the view or focus date changes
   useEffect(() => {
@@ -467,6 +531,7 @@ export default function Journal() {
     try {
       const note = await api.post<PeriodNote>("/api/journal/period-notes", { periodType: view, periodKey: key, content });
       setPeriodNotes(prev => [note, ...prev]);
+      setAllPeriodNotes(prev => [note, ...prev]);
       setPeriodInput("");
       setPeriodInputOpen(false);
     } finally { setPeriodSaving(false); }
@@ -474,6 +539,19 @@ export default function Journal() {
 
   async function deletePeriodNote(id: number) {
     await api.del(`/api/journal/period-notes/${id}`);
+    setPeriodNotes(prev => prev.filter(n => n.id !== id));
+    setAllPeriodNotes(prev => prev.filter(n => n.id !== id));
+  }
+
+  async function addDayNoteForDate(ymd: string, content: string): Promise<void> {
+    const note = await api.post<PeriodNote>("/api/journal/period-notes", { periodType: "day", periodKey: ymd, content });
+    setAllPeriodNotes(prev => [note, ...prev]);
+    if (view === "day" && toYMD(focus) === ymd) setPeriodNotes(prev => [note, ...prev]);
+  }
+
+  async function deleteDayNoteForDate(id: number): Promise<void> {
+    await api.del(`/api/journal/period-notes/${id}`);
+    setAllPeriodNotes(prev => prev.filter(n => n.id !== id));
     setPeriodNotes(prev => prev.filter(n => n.id !== id));
   }
 
@@ -568,6 +646,7 @@ export default function Journal() {
           date={dayPopup.date}
           entries={dayPopup.entries}
           highlight={highlights.find(h => h.date === toYMD(dayPopup.date)) ?? null}
+          dayNotes={allPeriodNotes.filter(n => n.periodType === "day" && n.periodKey === toYMD(dayPopup.date))}
           onClose={() => setDayPopup(null)}
           onAddEntry={() => { setFocus(dayPopup.date); setView("day"); setAdding(true); }}
           onSelect={e => setModal(e)}
@@ -577,6 +656,8 @@ export default function Journal() {
             const ymd = toYMD(dayPopup.date);
             setHlModal({ date: ymd, existing: highlights.find(h => h.date === ymd) ?? null });
           }}
+          onAddDayNote={content => addDayNoteForDate(toYMD(dayPopup.date), content)}
+          onDeleteDayNote={deleteDayNoteForDate}
         />
       )}
 
@@ -1328,6 +1409,15 @@ export default function Journal() {
           const dayFrac = (n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds()) / 86400;
           return (n.getDate() - 1 + dayFrac) / daysInMonth * 100;
         })() : -1;
+        const dayNoteSet = new Set(
+          allPeriodNotes.filter(n => n.periodType === "day").map(n => n.periodKey)
+        );
+        const weekNotesMap = new Map<string, number>();
+        for (const n of allPeriodNotes) {
+          if (n.periodType === "week") {
+            weekNotesMap.set(n.periodKey, (weekNotesMap.get(n.periodKey) ?? 0) + 1);
+          }
+        }
         return (
           <>
           <div className="journal-month">
@@ -1361,9 +1451,15 @@ export default function Journal() {
                 const allDayEntries = [...carryoversForDate(ymd, entries), ...dayEntries];
                 const isT = ymd === todayYmd;
                 const hl  = highlights.find(h => h.date === ymd) ?? null;
+                const hasDayNote = dayNoteSet.has(ymd);
+                // Week marks live in the Saturday cell (i % 7 === 6)
+                const isSaturday = i % 7 === 6;
+                const weekSun = isSaturday ? addDays(gridStart, i - 6) : null;
+                const weekKey = weekSun ? isoWeekKey(weekSun) : null;
+                const weekNoteCount = weekKey ? Math.min(weekNotesMap.get(weekKey) ?? 0, 2) : 0;
                 return (
                   <div key={ymd}
-                    className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}${hl?" has-highlight":""}`}
+                    className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}${hl?" has-highlight":""}${hasDayNote?" has-day-note":""}`}
                     style={hl ? { "--hl-color": hl.color } as React.CSSProperties : undefined}
                     onClick={() => setDayPopup({ date: day, entries: allDayEntries })}>
                     {isT && (
@@ -1387,6 +1483,13 @@ export default function Journal() {
                           style={{ background: e.color === BLACK ? undefined : e.color, ...(e.color === BLACK ? { background: "rgba(255,255,255,0.5)" } : {}) }} />
                       ))}
                     </div>
+                    {isSaturday && weekNoteCount > 0 && (
+                      <div className="journal-month-week-marks" aria-hidden="true">
+                        {Array.from({ length: weekNoteCount }, (_, ni) => (
+                          <span key={ni} className="journal-month-week-dash" />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
