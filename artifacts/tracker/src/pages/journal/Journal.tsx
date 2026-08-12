@@ -1454,8 +1454,9 @@ export default function Journal() {
                 const hasDayNote = dayNoteSet.has(ymd);
                 // Week marks live in the Saturday cell (i % 7 === 6)
                 const isSaturday = i % 7 === 6;
-                const weekSun = isSaturday ? addDays(gridStart, i - 6) : null;
-                const weekKey = weekSun ? isoWeekKey(weekSun) : null;
+                // Use Wednesday of each row (i-3) — mid-week, always the correct ISO week
+                const weekWed = isSaturday ? addDays(gridStart, i - 3) : null;
+                const weekKey = weekWed ? isoWeekKey(weekWed) : null;
                 const weekNoteCount = weekKey ? Math.min(weekNotesMap.get(weekKey) ?? 0, 2) : 0;
                 return (
                   <div key={ymd}
