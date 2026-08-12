@@ -50,7 +50,6 @@ function endOfMonth(d: Date)   { return new Date(d.getFullYear(), d.getMonth() +
 
 /* ── Period notes ──────────────────────────────────────────────────── */
 type PeriodNote = { id: number; periodType: string; periodKey: string; content: string; createdAt: string };
-type PeriodTab  = "day" | "week" | "month" | "year";
 
 function isoWeekKey(d: Date): string {
   const tmp = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -59,7 +58,7 @@ function isoWeekKey(d: Date): string {
   const w = 1 + Math.round(((tmp.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
   return `${tmp.getFullYear()}-W${String(w).padStart(2, "0")}`;
 }
-function periodKeyFor(tab: PeriodTab, d: Date): string {
+function periodKeyFor(tab: string, d: Date): string {
   if (tab === "day")   return toYMD(d);
   if (tab === "week")  return isoWeekKey(d);
   if (tab === "month") return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -343,7 +342,7 @@ export default function Journal() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const timelineRef  = useRef<HTMLDivElement>(null);
   const hdayScrollRef = useRef<HTMLDivElement>(null);
-  const [periodTab,    setPeriodTab]    = useState<PeriodTab>("day");
+  const [periodNotesOpen, setPeriodNotesOpen] = useState(false);
   const [periodNotes,  setPeriodNotes]  = useState<PeriodNote[]>([]);
   const [periodInput,  setPeriodInput]  = useState("");
   const [periodSaving, setPeriodSaving] = useState(false);
@@ -419,16 +418,15 @@ export default function Journal() {
   useEffect(() => { void fetchHighlights(); }, [fetchHighlights]);
   useEffect(() => { void fetchOpenEnds(); }, [fetchOpenEnds]);
 
-  // Sync period tab to the active view
-  useEffect(() => { setPeriodTab(view as PeriodTab); }, [view]);
-
-  // Fetch period notes whenever the tab or focus date changes
+  // Fetch period notes whenever the view or focus date changes
   useEffect(() => {
-    const key = periodKeyFor(periodTab, focus);
-    api.get<PeriodNote[]>(`/api/journal/period-notes?periodType=${periodTab}&periodKey=${encodeURIComponent(key)}`)
+    setPeriodNotesOpen(false);
+    setPeriodInput("");
+    const key = periodKeyFor(view, focus);
+    api.get<PeriodNote[]>(`/api/journal/period-notes?periodType=${view}&periodKey=${encodeURIComponent(key)}`)
       .then(setPeriodNotes)
       .catch(() => {});
-  }, [periodTab, focus]);
+  }, [view, focus]);
 
   useEffect(() => {
     if (view !== "day" || !hdayScrollRef.current) return;
@@ -462,10 +460,10 @@ export default function Journal() {
   async function addPeriodNote() {
     const content = periodInput.trim();
     if (!content || periodSaving) return;
-    const key = periodKeyFor(periodTab, focus);
+    const key = periodKeyFor(view, focus);
     setPeriodSaving(true);
     try {
-      const note = await api.post<PeriodNote>("/api/journal/period-notes", { periodType: periodTab, periodKey: key, content });
+      const note = await api.post<PeriodNote>("/api/journal/period-notes", { periodType: view, periodKey: key, content });
       setPeriodNotes(prev => [note, ...prev]);
       setPeriodInput("");
     } finally { setPeriodSaving(false); }
@@ -830,45 +828,81 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* Entry list below grid */}
-          {(dayEntries.length > 0 || focusHl) && (
-            <div className="journal-hday-list">
-              {focusHl && (
-                <button className="journal-hday-list-row journal-hday-list-row--highlight"
-                  onClick={() => setHlModal({ date: focusYmd, existing: focusHl })}>
-                  <span className="journal-hday-list-dot" style={{ background: focusHl.color, ...br(focusHl.color) } as React.CSSProperties} />
-                  <span className="journal-hday-list-time">
-                    {focusHl.startTime
-                      ? focusHl.endTime
-                        ? `${fmtHHMM(focusHl.startTime)} – ${fmtHHMM(focusHl.endTime)}`
-                        : fmtHHMM(focusHl.startTime)
-                      : "All day"}
-                  </span>
-                  <span className="journal-hday-list-label">✦ {focusHl.label || "Highlight"}</span>
-                </button>
+          {/* Period note + entry list below grid */}
+          <div className="journal-hday-list">
+            <div className="pnote-block">
+              <button className="pnote-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
+                <span className="pnote-hd-label">
+                  {focusYmd === todayYmd ? "Note for today" : `Note for ${focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`}
+                </span>
+                {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
+                <span className={`pnote-chevron${periodNotesOpen ? "" : " collapsed"}`}>›</span>
+              </button>
+              {periodNotesOpen && (
+                <div className="pnote-body">
+                  {periodNotes.length > 0 && (
+                    <ul className="pnote-list">
+                      {periodNotes.map(n => (
+                        <li key={n.id} className="pnote-item">
+                          <span className="pnote-text">{n.content}</span>
+                          <button className="pnote-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove note">×</button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="pnote-input-row">
+                    <input
+                      className="pnote-input"
+                      placeholder={focusYmd === todayYmd ? "Note for today…" : `Note for ${focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}…`}
+                      value={periodInput}
+                      onChange={e => setPeriodInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
+                      autoFocus
+                    />
+                    <button className="pnote-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
+                  </div>
+                </div>
               )}
-              {dayEntries.map(e => {
-                const isCarryover = e.entryDate !== focusYmd;
-                const isOpener = e.looseEndType === 'open';
-                const isCloser = e.looseEndType === 'close';
-                const hasCloseEntry = !isCloser && entries.some(x => x.looseEndLink === e.id && x.looseEndType === 'close');
-                return (
-                  <button key={e.id} className={`journal-hday-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
-                    <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
-                    {isCarryover
-                      ? <span className="journal-hday-list-time">— {e.endTime ? fmtTime(e.endTime) : ""}</span>
-                      : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
-                    }
-                    <span className="journal-hday-list-label">
-                      {(isOpener || hasCloseEntry) && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
-                      {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
-                      {e.subject || e.content || "—"}
-                    </span>
-                  </button>
-                );
-              })}
             </div>
-          )}
+            {(dayEntries.length > 0 || focusHl) && (
+              <>
+                {focusHl && (
+                  <button className="journal-hday-list-row journal-hday-list-row--highlight"
+                    onClick={() => setHlModal({ date: focusYmd, existing: focusHl })}>
+                    <span className="journal-hday-list-dot" style={{ background: focusHl.color, ...br(focusHl.color) } as React.CSSProperties} />
+                    <span className="journal-hday-list-time">
+                      {focusHl.startTime
+                        ? focusHl.endTime
+                          ? `${fmtHHMM(focusHl.startTime)} – ${fmtHHMM(focusHl.endTime)}`
+                          : fmtHHMM(focusHl.startTime)
+                        : "All day"}
+                    </span>
+                    <span className="journal-hday-list-label">✦ {focusHl.label || "Highlight"}</span>
+                  </button>
+                )}
+                {dayEntries.map(e => {
+                  const isCarryover = e.entryDate !== focusYmd;
+                  const isOpener = e.looseEndType === 'open';
+                  const isCloser = e.looseEndType === 'close';
+                  const hasCloseEntry = !isCloser && entries.some(x => x.looseEndLink === e.id && x.looseEndType === 'close');
+                  return (
+                    <button key={e.id} className={`journal-hday-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
+                      <span className="journal-hday-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
+                      {isCarryover
+                        ? <span className="journal-hday-list-time">— {e.endTime ? fmtTime(e.endTime) : ""}</span>
+                        : <span className="journal-hday-list-time">{fmtRange(e.startTime, e.endTime)}</span>
+                      }
+                      <span className="journal-hday-list-label">
+                        {(isOpener || hasCloseEntry) && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
+                        {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
+                        {e.subject || e.content || "—"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </div>
           </>
         );
       })()}
@@ -1045,6 +1079,38 @@ export default function Journal() {
 
             return (
               <div className="journal-week-list">
+                <div className="journal-week-group">
+                  <button className="journal-week-group-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
+                    <span className="journal-week-group-day">Notes for this week</span>
+                    {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
+                    <span className={`journal-week-group-chevron${!periodNotesOpen ? " collapsed" : ""}`}>›</span>
+                  </button>
+                  {periodNotesOpen && (
+                    <div className="pnote-body">
+                      {periodNotes.length > 0 && (
+                        <ul className="pnote-list">
+                          {periodNotes.map(n => (
+                            <li key={n.id} className="pnote-item">
+                              <span className="pnote-text">{n.content}</span>
+                              <button className="pnote-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove note">×</button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="pnote-input-row">
+                        <input
+                          className="pnote-input"
+                          placeholder="Note for this week…"
+                          value={periodInput}
+                          onChange={e => setPeriodInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
+                          autoFocus
+                        />
+                        <button className="pnote-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {groups.map(([ymd, group], gi) => {
                   const expanded = expandedDays.has(ymd);
                   const hl = highlights.find(h => h.date === ymd) ?? null;
@@ -1198,6 +1264,38 @@ export default function Journal() {
                 );
               })}
             </div>
+            <div className="pnote-block pnote-block--period">
+              <button className="pnote-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
+                <span className="pnote-hd-label">Notes for {focus.getFullYear()}</span>
+                {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
+                <span className={`pnote-chevron${periodNotesOpen ? "" : " collapsed"}`}>›</span>
+              </button>
+              {periodNotesOpen && (
+                <div className="pnote-body">
+                  {periodNotes.length > 0 && (
+                    <ul className="pnote-list">
+                      {periodNotes.map(n => (
+                        <li key={n.id} className="pnote-item">
+                          <span className="pnote-text">{n.content}</span>
+                          <button className="pnote-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove note">×</button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="pnote-input-row">
+                    <input
+                      className="pnote-input"
+                      placeholder={`Note for ${focus.getFullYear()}…`}
+                      value={periodInput}
+                      onChange={e => setPeriodInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
+                      autoFocus
+                    />
+                    <button className="pnote-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
+                  </div>
+                </div>
+              )}
+            </div>
             <HighlightCountdown highlights={highlights} />
           </>
         );
@@ -1280,52 +1378,43 @@ export default function Journal() {
             </div>
             </div>{/* journal-month-grid-wrap */}
           </div>
+          <div className="pnote-block pnote-block--period">
+            <button className="pnote-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
+              <span className="pnote-hd-label">Notes for {focus.toLocaleDateString("en-US", { month: "long" })}</span>
+              {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
+              <span className={`pnote-chevron${periodNotesOpen ? "" : " collapsed"}`}>›</span>
+            </button>
+            {periodNotesOpen && (
+              <div className="pnote-body">
+                {periodNotes.length > 0 && (
+                  <ul className="pnote-list">
+                    {periodNotes.map(n => (
+                      <li key={n.id} className="pnote-item">
+                        <span className="pnote-text">{n.content}</span>
+                        <button className="pnote-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove note">×</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="pnote-input-row">
+                  <input
+                    className="pnote-input"
+                    placeholder={`Note for ${focus.toLocaleDateString("en-US", { month: "long" })}…`}
+                    value={periodInput}
+                    onChange={e => setPeriodInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
+                    autoFocus
+                  />
+                  <button className="pnote-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
+                </div>
+              </div>
+            )}
+          </div>
           <HighlightCountdown highlights={highlights} />
         </>
         );
       })()}
 
-      {/* ── Period Notes ──────────────────────────────────────────────── */}
-      {(() => {
-        function tabLabel(t: PeriodTab) {
-          if (t === "day")   return focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-          if (t === "week")  return `Wk ${isoWeekKey(focus).split("-W")[1]}`;
-          if (t === "month") return focus.toLocaleDateString("en-US", { month: "long" });
-          return String(focus.getFullYear());
-        }
-        const activeLabel = tabLabel(periodTab);
-        return (
-          <div className="pnotes">
-            <div className="pnotes-tabs">
-              {(["day", "week", "month", "year"] as PeriodTab[]).map(t => (
-                <button key={t} className={`pnotes-tab${periodTab === t ? " active" : ""}`} onClick={() => setPeriodTab(t)}>
-                  {tabLabel(t)}
-                </button>
-              ))}
-            </div>
-            <div className="pnotes-input-row">
-              <input
-                className="pnotes-input"
-                placeholder={`Note for ${activeLabel.toLowerCase()}…`}
-                value={periodInput}
-                onChange={e => setPeriodInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
-              />
-              <button className="pnotes-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
-            </div>
-            {periodNotes.length > 0 && (
-              <ul className="pnotes-list">
-                {periodNotes.map(n => (
-                  <li key={n.id} className="pnotes-item">
-                    <span className="pnotes-text">{n.content}</span>
-                    <button className="pnotes-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove">×</button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        );
-      })()}
 
       {/* Punch banners — up to 3, stacked at the bottom */}
       {punches.length > 0 && (
