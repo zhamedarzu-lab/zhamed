@@ -886,7 +886,11 @@ export default function Journal() {
             <div className="pnote-block">
               <button className="pnote-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
                 <span className="pnote-hd-label">
-                  {focusYmd === todayYmd ? "Note for today" : `Note for ${focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`}
+                  {focusYmd === todayYmd
+                    ? periodNotes.length === 1 ? "Note for today" : "Notes for today"
+                    : periodNotes.length === 1
+                      ? `Note for ${focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`
+                      : `Notes for ${focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`}
                 </span>
                 {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
                 <span className={`pnote-chevron${periodNotesOpen ? "" : " collapsed"}`}>›</span>
