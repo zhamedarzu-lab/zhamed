@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { journalEntriesTable, dayHighlightsTable } from "@workspace/db";
+import { journalEntriesTable, dayHighlightsTable, journalPeriodNotesTable } from "@workspace/db";
 import { and, gte, lte, desc, eq, isNull, like, notInArray, sql } from "drizzle-orm";
 
 const router = Router();
@@ -259,6 +259,53 @@ router.patch("/highlights/:id", async (req, res) => {
     .where(eq(dayHighlightsTable.id, id))
     .returning();
   res.json(row);
+});
+
+// ── Period Notes ─────────────────────────────────────────────────────────────
+const VALID_PERIOD_TYPES = ["day", "week", "month", "year"] as const;
+
+// GET /api/journal/period-notes?periodType=day&periodKey=2026-08-12
+router.get("/period-notes", async (req, res) => {
+  const { periodType, periodKey } = req.query;
+  if (typeof periodType !== "string" || typeof periodKey !== "string") {
+    res.status(400).json({ error: "periodType and periodKey required" }); return;
+  }
+  if (!VALID_PERIOD_TYPES.includes(periodType as typeof VALID_PERIOD_TYPES[number])) {
+    res.status(400).json({ error: "Invalid periodType" }); return;
+  }
+  const rows = await db
+    .select()
+    .from(journalPeriodNotesTable)
+    .where(and(
+      eq(journalPeriodNotesTable.periodType, periodType),
+      eq(journalPeriodNotesTable.periodKey, periodKey),
+    ))
+    .orderBy(desc(journalPeriodNotesTable.createdAt));
+  res.json(rows);
+});
+
+// POST /api/journal/period-notes
+router.post("/period-notes", async (req, res) => {
+  const Input = z.object({
+    periodType: z.enum(["day", "week", "month", "year"]),
+    periodKey:  z.string().min(1),
+    content:    z.string().min(1),
+  });
+  const r = Input.safeParse(req.body);
+  if (!r.success) { res.status(400).json({ error: "Invalid input", fields: r.error.issues }); return; }
+  const [row] = await db
+    .insert(journalPeriodNotesTable)
+    .values(r.data)
+    .returning();
+  res.status(201).json(row);
+});
+
+// DELETE /api/journal/period-notes/:id
+router.delete("/period-notes/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(journalPeriodNotesTable).where(eq(journalPeriodNotesTable.id, id));
+  res.status(204).end();
 });
 
 // DELETE /api/journal/highlights/:id — also deletes the linked entry

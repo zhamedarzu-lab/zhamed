@@ -1,4 +1,4 @@
-import { pgTable, serial, text, date, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, date, timestamp, boolean, integer, index } from "drizzle-orm/pg-core";
 
 export const journalEntriesTable = pgTable("journal_entries", {
   id:           serial("id").primaryKey(),
@@ -31,3 +31,13 @@ export const dayHighlightsTable = pgTable("day_highlights", {
 
 export type DayHighlight = typeof dayHighlightsTable.$inferSelect;
 export type InsertDayHighlight = typeof dayHighlightsTable.$inferInsert;
+
+export const journalPeriodNotesTable = pgTable("journal_period_notes", {
+  id:         serial("id").primaryKey(),
+  periodType: text("period_type").notNull(),
+  periodKey:  text("period_key").notNull(),
+  content:    text("content").notNull(),
+  createdAt:  timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("idx_journal_period_notes_lookup").on(t.periodType, t.periodKey)]);
+
+export type JournalPeriodNote = typeof journalPeriodNotesTable.$inferSelect;

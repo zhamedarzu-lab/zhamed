@@ -48,6 +48,24 @@ function addDays(d: Date, n: number) {
 function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d: Date)   { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
 
+/* ── Period notes ──────────────────────────────────────────────────── */
+type PeriodNote = { id: number; periodType: string; periodKey: string; content: string; createdAt: string };
+type PeriodTab  = "day" | "week" | "month" | "year";
+
+function isoWeekKey(d: Date): string {
+  const tmp = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
+  const week1 = new Date(tmp.getFullYear(), 0, 4);
+  const w = 1 + Math.round(((tmp.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+  return `${tmp.getFullYear()}-W${String(w).padStart(2, "0")}`;
+}
+function periodKeyFor(tab: PeriodTab, d: Date): string {
+  if (tab === "day")   return toYMD(d);
+  if (tab === "week")  return isoWeekKey(d);
+  if (tab === "month") return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return String(d.getFullYear());
+}
+
 function rangeForView(focus: Date, view: View): [string, string] {
   // Fetch one extra day back so cross-midnight entries (started yesterday,
   // ended today) are included in the result set.
@@ -325,6 +343,10 @@ export default function Journal() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const timelineRef  = useRef<HTMLDivElement>(null);
   const hdayScrollRef = useRef<HTMLDivElement>(null);
+  const [periodTab,    setPeriodTab]    = useState<PeriodTab>("day");
+  const [periodNotes,  setPeriodNotes]  = useState<PeriodNote[]>([]);
+  const [periodInput,  setPeriodInput]  = useState("");
+  const [periodSaving, setPeriodSaving] = useState(false);
 
   function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
 
@@ -397,6 +419,17 @@ export default function Journal() {
   useEffect(() => { void fetchHighlights(); }, [fetchHighlights]);
   useEffect(() => { void fetchOpenEnds(); }, [fetchOpenEnds]);
 
+  // Sync period tab to the active view
+  useEffect(() => { setPeriodTab(view as PeriodTab); }, [view]);
+
+  // Fetch period notes whenever the tab or focus date changes
+  useEffect(() => {
+    const key = periodKeyFor(periodTab, focus);
+    api.get<PeriodNote[]>(`/api/journal/period-notes?periodType=${periodTab}&periodKey=${encodeURIComponent(key)}`)
+      .then(setPeriodNotes)
+      .catch(() => {});
+  }, [periodTab, focus]);
+
   useEffect(() => {
     if (view !== "day" || !hdayScrollRef.current) return;
     const COL_W = 1200 / 24;
@@ -424,6 +457,23 @@ export default function Journal() {
   function updateEntry(updated: Entry) {
     setEntries(prev => prev.map(e => e.id === updated.id ? updated : e));
     setModal(prev => prev?.id === updated.id ? updated : prev);
+  }
+
+  async function addPeriodNote() {
+    const content = periodInput.trim();
+    if (!content || periodSaving) return;
+    const key = periodKeyFor(periodTab, focus);
+    setPeriodSaving(true);
+    try {
+      const note = await api.post<PeriodNote>("/api/journal/period-notes", { periodType: periodTab, periodKey: key, content });
+      setPeriodNotes(prev => [note, ...prev]);
+      setPeriodInput("");
+    } finally { setPeriodSaving(false); }
+  }
+
+  async function deletePeriodNote(id: number) {
+    await api.del(`/api/journal/period-notes/${id}`);
+    setPeriodNotes(prev => prev.filter(n => n.id !== id));
   }
 
   function periodLabel() {
@@ -1232,6 +1282,48 @@ export default function Journal() {
           </div>
           <HighlightCountdown highlights={highlights} />
         </>
+        );
+      })()}
+
+      {/* ── Period Notes ──────────────────────────────────────────────── */}
+      {(() => {
+        function tabLabel(t: PeriodTab) {
+          if (t === "day")   return focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+          if (t === "week")  return `Wk ${isoWeekKey(focus).split("-W")[1]}`;
+          if (t === "month") return focus.toLocaleDateString("en-US", { month: "long" });
+          return String(focus.getFullYear());
+        }
+        const activeLabel = tabLabel(periodTab);
+        return (
+          <div className="pnotes">
+            <div className="pnotes-tabs">
+              {(["day", "week", "month", "year"] as PeriodTab[]).map(t => (
+                <button key={t} className={`pnotes-tab${periodTab === t ? " active" : ""}`} onClick={() => setPeriodTab(t)}>
+                  {tabLabel(t)}
+                </button>
+              ))}
+            </div>
+            <div className="pnotes-input-row">
+              <input
+                className="pnotes-input"
+                placeholder={`Note for ${activeLabel.toLowerCase()}…`}
+                value={periodInput}
+                onChange={e => setPeriodInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
+              />
+              <button className="pnotes-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
+            </div>
+            {periodNotes.length > 0 && (
+              <ul className="pnotes-list">
+                {periodNotes.map(n => (
+                  <li key={n.id} className="pnotes-item">
+                    <span className="pnotes-text">{n.content}</span>
+                    <button className="pnotes-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove">×</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         );
       })()}
 
