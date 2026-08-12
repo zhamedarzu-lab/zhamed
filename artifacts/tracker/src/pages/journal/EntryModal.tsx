@@ -144,6 +144,15 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
   const [showOpenPicker,  setShowOpenPicker]  = useState(false);
   const [swatchOpen,      setSwatchOpen]      = useState(false);
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.altKey && e.key === "s") { e.preventDefault(); void submit(); }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, startHHMM, hasEnd, endHHMM, content, subject, color, looseEndType, looseEndLink]);
+
   async function submit() {
     setSaving(true);
     try {
