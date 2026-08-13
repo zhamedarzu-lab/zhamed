@@ -4816,6 +4816,68 @@ button.btn-icon {
   flex-shrink: 0;
 }
 
+/* ── Momentum panel ─────────────────────────────────────────────────── */
+.ft-momentum {
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.ft-momentum-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem 0.5rem;
+  flex-wrap: wrap;
+}
+.ft-momentum-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+.ft-momentum-windows {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+.ft-momentum-win {
+  font-family: var(--fig);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ft-momentum-win--prev {
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+.ft-momentum-win-sep {
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+}
+.ft-momentum-win-unit {
+  font-size: 0.65rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.ft-momentum-delta {
+  font-family: var(--fig);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.15em;
+}
+.ft-momentum-arrow {
+  font-size: 0.8em;
+}
+
 /* ── Overall goal bar ───────────────────────────────────────────────── */
 .ft-overall-bar {
   padding: 0.6rem 1rem 0.7rem;

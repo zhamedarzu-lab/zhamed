@@ -328,6 +328,7 @@ export default function Fitness() {
       {summary.data && (
         <>
           <WeekGrid exercises={displayOrder} />
+          <MomentumPanel exercises={localOrder} />
           <OverallGoalBar exercises={localOrder} />
           {health.data && <VitalityPanel data={health.data} />}
 
@@ -1231,6 +1232,100 @@ function Numpad({
         </button>
       </div>
     </div>
+  );
+}
+
+// ─── MomentumPanel ───────────────────────────────────────────────────────────
+
+function MomentumPanel({ exercises }: { exercises: ExerciseStat[] }) {
+  const totalLast7 = exercises.reduce((s, ex) => s + ex.last7, 0);
+  const totalPrev7 = exercises.reduce((s, ex) => s + ex.prev7, 0);
+
+  // Only render when there's something to show
+  if (totalLast7 === 0 && totalPrev7 === 0) return null;
+
+  const delta =
+    totalPrev7 === 0
+      ? totalLast7 > 0 ? 100 : 0
+      : Math.round(((totalLast7 - totalPrev7) / totalPrev7) * 100);
+
+  const isUp   = delta > 0;
+  const isDown = delta < 0;
+  const color  = isUp ? "#1fcc55" : isDown ? "#e82020" : "var(--ink-faint)";
+  const arrow  = isUp ? "↑" : isDown ? "↓" : "→";
+  const label  = delta === 0 ? "flat" : `${Math.abs(delta)}%`;
+
+  // Aggregate sparkline: sum each exercise's 14-day sparkline by index
+  // All sparklines are the same length (14) and in the same date order
+  const aggregated: number[] = [];
+  if (exercises.length > 0 && exercises[0].sparkline.length > 0) {
+    const len = exercises[0].sparkline.length; // should always be 14
+    for (let i = 0; i < len; i++) {
+      aggregated.push(exercises.reduce((s, ex) => s + (ex.sparkline[i]?.value ?? 0), 0));
+    }
+  }
+
+  return (
+    <div className="ft-momentum">
+      <div className="ft-momentum-top">
+        <span className="ft-momentum-label">Momentum</span>
+        <span className="ft-momentum-windows">
+          <span className="ft-momentum-win ft-momentum-win--cur">{totalLast7.toLocaleString()}</span>
+          <span className="ft-momentum-win-sep"> vs </span>
+          <span className="ft-momentum-win ft-momentum-win--prev">{totalPrev7.toLocaleString()}</span>
+          <span className="ft-momentum-win-unit"> this vs prior 7 days</span>
+        </span>
+        <span className="ft-momentum-delta" style={{ color }}>
+          <span className="ft-momentum-arrow">{arrow}</span>
+          {label}
+        </span>
+      </div>
+      {aggregated.length > 0 && (
+        <MomentumSparkline values={aggregated} />
+      )}
+    </div>
+  );
+}
+
+function MomentumSparkline({ values }: { values: number[] }) {
+  const W = 300, H = 36;
+  const n = values.length;
+  const maxVal = Math.max(...values, 1);
+  const slotW = W / n;
+
+  // Build the bar chart — prev7 is indices 0–6, last7 is indices 7–13
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width="100%"
+      preserveAspectRatio="none"
+      style={{ display: "block" }}
+      aria-hidden="true"
+    >
+      {/* Divider between prev7 and last7 */}
+      <line
+        x1={W / 2} y1={0} x2={W / 2} y2={H}
+        stroke="var(--rule-strong)" strokeWidth="1" strokeDasharray="2 2"
+      />
+      {values.map((v, i) => {
+        const isLast7 = i >= n - 7;
+        const barH = v > 0 ? Math.max((v / maxVal) * (H - 4), 2) : 0;
+        const x = i * slotW;
+        const barW = slotW - 1.5;
+        return (
+          <rect
+            key={i}
+            x={x + 0.75}
+            y={H - barH}
+            width={barW}
+            height={barH}
+            rx={1}
+            fill={isLast7 ? "var(--accent)" : "var(--rule-strong)"}
+            opacity={isLast7 ? (barH > 0 ? 0.85 : 0) : (barH > 0 ? 0.45 : 0)}
+          />
+        );
+      })}
+    </svg>
   );
 }
 
