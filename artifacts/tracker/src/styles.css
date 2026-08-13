@@ -5193,6 +5193,39 @@ button.btn-icon {
   white-space: nowrap;
 }
 
+/* ── Week-over-week trend badge ─────────────────────────────────────── */
+.ft-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  border-radius: 3px;
+  padding: 0.15em 0.35em;
+}
+.ft-trend--up {
+  color: #1fcc55;
+  background: rgba(31, 204, 85, 0.12);
+}
+.ft-trend--down {
+  color: #e82020;
+  background: rgba(232, 32, 32, 0.1);
+}
+.ft-trend--flat {
+  color: var(--ink-faint);
+  background: var(--rule);
+}
+.ft-trend-arrow {
+  font-size: 0.8em;
+  line-height: 1;
+}
+.ft-trend-pct {
+  line-height: 1;
+}
+
 /* ── Desktop fallback action buttons (hover devices only) ───────────── */
 .ft-row-desktop-actions {
   display: none;

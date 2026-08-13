@@ -1086,6 +1086,43 @@ function GoalModal({
   );
 }
 
+// ─── Trend badge ──────────────────────────────────────────────────────────────
+
+function TrendBadge({ stat }: { stat: ExerciseStat }) {
+  const { last7, prev7, delta } = stat;
+  // Only render when there's been any activity in either window
+  if (last7 === 0 && prev7 === 0) return null;
+
+  let arrow: string;
+  let label: string;
+  let cls: string;
+
+  if (delta > 0) {
+    arrow = "↑";
+    label = `${delta}%`;
+    cls   = "ft-trend ft-trend--up";
+  } else if (delta < 0) {
+    arrow = "↓";
+    label = `${Math.abs(delta)}%`;
+    cls   = "ft-trend ft-trend--down";
+  } else {
+    arrow = "→";
+    label = "";
+    cls   = "ft-trend ft-trend--flat";
+  }
+
+  const title = prev7 === 0
+    ? "New this week — no prior data"
+    : `Last 7 days: ${last7.toLocaleString()} ${stat.unit} · Prior 7: ${prev7.toLocaleString()} ${stat.unit}`;
+
+  return (
+    <span className={cls} title={title} aria-label={title}>
+      <span className="ft-trend-arrow">{arrow}</span>
+      {label && <span className="ft-trend-pct">{label}</span>}
+    </span>
+  );
+}
+
 // ─── Exercise row ─────────────────────────────────────────────────────────────
 
 // ─── Numpad ───────────────────────────────────────────────────────────────────
@@ -1650,6 +1687,7 @@ function ExerciseRow({
 
             <div className="ft-row-left">
               <span className="ft-row-name">{stat.name}</span>
+              <TrendBadge stat={stat} />
             </div>
 
             <div className="ft-row-right">
