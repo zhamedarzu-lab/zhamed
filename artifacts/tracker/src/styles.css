@@ -6657,6 +6657,182 @@ button.btn-icon {
 
 /* ── Period Notes — inline collapsible blocks ─────────────────────── */
 
+/* ── Period notes modal ─────────────────────────────────────── */
+.pnm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+.pnm-sheet {
+  background: #1a2228;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+.pnm-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem 0.9rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+.pnm-title {
+  flex: 1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.01em;
+}
+.pnm-close {
+  background: rgba(255,255,255,0.06);
+  border: none;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.45);
+  font-size: 0.85rem;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+  flex-shrink: 0;
+}
+.pnm-close:hover { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
+.pnm-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+}
+.pnm-empty {
+  padding: 2rem 1.2rem;
+  text-align: center;
+  color: rgba(255,255,255,0.25);
+  font-size: 0.84rem;
+  font-style: italic;
+  margin: 0;
+}
+.pnm-list {
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+.pnm-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+}
+.pnm-entry-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.35);
+  font-size: 0.68rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.1rem;
+}
+.pnm-entry-text {
+  flex: 1;
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.82);
+  line-height: 1.55;
+  word-break: break-word;
+}
+.pnm-entry-del {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.15);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.14s;
+  margin-top: 0.05rem;
+}
+.pnm-entry-del:hover { color: rgba(220,50,80,0.75); }
+.pnm-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.pnm-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.pnm-input {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 9px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.88rem;
+  color: #fff;
+  outline: none;
+  font-family: inherit;
+}
+.pnm-input::placeholder { color: rgba(255,255,255,0.25); }
+.pnm-input:focus { border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.07); }
+.pnm-submit {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.75);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.pnm-submit:hover:not(:disabled) { background: rgba(255,255,255,0.2); color: #fff; }
+.pnm-submit:disabled { opacity: 0.3; cursor: default; }
+.pnm-add-trigger {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 9px;
+  color: rgba(255,255,255,0.35);
+  font-size: 0.84rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+}
+.pnm-add-trigger:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.22); }
+
 /* Day view: lives inside journal-hday-list */
 .pnote-block {
   margin: 0.6rem 0.75rem;

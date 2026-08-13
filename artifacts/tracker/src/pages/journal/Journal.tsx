@@ -663,6 +663,68 @@ export default function Journal() {
         />
       )}
 
+      {/* Period notes modal */}
+      {periodNotesOpen && (() => {
+        const fYmd = toYMD(focus);
+        const title = view === "day"
+          ? (fYmd === todayYmd
+            ? (periodNotes.length === 1 ? "Note for today" : "Notes for today")
+            : (periodNotes.length === 1
+              ? `Note for ${focus.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}`
+              : `Notes for ${focus.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}`))
+          : view === "week" ? "Notes for this week"
+          : view === "month" ? `Notes for ${focus.toLocaleDateString("en-US", { month: "long", year: "numeric" })}`
+          : `Notes for ${focus.getFullYear()}`;
+        const placeholder = view === "day"
+          ? (fYmd === todayYmd ? "Add a note for today…" : `Add a note for ${focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}…`)
+          : view === "week" ? "Add a note for this week…"
+          : view === "month" ? `Add a note for ${focus.toLocaleDateString("en-US", { month: "long" })}…`
+          : `Add a note for ${focus.getFullYear()}…`;
+        const closeModal = () => { setPeriodNotesOpen(false); setPeriodInputOpen(false); setPeriodInput(""); };
+        return (
+          <div className="pnm-backdrop" onClick={closeModal}>
+            <div className="pnm-sheet" onClick={e => e.stopPropagation()}>
+              <div className="pnm-header">
+                <span className="pnm-title">{title}</span>
+                <button className="pnm-close" onClick={closeModal} aria-label="Close">✕</button>
+              </div>
+              <div className="pnm-body">
+                {periodNotes.length === 0 ? (
+                  <p className="pnm-empty">No notes yet.</p>
+                ) : (
+                  <div className="pnm-list">
+                    {periodNotes.map((n, i) => (
+                      <div key={n.id} className="pnm-entry">
+                        <span className="pnm-entry-num">{i + 1}</span>
+                        <p className="pnm-entry-text">{n.content}</p>
+                        <button className="pnm-entry-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Delete note">×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="pnm-footer">
+                  {periodInputOpen ? (
+                    <div className="pnm-input-row">
+                      <input
+                        className="pnm-input"
+                        placeholder={placeholder}
+                        value={periodInput}
+                        onChange={e => setPeriodInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); if (e.key === "Escape") { setPeriodInputOpen(false); setPeriodInput(""); } }}
+                        autoFocus
+                      />
+                      <button className="pnm-submit" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>↑</button>
+                    </div>
+                  ) : (
+                    <button className="pnm-add-trigger" onClick={() => setPeriodInputOpen(true)}>+ Add note</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ════ DAY VIEW — 2D grid: X=hour, Y=minute within hour ════ */}
       {view === "day" && (() => {
         const focusYmd  = toYMD(focus);
@@ -884,7 +946,7 @@ export default function Journal() {
           {/* Period note + entry list below grid */}
           <div className="journal-hday-list">
             <div className="pnote-block">
-              <button className="pnote-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
+              <button className="pnote-hd" onClick={() => setPeriodNotesOpen(true)}>
                 <span className="pnote-hd-label">
                   {focusYmd === todayYmd
                     ? periodNotes.length === 1 ? "Note for today" : "Notes for today"
@@ -893,37 +955,7 @@ export default function Journal() {
                       : `Notes for ${focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`}
                 </span>
                 {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
-                <span className={`pnote-chevron${periodNotesOpen ? "" : " collapsed"}`}>›</span>
               </button>
-              {periodNotesOpen && (
-                <div className="pnote-body">
-                  {periodNotes.length > 0 && (
-                    <ul className="pnote-list">
-                      {periodNotes.map(n => (
-                        <li key={n.id} className="pnote-item">
-                          <span className="pnote-text">{n.content}</span>
-                          <button className="pnote-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove note">×</button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {periodInputOpen ? (
-                    <div className="pnote-input-row">
-                      <input
-                        className="pnote-input"
-                        placeholder={focusYmd === todayYmd ? "Note for today…" : `Note for ${focus.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}…`}
-                        value={periodInput}
-                        onChange={e => setPeriodInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
-                        autoFocus
-                      />
-                      <button className="pnote-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
-                    </div>
-                  ) : (
-                    <button className="pnote-add-trigger" onClick={() => setPeriodInputOpen(true)} aria-label="Add note">+</button>
-                  )}
-                </div>
-              )}
             </div>
             {(dayEntries.length > 0 || focusHl) && (
               <>
@@ -1141,40 +1173,10 @@ export default function Journal() {
             return (
               <div className="journal-week-list">
                 <div className="journal-week-group">
-                  <button className="journal-week-group-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
+                  <button className="journal-week-group-hd" onClick={() => setPeriodNotesOpen(true)}>
                     <span className="journal-week-group-day">Notes for this week</span>
                     {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
-                    <span className={`journal-week-group-chevron${!periodNotesOpen ? " collapsed" : ""}`}>›</span>
                   </button>
-                  {periodNotesOpen && (
-                    <div className="pnote-body">
-                      {periodNotes.length > 0 && (
-                        <ul className="pnote-list">
-                          {periodNotes.map(n => (
-                            <li key={n.id} className="pnote-item">
-                              <span className="pnote-text">{n.content}</span>
-                              <button className="pnote-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove note">×</button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {periodInputOpen ? (
-                        <div className="pnote-input-row">
-                          <input
-                            className="pnote-input"
-                            placeholder="Note for this week…"
-                            value={periodInput}
-                            onChange={e => setPeriodInput(e.target.value)}
-                            onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
-                            autoFocus
-                          />
-                          <button className="pnote-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
-                        </div>
-                      ) : (
-                        <button className="pnote-add-trigger" onClick={() => setPeriodInputOpen(true)} aria-label="Add note">+</button>
-                      )}
-                    </div>
-                  )}
                 </div>
                 {groups.map(([ymd, group], gi) => {
                   const expanded = expandedDays.has(ymd);
@@ -1330,40 +1332,10 @@ export default function Journal() {
               })}
             </div>
             <div className="pnote-block pnote-block--period">
-              <button className="pnote-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
+              <button className="pnote-hd" onClick={() => setPeriodNotesOpen(true)}>
                 <span className="pnote-hd-label">Notes for {focus.getFullYear()}</span>
                 {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
-                <span className={`pnote-chevron${periodNotesOpen ? "" : " collapsed"}`}>›</span>
               </button>
-              {periodNotesOpen && (
-                <div className="pnote-body">
-                  {periodNotes.length > 0 && (
-                    <ul className="pnote-list">
-                      {periodNotes.map(n => (
-                        <li key={n.id} className="pnote-item">
-                          <span className="pnote-text">{n.content}</span>
-                          <button className="pnote-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove note">×</button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {periodInputOpen ? (
-                    <div className="pnote-input-row">
-                      <input
-                        className="pnote-input"
-                        placeholder={`Note for ${focus.getFullYear()}…`}
-                        value={periodInput}
-                        onChange={e => setPeriodInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
-                        autoFocus
-                      />
-                      <button className="pnote-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
-                    </div>
-                  ) : (
-                    <button className="pnote-add-trigger" onClick={() => setPeriodInputOpen(true)} aria-label="Add note">+</button>
-                  )}
-                </div>
-              )}
             </div>
             <HighlightCountdown highlights={highlights} />
           </>
@@ -1471,40 +1443,10 @@ export default function Journal() {
             </div>{/* journal-month-grid-wrap */}
           </div>
           <div className="pnote-block pnote-block--period">
-            <button className="pnote-hd" onClick={() => setPeriodNotesOpen(o => !o)}>
+            <button className="pnote-hd" onClick={() => setPeriodNotesOpen(true)}>
               <span className="pnote-hd-label">Notes for {focus.toLocaleDateString("en-US", { month: "long" })}</span>
               {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
-              <span className={`pnote-chevron${periodNotesOpen ? "" : " collapsed"}`}>›</span>
             </button>
-            {periodNotesOpen && (
-              <div className="pnote-body">
-                {periodNotes.length > 0 && (
-                  <ul className="pnote-list">
-                    {periodNotes.map(n => (
-                      <li key={n.id} className="pnote-item">
-                        <span className="pnote-text">{n.content}</span>
-                        <button className="pnote-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Remove note">×</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {periodInputOpen ? (
-                  <div className="pnote-input-row">
-                    <input
-                      className="pnote-input"
-                      placeholder={`Note for ${focus.toLocaleDateString("en-US", { month: "long" })}…`}
-                      value={periodInput}
-                      onChange={e => setPeriodInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") void addPeriodNote(); }}
-                      autoFocus
-                    />
-                    <button className="pnote-add" onClick={() => void addPeriodNote()} disabled={!periodInput.trim() || periodSaving}>+</button>
-                  </div>
-                ) : (
-                  <button className="pnote-add-trigger" onClick={() => setPeriodInputOpen(true)} aria-label="Add note">+</button>
-                )}
-              </div>
-            )}
           </div>
           <HighlightCountdown highlights={highlights} />
         </>
