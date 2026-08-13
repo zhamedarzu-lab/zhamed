@@ -248,21 +248,54 @@ type DayPopupProps = {
   onHighlight: () => void;
   onAddEntry: () => void;
   onDeleteDayNote: (id: number) => Promise<void>;
+  onAddDayNote: (content: string) => Promise<void>;
+  onEditDayNote: (id: number, content: string) => Promise<void>;
 };
-function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoToDay, onGoToWeek, onHighlight, onAddEntry, onDeleteDayNote }: DayPopupProps) {
-  const [noteOpen, setNoteOpen] = useState(dayNotes.length > 0);
+function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoToDay, onGoToWeek, onHighlight, onAddEntry, onDeleteDayNote, onAddDayNote, onEditDayNote }: DayPopupProps) {
+  const [notesModalOpen, setNotesModalOpen] = useState(false);
+  const [noteInput, setNoteInput] = useState("");
+  const [noteInputOpen, setNoteInputOpen] = useState(false);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
 
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (notesModalOpen) { setNotesModalOpen(false); setNoteInputOpen(false); setNoteInput(""); setEditingId(null); }
+        else onClose();
+      }
+    };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
+  }, [onClose, notesModalOpen]);
 
   const sorted = [...entries].sort(
     (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
 
+  const dateLabel = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const notesTitle = dayNotes.length === 1 ? `Note for ${dateLabel}` : `Notes for ${dateLabel}`;
+  const closeDpNotesModal = () => { setNotesModalOpen(false); setNoteInputOpen(false); setNoteInput(""); setEditingId(null); setEditContent(""); };
+
+  async function handleAddNote() {
+    const content = noteInput.trim();
+    if (!content || noteSaving) return;
+    setNoteSaving(true);
+    try { await onAddDayNote(content); setNoteInput(""); setNoteInputOpen(false); }
+    finally { setNoteSaving(false); }
+  }
+
+  async function handleEditSave(id: number) {
+    const trimmed = editContent.trim();
+    if (!trimmed) return;
+    await onEditDayNote(id, trimmed);
+    setEditingId(null);
+    setEditContent("");
+  }
+
   return (
+    <>
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="day-popup" role="dialog" aria-modal="true">
         <div className="day-popup-header">
@@ -278,26 +311,12 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
           <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className="day-popup-list">
-          {/* Note block — collapsible, sits at the top */}
+          {/* Note block — opens modal */}
           <div className="dp-note-block">
-            <button className="dp-note-hd" onClick={() => setNoteOpen(o => !o)}>
-              <span className="dp-note-hd-label">Note{dayNotes.length > 0 ? ` (${dayNotes.length})` : ""}</span>
-              <span className={`dp-note-chevron${noteOpen ? "" : " collapsed"}`}>›</span>
+            <button className="dp-note-hd" onClick={() => setNotesModalOpen(true)}>
+              <span className="dp-note-hd-label">{dayNotes.length === 1 ? "Note" : dayNotes.length > 1 ? `Notes` : "Note"}</span>
+              {dayNotes.length > 0 && <span className="pnote-count">{dayNotes.length}</span>}
             </button>
-            {noteOpen && (
-              <div className="dp-note-body">
-                {dayNotes.length > 0 && (
-                  <ul className="dp-note-list">
-                    {dayNotes.map(n => (
-                      <li key={n.id} className="dp-note-item">
-                        <span className="dp-note-text">{n.content}</span>
-                        <button className="dp-note-del" onClick={() => void onDeleteDayNote(n.id)} aria-label="Remove">×</button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
           </div>
           {highlight && (
             <button className="day-popup-row day-popup-row--highlight" onClick={() => { onClose(); onHighlight(); }}>
@@ -339,6 +358,62 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
         </div>
       </div>
     </div>
+
+    {/* Day notes modal — rendered above DayPopup */}
+    {notesModalOpen && (
+      <div className="pnm-backdrop pnm-backdrop--above" onClick={closeDpNotesModal}>
+        <div className="pnm-sheet" onClick={e => e.stopPropagation()}>
+          <div className="pnm-header">
+            <span className="pnm-title">{notesTitle}</span>
+            <button className="pnm-close" onClick={closeDpNotesModal} aria-label="Close">✕</button>
+          </div>
+          <div className="pnm-body">
+            {dayNotes.length === 0 ? (
+              <p className="pnm-empty">No notes yet.</p>
+            ) : (
+              <div className="pnm-list">
+                {dayNotes.map((n, i) => (
+                  <div key={n.id} className="pnm-entry">
+                    <span className="pnm-entry-num">{i + 1}</span>
+                    {editingId === n.id ? (
+                      <input
+                        className="pnm-inline-edit"
+                        value={editContent}
+                        onChange={e => setEditContent(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") void handleEditSave(n.id); if (e.key === "Escape") { setEditingId(null); setEditContent(""); } }}
+                        onBlur={() => void handleEditSave(n.id)}
+                        autoFocus
+                      />
+                    ) : (
+                      <p className="pnm-entry-text" onDoubleClick={() => { setEditingId(n.id); setEditContent(n.content); }}>{n.content}</p>
+                    )}
+                    <button className="pnm-entry-del" onClick={() => void onDeleteDayNote(n.id)} aria-label="Delete note">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="pnm-footer">
+              {noteInputOpen ? (
+                <div className="pnm-input-row">
+                  <input
+                    className="pnm-input"
+                    placeholder={`Add a note for ${dateLabel}…`}
+                    value={noteInput}
+                    onChange={e => setNoteInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") void handleAddNote(); if (e.key === "Escape") { setNoteInputOpen(false); setNoteInput(""); } }}
+                    autoFocus
+                  />
+                  <button className="pnm-submit" onClick={() => void handleAddNote()} disabled={!noteInput.trim() || noteSaving}>↑</button>
+                </div>
+              ) : (
+                <button className="pnm-add-trigger" onClick={() => setNoteInputOpen(true)}>+ Add note</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -373,6 +448,8 @@ export default function Journal() {
   const [periodInput,    setPeriodInput]    = useState("");
   const [periodSaving,   setPeriodSaving]   = useState(false);
   const [allPeriodNotes, setAllPeriodNotes] = useState<PeriodNote[]>([]);
+  const [editingNoteId,  setEditingNoteId]  = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
 
@@ -525,6 +602,20 @@ export default function Journal() {
     setPeriodNotes(prev => prev.filter(n => n.id !== id));
   }
 
+  async function editPeriodNote(id: number, content: string): Promise<void> {
+    const updated = await api.patch<PeriodNote>(`/api/journal/period-notes/${id}`, { content });
+    setPeriodNotes(prev => prev.map(n => n.id === id ? updated : n));
+    setAllPeriodNotes(prev => prev.map(n => n.id === id ? updated : n));
+    setEditingNoteId(null);
+    setEditingContent("");
+  }
+
+  async function editDayNoteForDate(id: number, content: string): Promise<void> {
+    const updated = await api.patch<PeriodNote>(`/api/journal/period-notes/${id}`, { content });
+    setAllPeriodNotes(prev => prev.map(n => n.id === id ? updated : n));
+    setPeriodNotes(prev => prev.map(n => n.id === id ? updated : n));
+  }
+
   function periodLabel() {
     if (view === "day") {
       if (toYMD(focus) === toYMD(new Date())) return "Today";
@@ -627,6 +718,8 @@ export default function Journal() {
             setHlModal({ date: ymd, existing: highlights.find(h => h.date === ymd) ?? null });
           }}
           onDeleteDayNote={deleteDayNoteForDate}
+          onAddDayNote={content => addDayNoteForDate(toYMD(dayPopup!.date), content)}
+          onEditDayNote={editDayNoteForDate}
         />
       )}
 
@@ -680,7 +773,7 @@ export default function Journal() {
           : view === "week" ? "Add a note for this week…"
           : view === "month" ? `Add a note for ${focus.toLocaleDateString("en-US", { month: "long" })}…`
           : `Add a note for ${focus.getFullYear()}…`;
-        const closeModal = () => { setPeriodNotesOpen(false); setPeriodInputOpen(false); setPeriodInput(""); };
+        const closeModal = () => { setPeriodNotesOpen(false); setPeriodInputOpen(false); setPeriodInput(""); setEditingNoteId(null); setEditingContent(""); };
         return (
           <div className="pnm-backdrop" onClick={closeModal}>
             <div className="pnm-sheet" onClick={e => e.stopPropagation()}>
@@ -696,7 +789,21 @@ export default function Journal() {
                     {periodNotes.map((n, i) => (
                       <div key={n.id} className="pnm-entry">
                         <span className="pnm-entry-num">{i + 1}</span>
-                        <p className="pnm-entry-text">{n.content}</p>
+                        {editingNoteId === n.id ? (
+                          <input
+                            className="pnm-inline-edit"
+                            value={editingContent}
+                            onChange={e => setEditingContent(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") void editPeriodNote(n.id, editingContent);
+                              if (e.key === "Escape") { setEditingNoteId(null); setEditingContent(""); }
+                            }}
+                            onBlur={() => { if (editingContent.trim()) void editPeriodNote(n.id, editingContent); else { setEditingNoteId(null); setEditingContent(""); } }}
+                            autoFocus
+                          />
+                        ) : (
+                          <p className="pnm-entry-text" onDoubleClick={() => { setEditingNoteId(n.id); setEditingContent(n.content); }} title="Double-click to edit">{n.content}</p>
+                        )}
                         <button className="pnm-entry-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Delete note">×</button>
                       </div>
                     ))}
@@ -1268,6 +1375,7 @@ export default function Journal() {
       {view === "year" && (() => {
         const year = focus.getFullYear();
         const isThisYear = year === new Date().getFullYear();
+        const yearDayNoteSet = new Set(allPeriodNotes.filter(n => n.periodType === "day").map(n => n.periodKey));
         const yearStart = new Date(year, 0, 1);
         const daysInYear = (new Date(year, 11, 31).getTime() - yearStart.getTime()) / 86400000 + 1;
         const yearNowPct = isThisYear ? (() => {
@@ -1306,10 +1414,11 @@ export default function Journal() {
                         const isT        = ymd === todayYmd;
                         const hl         = highlights.find(h => h.date === ymd) ?? null;
                         const dayEntries = byDate.get(ymd) ?? [];
+                        const hasDayNote = yearDayNoteSet.has(ymd);
                         return (
                           <button
                             key={ymd}
-                            className={`journal-year-day${!inMonth ? " out-of-month" : ""}${isT ? " is-today" : ""}${hl ? " has-highlight" : ""}`}
+                            className={`journal-year-day${!inMonth ? " out-of-month" : ""}${isT ? " is-today" : ""}${hl ? " has-highlight" : ""}${hasDayNote ? " has-day-note" : ""}`}
                             style={hl ? { "--hl-color": hl.color } as React.CSSProperties : undefined}
                             onClick={() => { setFocus(day); setView("month"); }}
                             tabIndex={inMonth ? 0 : -1}

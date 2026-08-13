@@ -309,6 +309,22 @@ router.post("/period-notes", async (req, res) => {
   res.status(201).json(row);
 });
 
+// PATCH /api/journal/period-notes/:id
+router.patch("/period-notes/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const Input = z.object({ content: z.string().min(1) });
+  const r = Input.safeParse(req.body);
+  if (!r.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  const [row] = await db
+    .update(journalPeriodNotesTable)
+    .set({ content: r.data.content })
+    .where(eq(journalPeriodNotesTable.id, id))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(row);
+});
+
 // DELETE /api/journal/period-notes/:id
 router.delete("/period-notes/:id", async (req, res) => {
   const id = Number(req.params.id);

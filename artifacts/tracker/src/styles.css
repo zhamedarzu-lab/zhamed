@@ -1342,6 +1342,22 @@ a:hover {
 .journal-year-day.has-highlight {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hl-color, #4eaaee) 65%, transparent);
 }
+.journal-year-day.has-day-note {
+  position: relative;
+  overflow: hidden;
+}
+.journal-year-day.has-day-note::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 5px 5px 0;
+  border-color: transparent rgba(255,255,255,0.28) transparent transparent;
+}
+.journal-year-day.out-of-month.has-day-note::after { opacity: 0.35; }
 .journal-year-day-num {
   font-size: 0.6rem;
   line-height: 1.2;
@@ -6662,6 +6678,10 @@ button.btn-icon {
   position: fixed;
   inset: 0;
   z-index: 600;
+}
+/* Renders above the DayPopup which sits at a lower z-index */
+.pnm-backdrop--above {
+  z-index: 800;
   background: rgba(0,0,0,0.55);
   backdrop-filter: blur(5px);
   display: flex;
@@ -6779,6 +6799,18 @@ button.btn-icon {
   margin-top: 0.05rem;
 }
 .pnm-entry-del:hover { color: rgba(220,50,80,0.75); }
+.pnm-inline-edit {
+  flex: 1;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  color: #fff;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.5;
+}
 .pnm-footer {
   padding: 0.75rem 1rem;
   border-top: 1px solid rgba(255,255,255,0.06);
