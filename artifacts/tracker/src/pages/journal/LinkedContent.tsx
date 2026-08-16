@@ -215,16 +215,25 @@ export function LinkedContentArea({
     } finally { setSaving(false); }
   }
 
-  // Use captured rect (persists after selection clears) for positioning.
-  const posRect = captured?.rect ?? selection?.rect;
+  // Floating button: anchored near the selection rect.
+  const posRect = selection?.rect;
   const floatStyle: React.CSSProperties | undefined = posRect
     ? {
         position: "fixed",
-        top:  Math.min(posRect.bottom + 6, window.innerHeight - 180),
-        left: Math.max(8, Math.min(posRect.left, window.innerWidth - 260)),
+        top:  Math.min(posRect.bottom + 6, window.innerHeight - 60),
+        left: Math.max(8, Math.min(posRect.left, window.innerWidth - 100)),
         zIndex: 900,
       }
     : undefined;
+
+  // Form: always a bottom sheet so the keyboard can't push it off-screen.
+  const formStyle: React.CSSProperties = {
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 900,
+  };
 
   return (
     <>
@@ -251,10 +260,9 @@ export function LinkedContentArea({
         </button>
       )}
 
-      {/* Form is keyed on captured.anchorText, not on selection, so it stays
-          visible after the browser clears the selection on mobile. */}
+      {/* Form is a bottom sheet so the keyboard never pushes it off-screen. */}
       {creating && captured && (
-        <div className="jlink-form" style={floatStyle}>
+        <div className="jlink-form" style={formStyle}>
           <p className="jlink-form-anchor">"{captured.anchorText}"</p>
           <textarea
             className="jlink-form-input"
