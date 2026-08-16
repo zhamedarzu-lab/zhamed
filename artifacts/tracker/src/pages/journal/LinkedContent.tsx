@@ -170,35 +170,58 @@ export function LinkedContentArea({
   const [linkContent, setLinkContent] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Captured at button-tap time so the form can persist after the browser
+  // clears the selection (which happens on mobile when you tap the button).
+  const [captured, setCaptured] = useState<{
+    anchorText: string;
+    occurrence: number;
+    rect: DOMRect;
+  } | null>(null);
+
   // Close create form on Escape
   useEffect(() => {
     if (!creating) return;
     const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setCreating(false); setLinkContent(""); clear(); }
+      if (e.key === "Escape") { cancel(); }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [creating, clear]);
+  }, [creating]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function cancel() {
+    setCreating(false);
+    setLinkContent("");
+    setCaptured(null);
+    clear();
+  }
+
+  /** Called when the user taps/clicks the "Link" button. */
+  function startCreating() {
+    if (!selection) return;
+    const occurrence = findOccurrence(text, selection.text, selection.charOffset);
+    setCaptured({ anchorText: selection.text, occurrence, rect: selection.rect });
+    setCreating(true);
+  }
 
   async function handleCreate() {
-    if (!selection || !linkContent.trim() || saving) return;
-    // Determine which occurrence of the anchor text the user actually selected
-    const occurrence = findOccurrence(text, selection.text, selection.charOffset);
+    if (!captured || !linkContent.trim() || saving) return;
     setSaving(true);
     try {
-      await onCreateLink(selection.text, linkContent.trim(), occurrence);
+      await onCreateLink(captured.anchorText, linkContent.trim(), captured.occurrence);
       setLinkContent("");
       setCreating(false);
+      setCaptured(null);
       clear();
     } finally { setSaving(false); }
   }
 
-  // Position of the floating elements (fixed, relative to viewport)
-  const floatStyle: React.CSSProperties | undefined = selection
+  // Use captured rect (persists after selection clears) for positioning.
+  const posRect = captured?.rect ?? selection?.rect;
+  const floatStyle: React.CSSProperties | undefined = posRect
     ? {
         position: "fixed",
-        top:  Math.min(selection.rect.bottom + 6, window.innerHeight - 180),
-        left: Math.max(8, Math.min(selection.rect.left, window.innerWidth - 260)),
+        top:  Math.min(posRect.bottom + 6, window.innerHeight - 180),
+        left: Math.max(8, Math.min(posRect.left, window.innerWidth - 260)),
         zIndex: 900,
       }
     : undefined;
@@ -217,15 +240,22 @@ export function LinkedContentArea({
         <button
           className="jlink-float-btn"
           style={floatStyle}
-          onMouseDown={e => { e.preventDefault(); setCreating(true); }}
+          // Desktop: preventDefault stops mousedown from collapsing the selection.
+          onMouseDown={e => { e.preventDefault(); startCreating(); }}
+          // Mobile: preventDefault on touchstart keeps the selection alive while
+          // the finger is on the button; touchend fires startCreating().
+          onTouchStart={e => { e.preventDefault(); }}
+          onTouchEnd={e => { e.preventDefault(); startCreating(); }}
         >
           🔗 Link
         </button>
       )}
 
-      {creating && selection && (
+      {/* Form is keyed on captured.anchorText, not on selection, so it stays
+          visible after the browser clears the selection on mobile. */}
+      {creating && captured && (
         <div className="jlink-form" style={floatStyle}>
-          <p className="jlink-form-anchor">"{selection.text}"</p>
+          <p className="jlink-form-anchor">"{captured.anchorText}"</p>
           <textarea
             className="jlink-form-input"
             placeholder="What should this link say?"
@@ -238,10 +268,7 @@ export function LinkedContentArea({
             }}
           />
           <div className="jlink-form-actions">
-            <button
-              className="jlink-form-cancel"
-              onClick={() => { setCreating(false); setLinkContent(""); clear(); }}
-            >
+            <button className="jlink-form-cancel" onClick={cancel}>
               Cancel
             </button>
             <button
