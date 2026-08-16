@@ -9,6 +9,7 @@ import {
   IcTrash, IcEdit,
   EntryForm, EntryModal,
 } from "./EntryModal";
+import { type JournalLink, LinkedContentArea, LinkViewModal } from "./LinkedContent";
 import HighlightModal, { type DayHighlight } from "./HighlightModal";
 import HighlightCountdown from "../../components/HighlightCountdown";
 
@@ -258,17 +259,29 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
   const [noteSaving, setNoteSaving] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [dpLinks, setDpLinks] = useState<JournalLink[]>([]);
+  const [dpViewingLink, setDpViewingLink] = useState<JournalLink | null>(null);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (notesModalOpen) { setNotesModalOpen(false); setNoteInputOpen(false); setNoteInput(""); setEditingId(null); }
+        if (dpViewingLink) { setDpViewingLink(null); return; }
+        if (notesModalOpen) { setNotesModalOpen(false); setNoteInputOpen(false); setNoteInput(""); setEditingId(null); setDpLinks([]); }
         else onClose();
       }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
-  }, [onClose, notesModalOpen]);
+  }, [onClose, notesModalOpen, dpViewingLink]);
+
+  // Fetch links for day notes when the notes modal opens
+  useEffect(() => {
+    if (!notesModalOpen || dayNotes.length === 0) { setDpLinks([]); return; }
+    const ids = new Set(dayNotes.map(n => n.id));
+    api.get<JournalLink[]>("/api/journal/links?sourceType=period_note")
+      .then(all => setDpLinks(all.filter(l => ids.has(l.sourceId))))
+      .catch(() => {});
+  }, [notesModalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sorted = [...entries].sort(
     (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
@@ -360,6 +373,15 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
     </div>
 
     {/* Day notes modal — rendered above DayPopup */}
+    {dpViewingLink && (
+      <LinkViewModal
+        link={dpViewingLink}
+        zIndex={1000}
+        onClose={() => setDpViewingLink(null)}
+        onUpdate={updated => { setDpLinks(prev => prev.map(l => l.id === updated.id ? updated : l)); setDpViewingLink(updated); }}
+        onDelete={id => { setDpLinks(prev => prev.filter(l => l.id !== id)); setDpViewingLink(null); }}
+      />
+    )}
     {notesModalOpen && (
       <div className="pnm-backdrop pnm-backdrop--above" onClick={closeDpNotesModal}>
         <div className="pnm-sheet" onClick={e => e.stopPropagation()}>
@@ -385,7 +407,19 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
                         autoFocus
                       />
                     ) : (
-                      <p className="pnm-entry-text" onDoubleClick={() => { setEditingId(n.id); setEditContent(n.content); }}>{n.content}</p>
+                      <LinkedContentArea
+                        text={n.content}
+                        links={dpLinks.filter(l => l.sourceId === n.id)}
+                        onCreateLink={async (anchorText, content, occurrence) => {
+                          const link = await api.post<JournalLink>("/api/journal/links", {
+                            anchorText, content, occurrence, sourceType: "period_note", sourceId: n.id,
+                          });
+                          setDpLinks(prev => [link, ...prev]);
+                        }}
+                        onLinkClick={setDpViewingLink}
+                        onDoubleClick={() => { setEditingId(n.id); setEditContent(n.content); }}
+                        className="pnm-entry-text"
+                      />
                     )}
                     <button className="pnm-entry-del" onClick={() => void onDeleteDayNote(n.id)} aria-label="Delete note">×</button>
                   </div>
@@ -450,6 +484,11 @@ export default function Journal() {
   const [allPeriodNotes, setAllPeriodNotes] = useState<PeriodNote[]>([]);
   const [editingNoteId,  setEditingNoteId]  = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [pnmLinks,       setPnmLinks]       = useState<JournalLink[]>([]);
+  const [viewingLink,    setViewingLink]    = useState<JournalLink | null>(null);
+  const [linksOpen,      setLinksOpen]      = useState(false);
+  const [allLinks,       setAllLinks]       = useState<JournalLink[]>([]);
+  const [linksLoading,   setLinksLoading]   = useState(false);
 
   function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
 
@@ -529,6 +568,25 @@ export default function Journal() {
   useEffect(() => { void fetchHighlights(); }, [fetchHighlights]);
   useEffect(() => { void fetchOpenEnds(); }, [fetchOpenEnds]);
   useEffect(() => { void fetchAllPeriodNotes(); }, [fetchAllPeriodNotes]);
+
+  // Fetch links for the period notes currently shown in the pnm modal
+  useEffect(() => {
+    if (!periodNotesOpen || periodNotes.length === 0) { setPnmLinks([]); return; }
+    const ids = new Set(periodNotes.map(n => n.id));
+    api.get<JournalLink[]>("/api/journal/links?sourceType=period_note")
+      .then(all => setPnmLinks(all.filter(l => ids.has(l.sourceId))))
+      .catch(() => {});
+  }, [periodNotesOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch all links for the Links panel
+  useEffect(() => {
+    if (!linksOpen) return;
+    setLinksLoading(true);
+    api.get<JournalLink[]>("/api/journal/links")
+      .then(setAllLinks)
+      .catch(() => {})
+      .finally(() => setLinksLoading(false));
+  }, [linksOpen]);
 
   // Fetch period notes whenever the view or focus date changes
   useEffect(() => {
@@ -756,6 +814,68 @@ export default function Journal() {
         />
       )}
 
+      {/* Link view modal — for links clicked inside pnm modal */}
+      {viewingLink && (
+        <LinkViewModal
+          link={viewingLink}
+          zIndex={850}
+          onClose={() => setViewingLink(null)}
+          onUpdate={updated => {
+            setViewingLink(updated);
+            setPnmLinks(prev => prev.map(l => l.id === updated.id ? updated : l));
+            setAllLinks(prev => prev.map(l => l.id === updated.id ? updated : l));
+          }}
+          onDelete={id => {
+            setViewingLink(null);
+            setPnmLinks(prev => prev.filter(l => l.id !== id));
+            setAllLinks(prev => prev.filter(l => l.id !== id));
+          }}
+        />
+      )}
+
+      {/* Links panel modal — all journal links */}
+      {linksOpen && (
+        <div className="pnm-backdrop" onClick={() => setLinksOpen(false)}>
+          <div className="pnm-sheet jlinks-panel" onClick={e => e.stopPropagation()}>
+            <div className="pnm-header">
+              <span className="pnm-title">Journal Links</span>
+              <button className="pnm-close" onClick={() => setLinksOpen(false)} aria-label="Close">✕</button>
+            </div>
+            <div className="pnm-body">
+              {linksLoading ? (
+                <p className="pnm-empty">Loading…</p>
+              ) : allLinks.length === 0 ? (
+                <p className="pnm-empty">No links yet. Select text in an entry or note to create one.</p>
+              ) : (
+                <div className="jlinks-list">
+                  {allLinks.map(link => {
+                    const srcNote = link.sourceType === "period_note"
+                      ? allPeriodNotes.find(n => n.id === link.sourceId)
+                      : null;
+                    const sourceLabel = link.sourceType === "entry"
+                      ? "Entry"
+                      : srcNote
+                        ? `${srcNote.periodType.charAt(0).toUpperCase() + srcNote.periodType.slice(1)} note · ${srcNote.periodKey}`
+                        : `Note #${link.sourceId}`;
+                    return (
+                      <button
+                        key={link.id}
+                        className="jlinks-row"
+                        onClick={() => setViewingLink(link)}
+                      >
+                        <mark className="jlinks-row-anchor">{link.anchorText}</mark>
+                        <span className="jlinks-row-content">{link.content.slice(0, 100)}{link.content.length > 100 ? "…" : ""}</span>
+                        <span className="jlinks-row-source">{sourceLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Period notes modal */}
       {periodNotesOpen && (() => {
         const fYmd = toYMD(focus);
@@ -773,7 +893,7 @@ export default function Journal() {
           : view === "week" ? "Add a note for this week…"
           : view === "month" ? `Add a note for ${focus.toLocaleDateString("en-US", { month: "long" })}…`
           : `Add a note for ${focus.getFullYear()}…`;
-        const closeModal = () => { setPeriodNotesOpen(false); setPeriodInputOpen(false); setPeriodInput(""); setEditingNoteId(null); setEditingContent(""); };
+        const closeModal = () => { setPeriodNotesOpen(false); setPeriodInputOpen(false); setPeriodInput(""); setEditingNoteId(null); setEditingContent(""); setPnmLinks([]); setViewingLink(null); };
         return (
           <div className="pnm-backdrop" onClick={closeModal}>
             <div className="pnm-sheet" onClick={e => e.stopPropagation()}>
@@ -802,7 +922,19 @@ export default function Journal() {
                             autoFocus
                           />
                         ) : (
-                          <p className="pnm-entry-text" onDoubleClick={() => { setEditingNoteId(n.id); setEditingContent(n.content); }} title="Double-click to edit">{n.content}</p>
+                          <LinkedContentArea
+                            text={n.content}
+                            links={pnmLinks.filter(l => l.sourceId === n.id)}
+                            onCreateLink={async (anchorText, content, occurrence) => {
+                              const link = await api.post<JournalLink>("/api/journal/links", {
+                                anchorText, content, occurrence, sourceType: "period_note", sourceId: n.id,
+                              });
+                              setPnmLinks(prev => [link, ...prev]);
+                            }}
+                            onLinkClick={setViewingLink}
+                            onDoubleClick={() => { setEditingNoteId(n.id); setEditingContent(n.content); }}
+                            className="pnm-entry-text"
+                          />
                         )}
                         <button className="pnm-entry-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Delete note">×</button>
                       </div>
@@ -1555,6 +1687,9 @@ export default function Journal() {
             <button className="pnote-hd" onClick={() => setPeriodNotesOpen(true)}>
               <span className="pnote-hd-label">Notes for {focus.toLocaleDateString("en-US", { month: "long" })}</span>
               {periodNotes.length > 0 && <span className="pnote-count">{periodNotes.length}</span>}
+            </button>
+            <button className="pnote-links-btn" onClick={() => setLinksOpen(true)} title="Browse all journal links">
+              Links
             </button>
           </div>
           <HighlightCountdown highlights={highlights} />

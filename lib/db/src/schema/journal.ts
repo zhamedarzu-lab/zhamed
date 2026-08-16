@@ -41,3 +41,15 @@ export const journalPeriodNotesTable = pgTable("journal_period_notes", {
 }, t => [index("idx_journal_period_notes_lookup").on(t.periodType, t.periodKey)]);
 
 export type JournalPeriodNote = typeof journalPeriodNotesTable.$inferSelect;
+
+export const journalLinksTable = pgTable("journal_links", {
+  id:         serial("id").primaryKey(),
+  anchorText: text("anchor_text").notNull(),
+  content:    text("content").notNull(),
+  sourceType: text("source_type").notNull(),
+  sourceId:   integer("source_id").notNull(),
+  occurrence: integer("occurrence").notNull().default(0),
+  createdAt:  timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("idx_journal_links_source").on(t.sourceType, t.sourceId)]);
+
+export type JournalLink = typeof journalLinksTable.$inferSelect;

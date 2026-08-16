@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { journalEntriesTable, dayHighlightsTable, journalPeriodNotesTable } from "@workspace/db";
+import { journalEntriesTable, dayHighlightsTable, journalPeriodNotesTable, journalLinksTable } from "@workspace/db";
 import { and, gte, lte, desc, eq, isNull, like, notInArray, sql } from "drizzle-orm";
 
 const router = Router();
@@ -104,10 +104,13 @@ router.patch("/entries/:id", async (req, res) => {
   res.json(row);
 });
 
-// DELETE /api/journal/entries/:id
+// DELETE /api/journal/entries/:id — cascade-deletes links
 router.delete("/entries/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(journalLinksTable).where(
+    and(eq(journalLinksTable.sourceType, "entry"), eq(journalLinksTable.sourceId, id))
+  );
   await db.delete(journalEntriesTable).where(eq(journalEntriesTable.id, id));
   res.status(204).end();
 });
@@ -325,21 +328,98 @@ router.patch("/period-notes/:id", async (req, res) => {
   res.json(row);
 });
 
-// DELETE /api/journal/period-notes/:id
+// DELETE /api/journal/period-notes/:id — cascade-deletes links
 router.delete("/period-notes/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(journalLinksTable).where(
+    and(eq(journalLinksTable.sourceType, "period_note"), eq(journalLinksTable.sourceId, id))
+  );
   await db.delete(journalPeriodNotesTable).where(eq(journalPeriodNotesTable.id, id));
   res.status(204).end();
 });
 
-// DELETE /api/journal/highlights/:id — also deletes the linked entry
+// ── Journal Links ────────────────────────────────────────────────────────────
+
+const LinkInput = z.object({
+  anchorText: z.string().min(1),
+  content:    z.string().min(1),
+  sourceType: z.enum(["entry", "period_note"]),
+  sourceId:   z.number().int().positive(),
+  occurrence: z.number().int().min(0).default(0),
+});
+
+// GET /api/journal/links?sourceType=&sourceId=
+router.get("/links", async (req, res) => {
+  const { sourceType, sourceId } = req.query;
+  const conditions = [];
+  if (typeof sourceType === "string") conditions.push(eq(journalLinksTable.sourceType, sourceType));
+  if (typeof sourceId   === "string" && !isNaN(Number(sourceId))) {
+    conditions.push(eq(journalLinksTable.sourceId, Number(sourceId)));
+  }
+  const rows = await db
+    .select()
+    .from(journalLinksTable)
+    .where(conditions.length ? and(...conditions) : undefined)
+    .orderBy(desc(journalLinksTable.createdAt));
+  res.json(rows);
+});
+
+// POST /api/journal/links — validates source exists before inserting
+router.post("/links", async (req, res) => {
+  const r = LinkInput.safeParse(req.body);
+  if (!r.success) { res.status(400).json({ error: "Invalid input", fields: r.error.issues }); return; }
+
+  // Confirm the source record exists
+  if (r.data.sourceType === "entry") {
+    const [src] = await db.select({ id: journalEntriesTable.id })
+      .from(journalEntriesTable)
+      .where(eq(journalEntriesTable.id, r.data.sourceId));
+    if (!src) { res.status(404).json({ error: "Source entry not found" }); return; }
+  } else {
+    const [src] = await db.select({ id: journalPeriodNotesTable.id })
+      .from(journalPeriodNotesTable)
+      .where(eq(journalPeriodNotesTable.id, r.data.sourceId));
+    if (!src) { res.status(404).json({ error: "Source period note not found" }); return; }
+  }
+
+  const [row] = await db.insert(journalLinksTable).values(r.data).returning();
+  res.status(201).json(row);
+});
+
+// PATCH /api/journal/links/:id
+router.patch("/links/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const r = z.object({ content: z.string().min(1) }).safeParse(req.body);
+  if (!r.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  const [row] = await db
+    .update(journalLinksTable)
+    .set({ content: r.data.content })
+    .where(eq(journalLinksTable.id, id))
+    .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+  res.json(row);
+});
+
+// DELETE /api/journal/links/:id
+router.delete("/links/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  await db.delete(journalLinksTable).where(eq(journalLinksTable.id, id));
+  res.status(204).end();
+});
+
+// DELETE /api/journal/highlights/:id — also deletes the linked entry and its links
 router.delete("/highlights/:id", async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const [existing] = await db.select().from(dayHighlightsTable).where(eq(dayHighlightsTable.id, id));
   if (existing?.entryId) {
+    await db.delete(journalLinksTable).where(
+      and(eq(journalLinksTable.sourceType, "entry"), eq(journalLinksTable.sourceId, existing.entryId))
+    );
     await db.delete(journalEntriesTable).where(eq(journalEntriesTable.id, existing.entryId));
   }
   await db.delete(dayHighlightsTable).where(eq(dayHighlightsTable.id, id));

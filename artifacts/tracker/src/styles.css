@@ -7116,3 +7116,335 @@ button.btn-icon {
   transition: color 0.12s;
 }
 .pnote-add-trigger:hover { color: rgba(255,255,255,0.5); }
+
+/* ═══════════════════════════════ PERIOD-NOTES LINKS BUTTON ══ */
+.pnote-block {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pnote-links-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.4);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.22rem 0.55rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.pnote-links-btn:hover {
+  color: var(--ink);
+  border-color: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.06);
+}
+
+/* ═══════════════════════════════ JOURNAL LINKED TEXT ══ */
+
+/* Highlighted anchor inside text */
+.jlink-anchor {
+  background: rgba(95, 201, 122, 0.22);
+  color: #8cf0a8;
+  border-radius: 3px;
+  padding: 0 2px;
+  cursor: pointer;
+  font-style: normal;
+  text-decoration: underline;
+  text-decoration-color: rgba(95, 201, 122, 0.45);
+  text-decoration-style: dotted;
+  transition: background 0.12s, color 0.12s;
+}
+.jlink-anchor:hover {
+  background: rgba(95, 201, 122, 0.36);
+  color: #b2ffcc;
+}
+
+/* Content area wrapper — inline so it flows inside <p> */
+.jlink-content-area {
+  display: inline;
+  line-height: inherit;
+}
+
+/* Floating "Link" button — fixed, appears above selection */
+.jlink-float-btn {
+  position: fixed;
+  z-index: 900;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.jlink-float-btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+/* Create-link inline form — fixed, appears at selection */
+.jlink-form {
+  position: fixed;
+  z-index: 900;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  padding: 0.75rem;
+  width: 260px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.jlink-form-anchor {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  font-style: italic;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jlink-form-input {
+  width: 100%;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.55rem;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.jlink-form-input:focus { border-color: var(--rule-strong); }
+.jlink-form-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+.jlink-form-cancel {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.jlink-form-cancel:hover { color: var(--ink); border-color: var(--ink-soft); }
+.jlink-form-save {
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: #000;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.jlink-form-save:disabled { opacity: 0.45; cursor: default; }
+
+/* ═══════════════════════════════ LINK VIEW MODAL ══ */
+.jlm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  box-sizing: border-box;
+}
+.jlm-sheet {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  max-height: 70dvh;
+  overflow: hidden;
+}
+.jlm-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--rule);
+}
+.jlm-anchor-badge {
+  flex: 1;
+  background: rgba(95, 201, 122, 0.18);
+  color: #8cf0a8;
+  border-radius: 5px;
+  padding: 0.2rem 0.55rem;
+  font-style: normal;
+  font-size: 0.875rem;
+  word-break: break-word;
+  font-weight: 500;
+}
+.jlm-close {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 5px;
+  line-height: 1;
+  transition: color 0.12s;
+  flex-shrink: 0;
+}
+.jlm-close:hover { color: var(--ink); }
+.jlm-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.1rem;
+}
+.jlm-content {
+  margin: 0;
+  font-size: 0.925rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.jlm-edit-input {
+  width: 100%;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule-strong);
+  border-radius: 7px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.925rem;
+  padding: 0.5rem 0.65rem;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.jlm-edit-input:focus { border-color: rgba(255,255,255,0.25); }
+.jlm-footer {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--rule);
+}
+.jlm-confirm-msg {
+  flex: 1;
+  font-size: 0.83rem;
+  color: var(--ink-soft);
+}
+.jlm-del {
+  background: none;
+  border: 1px solid rgba(212,78,68,0.3);
+  border-radius: 6px;
+  color: var(--stamp);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  margin-right: auto;
+  transition: background 0.12s, border-color 0.12s;
+}
+.jlm-del:hover { background: rgba(212,78,68,0.1); border-color: var(--stamp); }
+.jlm-del-confirm {
+  background: var(--stamp);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+}
+.jlm-edit-btn {
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.jlm-edit-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+.jlm-save {
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: #000;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.jlm-save:disabled { opacity: 0.45; cursor: default; }
+
+/* ═══════════════════════════════ LINKS PANEL ══ */
+.jlinks-panel {
+  max-height: 75dvh;
+}
+.jlinks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.jlinks-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.7rem 0.9rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+  width: 100%;
+  border-radius: 0;
+}
+.jlinks-row:last-child { border-bottom: none; }
+.jlinks-row:hover { background: var(--hover); }
+.jlinks-row-anchor {
+  display: inline;
+  background: rgba(95, 201, 122, 0.18);
+  color: #8cf0a8;
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+  font-style: normal;
+  font-size: 0.82rem;
+  font-weight: 500;
+  width: fit-content;
+}
+.jlinks-row-content {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.jlinks-row-source {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  font-family: var(--fig);
+  letter-spacing: 0.04em;
+}

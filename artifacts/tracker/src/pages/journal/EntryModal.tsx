@@ -3,6 +3,7 @@
  */
 import React, { useEffect, useState } from "react";
 import { api } from "../../lib/api";
+import { type JournalLink, LinkedContentArea, LinkViewModal } from "./LinkedContent";
 
 /* ── types ─────────────────────────────────────────────────────────── */
 export type Entry = {
@@ -348,6 +349,8 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
   const [editing,      setEditing]      = useState(false);
   const [confirmMsg,   setConfirmMsg]   = useState<string | null>(null);
   const [closeEntry,   setCloseEntry]   = useState<Entry | null>(null);
+  const [links,        setLinks]        = useState<JournalLink[]>([]);
+  const [viewingLink,  setViewingLink]  = useState<JournalLink | null>(null);
 
   // When parent opens a different entry, reset internal navigation
   useEffect(() => {
@@ -356,6 +359,13 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
     setEditing(false);
     setConfirmMsg(null);
   }, [entry.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch links for the current entry
+  useEffect(() => {
+    api.get<JournalLink[]>(`/api/journal/links?sourceType=entry&sourceId=${currentEntry.id}`)
+      .then(setLinks)
+      .catch(() => {});
+  }, [currentEntry.id]);
 
   const isOpener = currentEntry.looseEndType === 'open';
   const isCloser = currentEntry.looseEndType === 'close';
@@ -417,7 +427,17 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
   }
 
   return (
-    <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <>
+    {viewingLink && (
+      <LinkViewModal
+        link={viewingLink}
+        zIndex={900}
+        onClose={() => setViewingLink(null)}
+        onUpdate={updated => { setLinks(prev => prev.map(l => l.id === updated.id ? updated : l)); setViewingLink(updated); }}
+        onDelete={id => { setLinks(prev => prev.filter(l => l.id !== id)); setViewingLink(null); }}
+      />
+    )}
+    <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget && !viewingLink) onClose(); }}>
       <div className="entry-modal" role="dialog" aria-modal="true">
         <div className="entry-modal-header">
           {history.length > 0 && (
@@ -451,7 +471,21 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
               {currentEntry.subject && (
                 <h2 className="entry-modal-subject">{currentEntry.subject}</h2>
               )}
-              {currentEntry.content && <p className="entry-modal-content">{currentEntry.content}</p>}
+              {currentEntry.content && (
+                <p className="entry-modal-content">
+                  <LinkedContentArea
+                    text={currentEntry.content}
+                    links={links}
+                    onCreateLink={async (anchorText, content, occurrence) => {
+                      const link = await api.post<JournalLink>("/api/journal/links", {
+                        anchorText, content, occurrence, sourceType: "entry", sourceId: currentEntry.id,
+                      });
+                      setLinks(prev => [link, ...prev]);
+                    }}
+                    onLinkClick={setViewingLink}
+                  />
+                </p>
+              )}
               {!currentEntry.subject && !currentEntry.content && (
                 <p className="entry-modal-empty">No content.</p>
               )}
@@ -499,5 +533,6 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
         )}
       </div>
     </div>
+    </>
   );
 }
