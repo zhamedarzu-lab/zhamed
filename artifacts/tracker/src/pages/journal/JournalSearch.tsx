@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api";
 import { type Entry, ENTRY_COLORS, fmtTime, fmtRange, fmtFullDate, EntryModal } from "./EntryModal";
+import { type JournalLink, renderLinked, LinkViewModal } from "./LinkedContent";
 
 type PeriodNote = { id: number; periodType: string; periodKey: string; content: string; createdAt: string };
 
@@ -69,14 +70,18 @@ export default function JournalSearch() {
   const [activeColors, setActiveColors] = useState<Set<string>>(new Set());
   const [selected,     setSelected]     = useState<Entry | null>(null);
   const [periodNotes,  setPeriodNotes]  = useState<PeriodNote[]>([]);
+  const [entryLinks,   setEntryLinks]   = useState<JournalLink[]>([]);
+  const [viewingLink,  setViewingLink]  = useState<JournalLink | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.get<Entry[]>("/api/journal/entries"),
       api.get<PeriodNote[]>("/api/journal/period-notes/all"),
-    ]).then(([ents, notes]) => {
+      api.get<JournalLink[]>("/api/journal/links?sourceType=entry"),
+    ]).then(([ents, notes, links]) => {
       setEntries(ents);
       setPeriodNotes(notes);
+      setEntryLinks(links);
     }).finally(() => setLoading(false));
     setTimeout(() => inputRef.current?.focus(), 80);
   }, []);
@@ -141,6 +146,17 @@ export default function JournalSearch() {
       })
       .sort((a, b) => b.startTime.localeCompare(a.startTime));
   }, [query, entries, activeColors, filterMode, resolvedOpenerIds]);
+
+  // Build a map from entryId → its links (for O(1) lookup in the render loop)
+  const entryLinksMap = useMemo(() => {
+    const map = new Map<number, JournalLink[]>();
+    for (const link of entryLinks) {
+      const arr = map.get(link.sourceId) ?? [];
+      arr.push(link);
+      map.set(link.sourceId, arr);
+    }
+    return map;
+  }, [entryLinks]);
 
   // Group results by date
   const groups = useMemo(() => {
@@ -274,6 +290,7 @@ export default function JournalSearch() {
             {group.map(e => {
               const isOpener = e.looseEndType === "open";
               const isCloser = e.looseEndType === "close";
+              const links = entryLinksMap.get(e.id) ?? [];
               return (
                 <button key={e.id} className="jsearch-card" onClick={() => setSelected(e)}>
                   <div className="jsearch-card-accent" style={{ background: e.color, ...(e.color === "#1c1c1e" ? { boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)" } : {}) }} />
@@ -289,7 +306,10 @@ export default function JournalSearch() {
                     )}
                     {e.content && (
                       <p className="jsearch-card-content">
-                        <Highlight text={e.content} query={filterMode === "normal" ? q : ""} />
+                        {links.length > 0
+                          ? renderLinked(e.content, links, lnk => { setViewingLink(lnk); })
+                          : <Highlight text={e.content} query={filterMode === "normal" ? q : ""} />
+                        }
                       </p>
                     )}
                   </div>
@@ -332,6 +352,22 @@ export default function JournalSearch() {
               setSelected(null);
             }}
             onNavigate={e => setSelected(e)}
+          />
+        )}
+
+        {viewingLink && (
+          <LinkViewModal
+            link={viewingLink}
+            onClose={() => setViewingLink(null)}
+            onUpdate={updated => {
+              setEntryLinks(prev => prev.map(l => l.id === updated.id ? updated : l));
+              setViewingLink(updated);
+            }}
+            onDelete={id => {
+              setEntryLinks(prev => prev.filter(l => l.id !== id));
+              setViewingLink(null);
+            }}
+            zIndex={900}
           />
         )}
 
