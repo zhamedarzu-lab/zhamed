@@ -1,13 +1,12 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, foodActivitiesTable, foodItemsTable, journalLinksTable } from "@workspace/db";
 
 const router: IRouter = Router();
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const STORAGE_LOCATIONS = ["fridge", "table", "pantry"] as const;
-const FOOD_STATUSES = ["on_hand", "finished", "tossed", "avoid"] as const;
-const ACTIVITY_ACTIONS = ["prepared", "used", "cooked", "note", "moved", "status"] as const;
+const FOOD_STATUSES = ["on_hand", "finished", "tossed"] as const;
 
 const isCalendarDate = (value: string) => {
   if (!DATE_RE.test(value)) return false;
@@ -35,7 +34,7 @@ const ItemPatch = z.object({
 });
 
 const ActivityInput = z.object({
-  action: z.enum(["used", "cooked", "note"]),
+  action: z.literal("note"),
   occurredOn: calendarDate,
   content: z.string().trim().min(1).max(4_000),
 });
@@ -71,6 +70,22 @@ router.get("/items", async (_req, res): Promise<void> => {
   }
 
   res.json(rows.map((r) => ({ ...r, lastNote: lastNoteMap[r.id] ?? null })));
+});
+
+router.get("/items/:id/links", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid item id" }); return; }
+  const activities = await db.select({ id: foodActivitiesTable.id })
+    .from(foodActivitiesTable)
+    .where(eq(foodActivitiesTable.foodItemId, id));
+  if (!activities.length) { res.json([]); return; }
+  const links = await db.select().from(journalLinksTable)
+    .where(and(
+      eq(journalLinksTable.sourceType, "food_activity"),
+      inArray(journalLinksTable.sourceId, activities.map((a) => a.id)),
+    ))
+    .orderBy(desc(journalLinksTable.createdAt));
+  res.json(links);
 });
 
 router.get("/items/:id/activities", async (req, res): Promise<void> => {

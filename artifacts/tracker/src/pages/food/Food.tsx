@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { LinkedContentArea, JournalLink, LinkViewModal } from "../journal/LinkedContent";
-import { formatFoodDate } from "./foodDate.js";
 
 type FoodItem = {
   id: number;
@@ -31,15 +30,9 @@ const locationNames: Record<string, string> = {
 };
 
 const statusNames: Record<string, string> = {
-  on_hand: "On hand",
   finished: "Finished",
   tossed: "Tossed",
-  avoid: "Avoid",
 };
-
-function formatDate(iso: string) {
-  return formatFoodDate(iso);
-}
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function formatMonthDay(dateOnlyStr: string): string {
@@ -166,7 +159,7 @@ export default function Food() {
                     {item.lastNote && <span className="food-row-note">{item.lastNote}</span>}
                   </div>
                   <span className="food-row-status" data-status={item.status}>
-                    {statusNames[item.status]}
+                    {statusNames[item.status] ?? item.status}
                   </span>
                 </div>
               ))}
@@ -199,7 +192,6 @@ export default function Food() {
 function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any) => Promise<void> }) {
   const [name, setName] = useState("");
   const [storageLocation, setStorageLocation] = useState("fridge");
-  // locations: fridge, table only
   const [preparedOn, setPreparedOn] = useState(() => new Date().toISOString().split("T")[0]);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -271,9 +263,20 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
 
 function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; onClose: () => void; onUpdateItem: () => void }) {
   const { data, reload } = useApi<{ item: FoodItem; activities: FoodActivity[] }>(`/api/food/items/${itemId}/activities`);
+  // One batch fetch for all journal links belonging to this item's activities
+  const { data: allLinks, reload: reloadLinks } = useApi<JournalLink[]>(`/api/food/items/${itemId}/links`);
   const [editing, setEditing] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [showStatus, setShowStatus] = useState(false);
+
+  // Group links by activity ID so each node receives only its own slice
+  const linksByActivity = useMemo<Record<number, JournalLink[]>>(() => {
+    const map: Record<number, JournalLink[]> = {};
+    for (const link of allLinks ?? []) {
+      (map[link.sourceId] ??= []).push(link);
+    }
+    return map;
+  }, [allLinks]);
 
   if (!data) {
     return (
@@ -292,6 +295,7 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
   async function handleDeleteActivity(actId: number) {
     await api.del(`/api/food/activities/${actId}`);
     reload();
+    reloadLinks();
     onUpdateItem();
   }
 
@@ -351,7 +355,13 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
               {logActivities.length > 0 && (
                 <div className="food-log-list">
                   {logActivities.map((act) => (
-                    <FoodActivityNode key={act.id} activity={act} onDelete={() => handleDeleteActivity(act.id)} />
+                    <FoodActivityNode
+                      key={act.id}
+                      activity={act}
+                      links={linksByActivity[act.id] ?? []}
+                      onDelete={() => handleDeleteActivity(act.id)}
+                      onLinksChange={reloadLinks}
+                    />
                   ))}
                 </div>
               )}
@@ -379,7 +389,7 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
           <LogActivitySheet
             itemId={itemId}
             onClose={() => setShowLog(false)}
-            onSaved={() => { setShowLog(false); reload(); onUpdateItem(); }}
+            onSaved={() => { setShowLog(false); reload(); reloadLinks(); onUpdateItem(); }}
           />
         )}
         {showStatus && (
@@ -403,7 +413,7 @@ function EditItemForm({
   onCancel: () => void;
 }) {
   const [name, setName] = useState(item.name);
-  const [storageLocation, setStorageLocation] = useState(item.storageLocation);
+  const [storageLocation, setStorageLocation] = useState<FoodItem["storageLocation"]>(item.storageLocation);
   const [preparedOn, setPreparedOn] = useState(item.preparedOn || "");
   const [editNote, setEditNote] = useState(note);
   const [saving, setSaving] = useState(false);
@@ -425,7 +435,7 @@ function EditItemForm({
       <div className="food-field-row">
         <label className="food-field">
           <span>Location</span>
-          <select value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)}>
+          <select value={storageLocation} onChange={(e) => setStorageLocation(e.target.value as FoodItem["storageLocation"])}>
             <option value="fridge">Fridge</option>
             <option value="table">Table</option>
             <option value="pantry">Pantry</option>
@@ -450,19 +460,23 @@ function EditItemForm({
   );
 }
 
-function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDelete: () => void }) {
-  const url = activity.content ? `/api/journal/links?sourceType=food_activity&sourceId=${activity.id}` : null;
-  const { data: links, reload } = useApi<JournalLink[]>(url);
+function FoodActivityNode({
+  activity,
+  links,
+  onDelete,
+  onLinksChange,
+}: {
+  activity: FoodActivity;
+  links: JournalLink[];
+  onDelete: () => void;
+  onLinksChange: () => void;
+}) {
   const [viewLink, setViewLink] = useState<JournalLink | null>(null);
 
   async function handleCreateLink(anchorText: string, content: string, occurrence: number) {
     await api.post("/api/journal/links", { sourceType: "food_activity", sourceId: activity.id, anchorText, content, occurrence });
-    reload();
+    onLinksChange();
   }
-
-  const actionLabels: Record<string, string> = {
-    used: "Used", cooked: "Cooked", note: "Note", moved: "Moved", status: "Status",
-  };
 
   return (
     <>
@@ -470,22 +484,24 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
         <span className="food-detail-date">{formatMonthDay(activity.occurredOn)}</span>
         <span className="food-detail-note" style={{ flex: 1 }}>
           {activity.content ? (
-            <LinkedContentArea text={activity.content} links={links || []} onCreateLink={handleCreateLink} onLinkClick={setViewLink} />
+            <LinkedContentArea text={activity.content} links={links} onCreateLink={handleCreateLink} onLinkClick={setViewLink} />
           ) : null}
         </span>
         <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">✕</button>
       </div>
       {viewLink && (
-        <LinkViewModal link={viewLink} onClose={() => setViewLink(null)}
-          onUpdate={() => { reload(); setViewLink(null); }}
-          onDelete={() => { reload(); setViewLink(null); }} />
+        <LinkViewModal
+          link={viewLink}
+          onClose={() => setViewLink(null)}
+          onUpdate={() => { onLinksChange(); setViewLink(null); }}
+          onDelete={() => { onLinksChange(); setViewLink(null); }}
+        />
       )}
     </>
   );
 }
 
 function LogActivitySheet({ itemId, onClose, onSaved }: { itemId: number; onClose: () => void; onSaved: () => void }) {
-  const [action, setAction] = useState("note");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -495,7 +511,7 @@ function LogActivitySheet({ itemId, onClose, onSaved }: { itemId: number; onClos
     setSaving(true);
     try {
       await api.post(`/api/food/items/${itemId}/activities`, {
-        action,
+        action: "note",
         occurredOn: new Date().toISOString().slice(0, 10),
         content: content.trim(),
       });
@@ -523,44 +539,6 @@ function LogActivitySheet({ itemId, onClose, onSaved }: { itemId: number; onClos
           </button>
           <button type="submit" className="food-btn-primary" disabled={saving || !content.trim()}>
             {saving ? "Saving..." : "Save"}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-function MoveSheet({ item, onClose, onSaved }: { item: FoodItem; onClose: () => void; onSaved: () => void }) {
-  const [loc, setLoc] = useState(item.storageLocation);
-  const [saving, setSaving] = useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (saving) return;
-    setSaving(true);
-    try {
-      await api.patch(`/api/food/items/${item.id}`, { storageLocation: loc });
-      onSaved();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="food-sheet-overlay" onClick={onClose}>
-      <form className="food-sheet" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <h3 className="food-sheet-title">Move Provision</h3>
-        <select value={loc} onChange={(e) => setLoc(e.target.value as any)} className="food-sheet-textarea" style={{ height: "48px" }}>
-          <option value="fridge">Fridge</option>
-          <option value="table">Table</option>
-          <option value="pantry">Pantry</option>
-        </select>
-        <div className="food-modal-footer food-modal-footer--right">
-          <button type="button" className="food-btn-ghost" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="food-btn-primary" disabled={saving || loc === item.storageLocation}>
-            {saving ? "Moving..." : "Move"}
           </button>
         </div>
       </form>
