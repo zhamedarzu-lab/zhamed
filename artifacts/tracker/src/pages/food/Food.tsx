@@ -458,7 +458,9 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
     <>
       <div className="food-log-entry">
         <div className="food-log-entry-header">
-          <span className="food-log-entry-action">{actionLabels[activity.action] || activity.action}</span>
+          {activity.action !== "note" && (
+            <span className="food-log-entry-action">{actionLabels[activity.action] || activity.action}</span>
+          )}
           <span className="food-log-entry-date">{formatMonthDay(activity.occurredOn)}</span>
           <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">✕</button>
         </div>
@@ -478,7 +480,7 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
 }
 
 function LogActivitySheet({ itemId, onClose, onSaved }: { itemId: number; onClose: () => void; onSaved: () => void }) {
-  const [action, setAction] = useState("used");
+  const [action, setAction] = useState("note");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
 
