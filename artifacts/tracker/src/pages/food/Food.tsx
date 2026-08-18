@@ -7,7 +7,7 @@ import { formatFoodDate } from "./foodDate.js";
 type FoodItem = {
   id: number;
   name: string;
-  storageLocation: "fridge" | "table";
+  storageLocation: "fridge" | "table" | "pantry";
   status: "on_hand" | "finished" | "tossed" | "avoid";
   preparedOn?: string;
   store?: string;
@@ -27,6 +27,7 @@ type FoodActivity = {
 const locationNames: Record<string, string> = {
   fridge: "Fridge",
   table: "Table",
+  pantry: "Pantry",
 };
 
 const statusNames: Record<string, string> = {
@@ -91,7 +92,7 @@ export default function Food() {
   }, [items]);
 
   const groupedActive = useMemo(() => {
-    const groups: Record<string, FoodItem[]> = { fridge: [], table: [] };
+    const groups: Record<string, FoodItem[]> = { fridge: [], table: [], pantry: [] };
     for (const item of activeStock) {
       if (groups[item.storageLocation]) groups[item.storageLocation].push(item);
     }
@@ -231,21 +232,24 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
         <div className="food-modal-body">
           <label className="food-field">
             <span>Item Name</span>
-            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Heirloom Tomatoes" />
+            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           </label>
-          <div className="food-field-row">
-            <label className="food-field">
-              <span>Location</span>
-              <select value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)}>
-                <option value="fridge">Fridge</option>
-                <option value="table">Table</option>
-              </select>
-            </label>
-            <label className="food-field">
-              <span>Date prepared / in fridge</span>
-              <input type="date" value={preparedOn} onChange={(e) => setPreparedOn(e.target.value)} />
-            </label>
+          <div className="food-field">
+            <span>Location</span>
+            <div className="food-loc-toggle">
+              {(["fridge", "table", "pantry"] as const).map((loc) => (
+                <button key={loc} type="button"
+                  className={storageLocation === loc ? "active" : ""}
+                  onClick={() => setStorageLocation(loc)}>
+                  {locationNames[loc]}
+                </button>
+              ))}
+            </div>
           </div>
+          <label className="food-field">
+            <span>Date</span>
+            <input type="date" value={preparedOn} onChange={(e) => setPreparedOn(e.target.value)} />
+          </label>
           <label className="food-field">
             <span>Note</span>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Any details..." rows={2} />
@@ -414,6 +418,7 @@ function EditItemForm({
           <select value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)}>
             <option value="fridge">Fridge</option>
             <option value="table">Table</option>
+            <option value="pantry">Pantry</option>
           </select>
         </label>
         <label className="food-field">
@@ -496,25 +501,14 @@ function LogActivitySheet({ itemId, onClose, onSaved }: { itemId: number; onClos
   return (
     <div className="food-sheet-overlay" onClick={onClose}>
       <form className="food-sheet" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <h3 className="food-sheet-title">Log Activity</h3>
-        <div className="food-sheet-tabs">
-          <button type="button" className={action === "used" ? "active" : ""} onClick={() => setAction("used")}>
-            Used
-          </button>
-          <button type="button" className={action === "cooked" ? "active" : ""} onClick={() => setAction("cooked")}>
-            Cooked
-          </button>
-          <button type="button" className={action === "note" ? "active" : ""} onClick={() => setAction("note")}>
-            Note
-          </button>
-        </div>
+        <h3 className="food-sheet-title">Log</h3>
         <textarea
           autoFocus
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Details... (e.g. used half for soup)"
-          rows={3}
-          className="food-sheet-textarea"
+          placeholder="What happened?"
+          rows={1}
+          className="food-sheet-textarea food-sheet-textarea--small"
         />
         <div className="food-modal-footer food-modal-footer--right">
           <button type="button" className="food-btn-ghost" onClick={onClose}>
@@ -552,6 +546,7 @@ function MoveSheet({ item, onClose, onSaved }: { item: FoodItem; onClose: () => 
         <select value={loc} onChange={(e) => setLoc(e.target.value as any)} className="food-sheet-textarea" style={{ height: "48px" }}>
           <option value="fridge">Fridge</option>
           <option value="table">Table</option>
+          <option value="pantry">Pantry</option>
         </select>
         <div className="food-modal-footer food-modal-footer--right">
           <button type="button" className="food-btn-ghost" onClick={onClose}>

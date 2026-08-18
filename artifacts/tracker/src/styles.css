@@ -8189,6 +8189,40 @@ button.btn-icon {
   border-color: var(--amber);
 }
 
+/* Location toggle — New Provision modal */
+.food-loc-toggle {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-top: 0.25rem;
+}
+.food-loc-toggle button {
+  flex: 1;
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.food-loc-toggle button:last-child {
+  border-right: none;
+}
+.food-loc-toggle button.active {
+  background: var(--amber);
+  color: #fff;
+}
+
+/* Small textarea — log sheet */
+.food-sheet-textarea--small {
+  min-height: 2.4rem;
+  resize: none;
+}
+
 /* Info block — date + note in detail modal */
 .food-info-block {
   padding: 1rem 1.25rem;

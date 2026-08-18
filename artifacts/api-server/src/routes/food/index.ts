@@ -5,7 +5,7 @@ import { db, foodActivitiesTable, foodItemsTable, journalLinksTable } from "@wor
 
 const router: IRouter = Router();
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const STORAGE_LOCATIONS = ["fridge", "table"] as const;
+const STORAGE_LOCATIONS = ["fridge", "table", "pantry"] as const;
 const FOOD_STATUSES = ["on_hand", "finished", "tossed", "avoid"] as const;
 const ACTIVITY_ACTIONS = ["prepared", "used", "cooked", "note", "moved", "status"] as const;
 
