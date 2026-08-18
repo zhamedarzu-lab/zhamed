@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, useApi } from "../../lib/api";
 import { LinkedContentArea, JournalLink, LinkViewModal } from "../journal/LinkedContent";
 import { formatFoodDate } from "./foodDate.js";
@@ -50,7 +51,14 @@ function formatRelative(iso: string) {
   return `${days}d ago`;
 }
 
+const IcBack = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19 12H5M12 5l-7 7 7 7"/>
+  </svg>
+);
+
 export default function Food() {
+  const navigate = useNavigate();
   const { data: items, reload, loading } = useApi<FoodItem[]>("/api/food/items");
   const [view, setView] = useState<"active" | "history">("active");
   const [showAdd, setShowAdd] = useState(false);
@@ -79,6 +87,9 @@ export default function Food() {
   return (
     <div className="food-view">
       <div className="food-header">
+        <button className="jsearch-back" onClick={() => navigate("/journal")} aria-label="Back to journal">
+          <IcBack />
+        </button>
         <div className="food-view-toggle">
           <button className={view === "active" ? "active" : ""} onClick={() => setView("active")}>
             Active Stock
