@@ -9,7 +9,7 @@ type FoodItem = {
   name: string;
   storageLocation: "fridge" | "freezer" | "pantry" | "counter" | "other";
   status: "on_hand" | "finished" | "tossed" | "avoid";
-  purchasedOn?: string;
+  preparedOn?: string;
   store?: string;
   createdAt: string;
   updatedAt: string;
@@ -18,7 +18,7 @@ type FoodItem = {
 type FoodActivity = {
   id: number;
   foodItemId: number;
-  action: "purchased" | "used" | "cooked" | "note" | "moved" | "status";
+  action: "prepared" | "used" | "cooked" | "note" | "moved" | "status";
   occurredOn: string;
   content: string;
   createdAt: string;
@@ -58,10 +58,10 @@ function formatRelative(iso: string) {
 
 function daysOld(dateOnlyStr: string): string {
   const [y, m, d] = dateOnlyStr.split("-").map(Number);
-  const purchased = new Date(y, m - 1, d);
+  const prepared = new Date(y, m - 1, d);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const days = Math.round((today.getTime() - purchased.getTime()) / (1000 * 60 * 60 * 24));
+  const days = Math.round((today.getTime() - prepared.getTime()) / (1000 * 60 * 60 * 24));
   if (days <= 0) return "got today";
   if (days === 1) return "1 day old";
   return `${days} days old`;
@@ -147,7 +147,7 @@ export default function Food() {
                     <div key={item.id} className="food-card" onClick={() => setOpenItemId(item.id)}>
                       <h3 className="food-card-name">{item.name}</h3>
                       <div className="food-card-meta">
-                        <span className="food-card-time">{item.purchasedOn ? daysOld(item.purchasedOn) : formatRelative(item.updatedAt)}</span>
+                        <span className="food-card-time">{item.preparedOn ? daysOld(item.preparedOn) : formatRelative(item.updatedAt)}</span>
                       </div>
                     </div>
                   ))}
@@ -163,7 +163,7 @@ export default function Food() {
                 <div>
                   <div className="food-history-name">{item.name}</div>
                   <div className="food-history-meta">
-                    {locationNames[item.storageLocation]}{item.purchasedOn ? ` • since ${formatMonthDay(item.purchasedOn)}` : ""}
+                    {locationNames[item.storageLocation]}{item.preparedOn ? ` • since ${formatMonthDay(item.preparedOn)}` : ""}
                   </div>
                 </div>
                 <div className="food-history-status" data-status={item.status}>
@@ -199,7 +199,7 @@ export default function Food() {
 function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any) => Promise<void> }) {
   const [name, setName] = useState("");
   const [storageLocation, setStorageLocation] = useState("fridge");
-  const [purchasedOn, setPurchasedOn] = useState(() => new Date().toISOString().split("T")[0]);
+  const [preparedOn, setPreparedOn] = useState(() => new Date().toISOString().split("T")[0]);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -211,7 +211,7 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
       await onAdd({
         name: name.trim(),
         storageLocation,
-        purchasedOn: purchasedOn || undefined,
+        preparedOn: preparedOn || undefined,
         note: note.trim() || undefined,
       });
       onClose();
@@ -247,7 +247,7 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
             </label>
             <label className="food-field">
               <span>Date prepared / in fridge</span>
-              <input type="date" value={purchasedOn} onChange={(e) => setPurchasedOn(e.target.value)} />
+              <input type="date" value={preparedOn} onChange={(e) => setPreparedOn(e.target.value)} />
             </label>
           </div>
           <label className="food-field">
@@ -391,7 +391,7 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
   }
 
   const actionLabels: Record<string, string> = {
-    purchased: "Prepared",
+    prepared: "Prepared",
     used: "Used",
     cooked: "Cooked",
     note: "Note",
@@ -407,7 +407,7 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
         <div className="food-timeline-dot" data-action={activity.action} />
         <div className="food-timeline-body">
           <div className="food-timeline-header-row">
-            {activity.action !== "purchased" && (
+            {activity.action !== "prepared" && (
               <span className="food-timeline-action">{actionLabels[activity.action] || activity.action}</span>
             )}
             <span className="food-timeline-date">{formatMonthDay(activity.occurredOn)}</span>

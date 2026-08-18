@@ -7,7 +7,7 @@ const router: IRouter = Router();
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const STORAGE_LOCATIONS = ["fridge", "freezer", "pantry", "counter", "other"] as const;
 const FOOD_STATUSES = ["on_hand", "finished", "tossed", "avoid"] as const;
-const ACTIVITY_ACTIONS = ["purchased", "used", "cooked", "note", "moved", "status"] as const;
+const ACTIVITY_ACTIONS = ["prepared", "used", "cooked", "note", "moved", "status"] as const;
 
 const isCalendarDate = (value: string) => {
   if (!DATE_RE.test(value)) return false;
@@ -22,8 +22,7 @@ const calendarDate = z.string().refine(isCalendarDate, "Must be a real YYYY-MM-D
 const ItemInput = z.object({
   name: z.string().trim().min(1).max(200),
   storageLocation: z.enum(STORAGE_LOCATIONS).default("pantry"),
-  purchasedOn: calendarDate.nullable().optional(),
-  store: z.string().trim().max(200).nullable().optional(),
+  preparedOn: calendarDate.nullable().optional(),
   note: z.string().trim().max(4_000).optional(),
 });
 
@@ -31,8 +30,7 @@ const ItemPatch = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   storageLocation: z.enum(STORAGE_LOCATIONS).optional(),
   status: z.enum(FOOD_STATUSES).optional(),
-  purchasedOn: calendarDate.nullable().optional(),
-  store: z.string().trim().max(200).nullable().optional(),
+  preparedOn: calendarDate.nullable().optional(),
   occurredOn: calendarDate.optional(),
 });
 
@@ -72,14 +70,13 @@ router.post("/items", async (req, res): Promise<void> => {
   const [item] = await db.insert(foodItemsTable).values({
     name: data.name,
     storageLocation: data.storageLocation,
-    purchasedOn: data.purchasedOn ?? null,
-    store: data.store || null,
+    preparedOn: data.preparedOn ?? null,
   }).returning();
 
   const activities: Array<typeof foodActivitiesTable.$inferSelect> = [];
   const [activity] = await db.insert(foodActivitiesTable).values({
-    foodItemId: item.id, action: "purchased", occurredOn: data.purchasedOn ?? today(),
-    content: data.note?.trim() || null,
+    foodItemId: item.id, action: "prepared", occurredOn: data.preparedOn ?? today(),
+    content: data.note?.trim() || "",
   }).returning();
   activities.push(activity);
   res.status(201).json({ item, activities });
@@ -97,8 +94,7 @@ router.patch("/items/:id", async (req, res): Promise<void> => {
   if (data.name !== undefined) update.name = data.name;
   if (data.storageLocation !== undefined) update.storageLocation = data.storageLocation;
   if (data.status !== undefined) update.status = data.status;
-  if (data.purchasedOn !== undefined) update.purchasedOn = data.purchasedOn;
-  if (data.store !== undefined) update.store = data.store || null;
+  if (data.preparedOn !== undefined) update.preparedOn = data.preparedOn;
   const [item] = await db.update(foodItemsTable).set(update).where(eq(foodItemsTable.id, id)).returning();
 
   const occurredOn = data.occurredOn ?? today();

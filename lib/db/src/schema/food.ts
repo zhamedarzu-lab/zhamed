@@ -5,7 +5,7 @@ export const foodItemsTable = pgTable("food_items", {
   name:            text("name").notNull(),
   storageLocation: text("storage_location").notNull().default("pantry"),
   status:          text("status").notNull().default("on_hand"),
-  purchasedOn:     date("purchased_on", { mode: "string" }),
+  preparedOn:      date("prepared_on", { mode: "string" }),
   store:           text("store"),
   createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:       timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
