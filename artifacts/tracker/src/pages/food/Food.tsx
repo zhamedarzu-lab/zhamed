@@ -358,7 +358,15 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
         {!editing && (
           <div className="food-modal-footer food-modal-footer--slim">
             <button className="food-link-btn" onClick={() => setShowLog(true)}>+ log</button>
-            <button className="food-link-btn" onClick={() => setShowStatus(true)}>status</button>
+            {item.status === "on_hand" ? (
+              <button className="food-link-btn" onClick={() => setShowStatus(true)}>status</button>
+            ) : (
+              <button className="food-link-btn" onClick={async () => {
+                await api.patch(`/api/food/items/${itemId}`, { status: "on_hand" });
+                onUpdateItem();
+                onClose();
+              }}>restore</button>
+            )}
             <button className="food-link-btn food-link-btn--danger" onClick={handleDeleteItem}>delete</button>
           </div>
         )}
@@ -582,10 +590,8 @@ function StatusSheet({ item, onClose, onSaved }: { item: FoodItem; onClose: () =
       <form className="food-sheet" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <h3 className="food-sheet-title">Update Status</h3>
         <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="food-sheet-textarea" style={{ height: "48px" }}>
-          <option value="on_hand">On hand</option>
           <option value="finished">Finished</option>
           <option value="tossed">Tossed</option>
-          <option value="avoid">Avoid</option>
         </select>
         <div className="food-modal-footer food-modal-footer--right">
           <button type="button" className="food-btn-ghost" onClick={onClose}>
