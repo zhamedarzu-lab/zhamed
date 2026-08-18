@@ -8204,10 +8204,9 @@ button.btn-icon {
   margin-bottom: 0.4rem;
 }
 .food-info-date {
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 400;
   color: var(--ink);
-  letter-spacing: -0.01em;
 }
 .food-info-note {
   font-size: 0.9rem;

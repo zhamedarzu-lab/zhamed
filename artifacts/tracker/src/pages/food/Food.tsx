@@ -43,9 +43,10 @@ function formatDate(iso: string) {
   return formatFoodDate(iso);
 }
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function formatMonthDay(dateOnlyStr: string): string {
   const [, m, d] = dateOnlyStr.split("-").map(Number);
-  return `${m}/${d}`;
+  return `${MONTHS[m - 1]} ${d}`;
 }
 
 function formatRelative(iso: string) {
