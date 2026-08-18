@@ -51,6 +51,17 @@ function formatRelative(iso: string) {
   return `${days}d ago`;
 }
 
+function daysOld(dateOnlyStr: string): string {
+  const [y, m, d] = dateOnlyStr.split("-").map(Number);
+  const purchased = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((today.getTime() - purchased.getTime()) / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "got today";
+  if (days === 1) return "1 day old";
+  return `${days} days old`;
+}
+
 const IcBack = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M19 12H5M12 5l-7 7 7 7"/>
@@ -131,8 +142,7 @@ export default function Food() {
                     <div key={item.id} className="food-card" onClick={() => setOpenItemId(item.id)}>
                       <h3 className="food-card-name">{item.name}</h3>
                       <div className="food-card-meta">
-                        <span className="food-card-time">{formatRelative(item.updatedAt)}</span>
-                        {item.store && <span className="food-card-store">{item.store}</span>}
+                        <span className="food-card-time">{item.purchasedOn ? daysOld(item.purchasedOn) : formatRelative(item.updatedAt)}</span>
                       </div>
                     </div>
                   ))}
@@ -148,7 +158,7 @@ export default function Food() {
                 <div>
                   <div className="food-history-name">{item.name}</div>
                   <div className="food-history-meta">
-                    {locationNames[item.storageLocation]} • {formatDate(item.updatedAt)}
+                    {locationNames[item.storageLocation]}{item.purchasedOn ? ` • bought ${formatDate(item.purchasedOn)}` : ""}
                   </div>
                 </div>
                 <div className="food-history-status" data-status={item.status}>
@@ -185,7 +195,6 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
   const [name, setName] = useState("");
   const [storageLocation, setStorageLocation] = useState("fridge");
   const [purchasedOn, setPurchasedOn] = useState(() => new Date().toISOString().split("T")[0]);
-  const [store, setStore] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -198,7 +207,6 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
         name: name.trim(),
         storageLocation,
         purchasedOn: purchasedOn || undefined,
-        store: store.trim() || undefined,
         note: note.trim() || undefined,
       });
       onClose();
@@ -237,10 +245,6 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
               <input type="date" value={purchasedOn} onChange={(e) => setPurchasedOn(e.target.value)} />
             </label>
           </div>
-          <label className="food-field">
-            <span>Store / Origin</span>
-            <input value={store} onChange={(e) => setStore(e.target.value)} placeholder="e.g., Farmer's Market" />
-          </label>
           <label className="food-field">
             <span>Initial Note (optional)</span>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Condition, plans, etc." rows={2} />
@@ -298,7 +302,6 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
             <h2 className="food-modal-title">{item.name}</h2>
             <div className="food-modal-subtitle">
               {locationNames[item.storageLocation]} • {statusNames[item.status]}
-              {item.store && ` • ${item.store}`}
             </div>
           </div>
           <button className="food-modal-close" onClick={onClose} aria-label="Close">
