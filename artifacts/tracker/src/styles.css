@@ -7917,7 +7917,7 @@ button.btn-icon {
   margin: 0 0 0.25rem 0;
 }
 .food-modal-title--sm {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   margin: 0 0 0.1rem 0;
 }
@@ -8000,12 +8000,12 @@ button.btn-icon {
   gap: 0.5rem 0.75rem;
 }
 .food-detail-date {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--ink-soft);
   flex-shrink: 0;
 }
 .food-detail-note {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--ink-soft);
   flex: 1;
   line-height: 1.5;
@@ -8191,7 +8191,7 @@ button.btn-icon {
   color: var(--food-red);
 }
 .food-timeline-text {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--ink-soft);
   white-space: pre-wrap;
   line-height: 1.5;
@@ -8363,7 +8363,7 @@ button.btn-icon {
   gap: 0.5rem;
 }
 .food-log-entry-action {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--ink-faint);
   text-transform: uppercase;
@@ -8371,6 +8371,6 @@ button.btn-icon {
   flex: 1;
 }
 .food-log-entry-date {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--ink-faint);
 }
