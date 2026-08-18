@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const isGet = !init?.method || init.method === "GET";
   const res = await fetch(url, {
     ...init,
+    cache: isGet ? "no-store" : undefined,
     headers:
       init?.body instanceof FormData
         ? init.headers
