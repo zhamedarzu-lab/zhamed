@@ -410,9 +410,7 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
             {activity.action !== "purchased" && (
               <span className="food-timeline-action">{actionLabels[activity.action] || activity.action}</span>
             )}
-            <span className="food-timeline-date">
-              {activity.action === "purchased" ? formatMonthDay(activity.occurredOn) : formatDate(activity.occurredOn)}
-            </span>
+            <span className="food-timeline-date">{formatMonthDay(activity.occurredOn)}</span>
             {isUserAction && (
               <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">
                 ✕
