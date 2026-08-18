@@ -510,6 +510,7 @@ export default function Journal() {
   const [linksOpen,      setLinksOpen]      = useState(false);
   const [allLinks,       setAllLinks]       = useState<JournalLink[]>([]);
   const [linksLoading,   setLinksLoading]   = useState(false);
+  const [weekEntryLinks, setWeekEntryLinks] = useState<JournalLink[]>([]);
 
   function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
 
@@ -608,6 +609,15 @@ export default function Journal() {
       .catch(() => {})
       .finally(() => setLinksLoading(false));
   }, [linksOpen]);
+
+  // Fetch entry links for the week view whenever entries or focus changes
+  useEffect(() => {
+    if (view !== "week" || entries.length === 0) { setWeekEntryLinks([]); return; }
+    const ids = new Set(entries.map(e => e.id));
+    api.get<JournalLink[]>("/api/journal/links?sourceType=entry")
+      .then(all => setWeekEntryLinks(all.filter(l => ids.has(l.sourceId))))
+      .catch(() => {});
+  }, [view, entries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch period notes whenever the view or focus date changes
   useEffect(() => {
@@ -1497,6 +1507,9 @@ export default function Journal() {
                             const isOpener = e.looseEndType === 'open';
                             const isCloser = e.looseEndType === 'close';
                             const hasCloseEntry = !isCloser && entries.some(x => x.looseEndLink === e.id && x.looseEndType === 'close');
+                            const rowLinks = weekEntryLinks.filter(l => l.sourceId === e.id);
+                            const showingContent = !e.subject && !!e.content;
+                            const previewText = e.subject || e.content || "—";
                             return (
                               <button key={e.id} className={`journal-week-list-row${isCarryover ? " is-carryover" : ""}`} onClick={() => setModal(e)}>
                                 <span className="journal-week-list-dot" style={{ background: e.color, ...br(e.color) } as React.CSSProperties} />
@@ -1507,8 +1520,13 @@ export default function Journal() {
                                 <span className="journal-week-list-label">
                                   {(isOpener || hasCloseEntry) && <span className="loose-end-badge loose-end-badge--open">◎ </span>}
                                   {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
-                                  {e.subject || e.content || "—"}
+                                  {showingContent && rowLinks.length > 0
+                                    ? renderLinked(previewText, rowLinks, () => {})
+                                    : previewText}
                                 </span>
+                                {rowLinks.length > 0 && (
+                                  <span className="dp-link-icon" title={`${rowLinks.length} link${rowLinks.length !== 1 ? "s" : ""}`}>🔗</span>
+                                )}
                               </button>
                             );
                           })}

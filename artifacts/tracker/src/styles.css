@@ -2670,6 +2670,13 @@ a:hover {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+/* Anchor highlights in week list rows — visual only */
+.journal-week-list-label .jlink-anchor {
+  pointer-events: none;
+  cursor: inherit;
 }
 /* Time sweep bar on highlight rows in week list */
 .journal-week-list-sweep {
