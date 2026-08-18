@@ -31,7 +31,6 @@ type ExerciseStat = {
   last7: number;
   prev7: number;
   delta: number;
-  bestDay: { date: string; amount: number } | null;
   sparkline: Array<{ date: string; value: number }>;
 };
 
@@ -75,12 +74,13 @@ const PERIOD_LABEL: Record<GoalPeriod, string> = { day: "Daily", week: "Weekly",
 const PERIOD_UNIT:  Record<GoalPeriod, string> = { day: "days",  week: "weeks",  month: "months"  };
 
 function VitalityPanel({ data }: { data: HealthData }) {
+  // Hooks must be called unconditionally — guards come after
+  const [idx,  setIdx]  = useState(0);
+  const [open, setOpen] = useState(false);
+
   if (!data.hasGoals || !data.byPeriod) return null;
   const periods = (["day", "week", "month"] as GoalPeriod[]).filter(p => data.byPeriod[p]);
   if (periods.length === 0) return null;
-
-  const [idx,  setIdx]  = useState(0);
-  const [open, setOpen] = useState(false);
 
   const activeIdx = idx % periods.length;
   const period    = periods[activeIdx];
@@ -313,16 +313,18 @@ export default function Fitness() {
     const fromIdx = localOrder.findIndex((e) => e.exerciseId === fromId);
     const overIdx = localOrder.findIndex((e) => e.exerciseId === overId);
     if (fromIdx === -1 || overIdx === -1) return;
-    const newOrder = [...localOrder];
+    const prevOrder = [...localOrder];
+    const newOrder  = [...localOrder];
     const [item] = newOrder.splice(fromIdx, 1);
     newOrder.splice(overIdx, 0, item);
     setLocalOrder(newOrder);
     api.put("/api/fitness/exercises/reorder", { ids: newOrder.map((e) => e.exerciseId) })
-      .catch(() => setError("Could not save order. Please try again."));
+      .catch(() => {
+        setLocalOrder(prevOrder);
+        setError("Could not save order. Please try again.");
+      });
   }
   // ─────────────────────────────────────────────────────────────────────
-
-  const activeDays = (summary.data?.consistencyStrip ?? []).filter((d) => d.active).length;
 
   return (
     <>
@@ -1128,8 +1130,6 @@ function TrendBadge({ stat }: { stat: ExerciseStat }) {
   );
 }
 
-// ─── Exercise row ─────────────────────────────────────────────────────────────
-
 // ─── Numpad ───────────────────────────────────────────────────────────────────
 
 function appendDigit(cur: string, key: string): string {
@@ -1761,28 +1761,22 @@ function ExerciseRow({
         >
           <div
             className="ft-row-main"
-            role="button"
-            tabIndex={0}
-            aria-label={`${stat.name} — click to log`}
             onClick={() => {
               // Close swipe if open; numpad is only opened via the + button
               if (swipeDir !== null) { setSwipeDir(null); onSwipeOpen(null); }
             }}
-            onKeyDown={undefined}
           >
             {/* + zone — tap to log reps; hold the card body to drag-to-reorder */}
-            <div
+            <button
+              type="button"
               className="ft-log-btn"
-              role="button"
               aria-label="Log reps"
-              tabIndex={0}
               onTouchStart={(e) => e.stopPropagation()}
               onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onOpenNumpad(stat); }}
               onClick={(e) => { e.stopPropagation(); onOpenNumpad(stat); }}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpenNumpad(stat); }}
             >
               +
-            </div>
+            </button>
 
             <div className="ft-row-left">
               <span className="ft-row-name">{stat.name}</span>
