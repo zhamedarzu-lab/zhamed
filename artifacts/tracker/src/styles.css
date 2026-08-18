@@ -7984,20 +7984,33 @@ button.btn-icon {
 /* Detail meta — date + note inline */
 .food-detail-meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0;
+}
+.food-detail-row {
+  display: flex;
   align-items: baseline;
-  gap: 0.5rem 0.75rem;
+  gap: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.55rem 0;
+}
+.food-detail-row:first-child {
+  border-top: 1px solid var(--rule);
 }
 .food-detail-date {
   font-size: 0.9375rem;
   color: var(--ink-soft);
   flex-shrink: 0;
+  width: 4.5rem;
+  padding-right: 0.75rem;
+  border-right: 1px solid var(--rule);
 }
 .food-detail-note {
   font-size: 0.9375rem;
-  color: var(--ink-soft);
+  color: var(--ink);
   flex: 1;
   line-height: 1.5;
+  padding-left: 0.75rem;
 }
 .food-detail-edit {
   background: none;

@@ -336,9 +336,11 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
           ) : (
             <>
               <div className="food-detail-meta">
-                <span className="food-detail-date">{item.preparedOn ? formatMonthDay(item.preparedOn) : "—"}</span>
-                {preparedAct?.content && <span className="food-detail-note">{preparedAct.content}</span>}
-                <button className="food-detail-edit" onClick={() => setEditing(true)}>Edit</button>
+                <div className="food-detail-row">
+                  <span className="food-detail-date">{item.preparedOn ? formatMonthDay(item.preparedOn) : "—"}</span>
+                  <span className="food-detail-note">{preparedAct?.content || ""}</span>
+                  <button className="food-detail-edit" onClick={() => setEditing(true)}>Edit</button>
+                </div>
               </div>
 
               {logActivities.length > 0 && (
