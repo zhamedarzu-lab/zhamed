@@ -158,7 +158,7 @@ export default function Food() {
                 <div>
                   <div className="food-history-name">{item.name}</div>
                   <div className="food-history-meta">
-                    {locationNames[item.storageLocation]}{item.purchasedOn ? ` • bought ${formatDate(item.purchasedOn)}` : ""}
+                    {locationNames[item.storageLocation]}{item.purchasedOn ? ` • since ${formatDate(item.purchasedOn)}` : ""}
                   </div>
                 </div>
                 <div className="food-history-status" data-status={item.status}>
@@ -241,7 +241,7 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
               </select>
             </label>
             <label className="food-field">
-              <span>Date Purchased</span>
+              <span>Date prepared / in fridge</span>
               <input type="date" value={purchasedOn} onChange={(e) => setPurchasedOn(e.target.value)} />
             </label>
           </div>
