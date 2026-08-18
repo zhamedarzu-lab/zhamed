@@ -493,6 +493,7 @@ function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWe
     return s;
   });
   const [weekLinks, setWeekLinks] = useState<JournalLink[]>([]);
+  const [viewingDayNotes, setViewingDayNotes] = useState<{ label: string; notes: PeriodNote[] } | null>(null);
 
   useEffect(() => {
     if (allEntries.length === 0) return;
@@ -540,6 +541,7 @@ function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWe
   };
 
   return (
+    <>
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="week-popup" role="dialog" aria-modal="true">
         <div className="week-popup-header">
@@ -567,26 +569,29 @@ function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWe
             const notes = dayNotes.filter(n => n.periodKey === ymd);
             return (
               <div key={ymd} className={`week-popup-day${dayEntries.length === 0 ? " week-popup-day--empty" : ""}`}>
-                <button
+                <div
                   className={`week-popup-day-hd${isToday ? " is-today" : ""}`}
                   onClick={() => dayEntries.length > 0 && toggleDay(ymd)}
-                  style={dayEntries.length === 0 ? { cursor: "default" } : undefined}
+                  role={dayEntries.length > 0 ? "button" : undefined}
+                  style={{ cursor: dayEntries.length > 0 ? "pointer" : "default" }}
                 >
                   <span className="week-popup-day-label">{dayLabel}</span>
                   {dayEntries.length > 0
                     ? <span className="week-popup-day-count">{dayEntries.length}</span>
                     : <span className="week-popup-day-empty-badge">—</span>}
+                  {notes.length > 0 && (
+                    <button
+                      className="week-popup-notes-badge"
+                      onClick={e => { e.stopPropagation(); setViewingDayNotes({ label: dayLabel, notes }); }}
+                      title={`${notes.length} note${notes.length !== 1 ? "s" : ""}`}
+                    >
+                      {notes.length} 📝
+                    </button>
+                  )}
                   {dayEntries.length > 0 && (
                     <span className={`week-popup-chevron${isCollapsed ? " collapsed" : ""}`}>›</span>
                   )}
-                </button>
-                {notes.length > 0 && (
-                  <ul className="week-popup-day-notes">
-                    {notes.map(n => (
-                      <li key={n.id} className="week-popup-day-note">{n.content}</li>
-                    ))}
-                  </ul>
-                )}
+                </div>
                 {!isCollapsed && dayEntries.length > 0 && (
                   <div className="week-popup-day-entries">
                     {dayEntries.map(e => {
@@ -619,6 +624,28 @@ function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWe
         </div>
       </div>
     </div>
+
+    {viewingDayNotes && (
+      <div className="pnm-backdrop pnm-backdrop--above" onClick={() => setViewingDayNotes(null)}>
+        <div className="pnm-sheet" onClick={e => e.stopPropagation()}>
+          <div className="pnm-header">
+            <span className="pnm-title">Notes · {viewingDayNotes.label}</span>
+            <button className="pnm-close" onClick={() => setViewingDayNotes(null)} aria-label="Close">✕</button>
+          </div>
+          <div className="pnm-body">
+            <div className="pnm-list">
+              {viewingDayNotes.notes.map((n, i) => (
+                <div key={n.id} className="pnm-entry">
+                  <span className="pnm-entry-num">{i + 1}</span>
+                  <span className="dp-note-text">{n.content}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 }
 

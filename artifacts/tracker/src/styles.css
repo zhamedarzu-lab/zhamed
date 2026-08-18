@@ -2874,25 +2874,22 @@ a:hover {
 }
 .week-popup-day-entries .day-popup-row:last-child { border-bottom: none; }
 .week-popup-day-entries .day-popup-row { border-bottom: 1px solid var(--rule); }
-.week-popup-day-notes {
-  list-style: none;
-  margin: 0;
-  padding: 0.2rem 1rem 0.4rem 1.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  border-bottom: 1px solid var(--rule);
-  background: color-mix(in srgb, var(--paper-sunk) 60%, transparent);
-}
-.week-popup-day--empty .week-popup-day-notes { border-bottom: none; }
-.week-popup-day-note {
-  font-size: 0.72rem;
-  color: var(--ink-faint);
-  font-style: italic;
-  line-height: 1.4;
+.week-popup-notes-badge {
+  background: color-mix(in srgb, var(--amber) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.week-popup-notes-badge:hover {
+  background: color-mix(in srgb, var(--amber) 28%, transparent);
+  color: var(--ink);
 }
 .journal-month-cell {
   min-height: 80px;
