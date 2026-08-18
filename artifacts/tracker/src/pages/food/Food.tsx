@@ -270,6 +270,7 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
   const { data, reload } = useApi<{ item: FoodItem; activities: FoodActivity[] }>(`/api/food/items/${itemId}/activities`);
   const [editing, setEditing] = useState(false);
   const [showLog, setShowLog] = useState(false);
+  const [showStatus, setShowStatus] = useState(false);
 
   if (!data) {
     return (
@@ -357,6 +358,7 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
         {!editing && (
           <div className="food-modal-footer food-modal-footer--slim">
             <button className="food-link-btn" onClick={() => setShowLog(true)}>+ log</button>
+            <button className="food-link-btn" onClick={() => setShowStatus(true)}>status</button>
             <button className="food-link-btn food-link-btn--danger" onClick={handleDeleteItem}>delete</button>
           </div>
         )}
@@ -366,6 +368,13 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
             itemId={itemId}
             onClose={() => setShowLog(false)}
             onSaved={() => { setShowLog(false); reload(); }}
+          />
+        )}
+        {showStatus && (
+          <StatusSheet
+            item={item}
+            onClose={() => setShowStatus(false)}
+            onSaved={() => { setShowStatus(false); reload(); onUpdateItem(); onClose(); }}
           />
         )}
       </div>
