@@ -1482,18 +1482,35 @@ function getPeriodTarget(stat: ExerciseStat, period: "D" | "W" | "M"): number | 
   if (!stat.goalAmount || !stat.goalPeriod || stat.goalDeadline) return null;
   const amount = stat.goalAmount;
   const gp = stat.goalPeriod;
-  const t = new Date(todayIso() + "T12:00:00");
+  const now = new Date();
+  const t   = new Date(todayIso() + "T12:00:00");
   const daysInMonth = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
 
+  // How many days (including today) remain in the current week (Sun-Sat) and month.
+  // Clamped to at least 1 to avoid division by zero on the last day.
+  const daysLeftInWeek  = Math.max(1, 7 - now.getDay());
+  const daysLeftInMonth = Math.max(1, daysInMonth - t.getDate() + 1);
+
   if (period === "D") {
-    if (gp === "day")   return amount;
-    if (gp === "week")  return Math.ceil(amount / 7);
-    if (gp === "month") return Math.ceil(amount / daysInMonth);
+    if (gp === "day") return amount;
+    if (gp === "week") {
+      // How many do I need per day to finish the weekly goal from here?
+      const rem = Math.max(0, amount - stat.weekTotal);
+      return rem === 0 ? null : Math.ceil(rem / daysLeftInWeek);
+    }
+    if (gp === "month") {
+      const rem = Math.max(0, amount - stat.monthTotal);
+      return rem === 0 ? null : Math.ceil(rem / daysLeftInMonth);
+    }
   }
   if (period === "W") {
-    if (gp === "week")  return amount;
-    if (gp === "day")   return amount * 7;
-    if (gp === "month") return Math.ceil((amount * 7) / daysInMonth);
+    if (gp === "week") return amount;
+    if (gp === "day")  return amount * 7;
+    if (gp === "month") {
+      // How many per week to finish the monthly goal from here?
+      const rem = Math.max(0, amount - stat.monthTotal);
+      return rem === 0 ? null : Math.ceil((rem * 7) / daysLeftInMonth);
+    }
   }
   if (period === "M") {
     if (gp === "month") return amount;
