@@ -2740,7 +2740,140 @@ a:hover {
   border-bottom: 1px solid var(--rule);
   background: var(--paper-sunk);
   user-select: none;
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
 }
+.journal-month-weeknum:hover {
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--paper-sunk) 60%, var(--rule));
+}
+
+/* ── Week popup ─────────────────────────────────────────────────── */
+.week-popup {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 80vh;
+}
+.week-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.week-popup-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.week-popup-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.week-popup-range {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.week-popup-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.week-popup-toggle-all {
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.week-popup-toggle-all:hover { color: var(--ink); border-color: var(--ink-soft); }
+.week-popup-body {
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.week-popup-day {
+  border-bottom: 1px solid var(--rule);
+}
+.week-popup-day:last-child { border-bottom: none; }
+.week-popup-day-hd {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  background: var(--paper-sunk);
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  text-align: left;
+  transition: color 0.12s, background 0.12s;
+}
+.week-popup-day-hd:not([style*="cursor: default"]):hover {
+  background: color-mix(in srgb, var(--paper-sunk) 60%, var(--rule));
+  color: var(--ink);
+}
+.week-popup-day-hd.is-today {
+  color: var(--amber);
+}
+.week-popup-day-label { flex: 1; font-weight: 500; }
+.week-popup-day-count {
+  font-size: 0.7rem;
+  background: var(--rule);
+  color: var(--ink-soft);
+  border-radius: 8px;
+  padding: 0.05rem 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+.week-popup-day--empty .week-popup-day-hd {
+  opacity: 0.45;
+}
+.week-popup-day-empty-badge {
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+}
+.week-popup-chevron {
+  font-size: 0.85rem;
+  display: inline-block;
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+  color: var(--ink-soft);
+}
+.week-popup-chevron.collapsed { transform: rotate(0deg); }
+.week-popup-day-entries {
+  display: flex;
+  flex-direction: column;
+}
+.week-popup-day-entries .day-popup-row:last-child { border-bottom: none; }
+.week-popup-day-entries .day-popup-row { border-bottom: 1px solid var(--rule); }
 .journal-month-cell {
   min-height: 80px;
   border-right: 1px solid var(--rule);

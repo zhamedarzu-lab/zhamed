@@ -476,6 +476,140 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
 }
 
 /* ═══════════════════════════════════════════════════════════════════ */
+type WeekPopupProps = {
+  weekStart: Date;
+  weekNum: number;
+  allEntries: Entry[];
+  onClose: () => void;
+  onGoToWeek: () => void;
+  onSelect: (e: Entry) => void;
+};
+function WeekPopup({ weekStart, weekNum, allEntries, onClose, onGoToWeek, onSelect }: WeekPopupProps) {
+  const todayYmd = toYMD(new Date());
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [weekLinks, setWeekLinks] = useState<JournalLink[]>([]);
+
+  useEffect(() => {
+    if (allEntries.length === 0) return;
+    const ids = new Set(allEntries.map(e => e.id));
+    api.get<JournalLink[]>("/api/journal/links?sourceType=entry")
+      .then(all => setWeekLinks(all.filter(l => ids.has(l.sourceId))))
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const day = addDays(weekStart, i);
+    const ymd = toYMD(day);
+    const dayEntries = allEntries
+      .filter(e => e.entryDate === ymd)
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    return { day, ymd, dayEntries };
+  });
+
+  const weekEnd = addDays(weekStart, 6);
+  const startLabel = weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const endLabel   = weekEnd.toLocaleDateString("en-US",   { month: "short", day: "numeric" });
+  const rangeLabel = `${startLabel} – ${endLabel}`;
+  const totalEntries = allEntries.length;
+
+  const toggleDay = (ymd: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(ymd)) next.delete(ymd); else next.add(ymd);
+      return next;
+    });
+  };
+  const allCollapsed = days.every(d => d.dayEntries.length === 0 || collapsed.has(d.ymd));
+  const toggleAll = () => {
+    if (allCollapsed) {
+      setCollapsed(new Set());
+    } else {
+      setCollapsed(new Set(days.filter(d => d.dayEntries.length > 0).map(d => d.ymd)));
+    }
+  };
+
+  return (
+    <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="week-popup" role="dialog" aria-modal="true">
+        <div className="week-popup-header">
+          <div className="week-popup-title">
+            <span className="week-popup-num">W{weekNum}</span>
+            <span className="week-popup-range">{rangeLabel}</span>
+          </div>
+          <div className="week-popup-header-right">
+            {totalEntries > 0 && (
+              <button className="week-popup-toggle-all" onClick={toggleAll} title={allCollapsed ? "Expand all" : "Collapse all"}>
+                {allCollapsed ? "↕ Expand" : "↕ Collapse"}
+              </button>
+            )}
+            <button className="entry-modal-close" onClick={onClose} aria-label="Close">×</button>
+          </div>
+        </div>
+        <div className="week-popup-body">
+          {totalEntries === 0 && (
+            <p className="day-popup-empty">No entries this week.</p>
+          )}
+          {days.map(({ day, ymd, dayEntries }) => {
+            const isToday    = ymd === todayYmd;
+            const isCollapsed = collapsed.has(ymd);
+            const dayLabel   = day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+            return (
+              <div key={ymd} className={`week-popup-day${dayEntries.length === 0 ? " week-popup-day--empty" : ""}`}>
+                <button
+                  className={`week-popup-day-hd${isToday ? " is-today" : ""}`}
+                  onClick={() => dayEntries.length > 0 && toggleDay(ymd)}
+                  style={dayEntries.length === 0 ? { cursor: "default" } : undefined}
+                >
+                  <span className="week-popup-day-label">{dayLabel}</span>
+                  {dayEntries.length > 0
+                    ? <span className="week-popup-day-count">{dayEntries.length}</span>
+                    : <span className="week-popup-day-empty-badge">—</span>}
+                  {dayEntries.length > 0 && (
+                    <span className={`week-popup-chevron${isCollapsed ? " collapsed" : ""}`}>›</span>
+                  )}
+                </button>
+                {!isCollapsed && dayEntries.length > 0 && (
+                  <div className="week-popup-day-entries">
+                    {dayEntries.map(e => {
+                      const rowLinks = weekLinks.filter(l => l.sourceId === e.id);
+                      const showingContent = !e.subject && !!e.content;
+                      const previewText = e.subject || e.content.slice(0, 60) || "—";
+                      return (
+                        <button key={e.id} className="day-popup-row" onClick={() => { onClose(); onSelect(e); }}>
+                          <span className="day-popup-dot" style={{ background: e.color, ...br(e.color) }} />
+                          <span className="day-popup-time">{fmtRange(e.startTime, e.endTime)}</span>
+                          <span className="day-popup-label">
+                            {showingContent && rowLinks.length > 0
+                              ? renderLinked(previewText, rowLinks, () => {})
+                              : previewText}
+                          </span>
+                          {rowLinks.length > 0 && (
+                            <span className="dp-link-icon" title={`${rowLinks.length} link${rowLinks.length !== 1 ? "s" : ""}`}>🔗</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="day-popup-footer">
+          <button onClick={() => { onClose(); onGoToWeek(); }}>Week view →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════ */
 export default function Journal() {
   const [searchParams] = useSearchParams();
   const [view,     setView]     = useState<View>(() => {
@@ -495,6 +629,7 @@ export default function Journal() {
   const [nowMin,     setNowMin]     = useState(nowMinutes());
   const [modal,      setModal]      = useState<Entry | null>(null);
   const [dayPopup,   setDayPopup]   = useState<{ date: Date; entries: Entry[] } | null>(null);
+  const [weekPopup,  setWeekPopup]  = useState<{ weekStart: Date; weekNum: number } | null>(null);
   const [hlModal,    setHlModal]    = useState<{ date: string; existing: DayHighlight | null } | null>(null);
   const [punches,  setPunchesRaw] = useState<PunchState[]>(loadPunches);
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
@@ -792,6 +927,22 @@ export default function Journal() {
       )}
 
       {loading && <div className="journal-loading">Loading…</div>}
+
+      {/* Week popup (from month view week-number gutter) */}
+      {weekPopup && (
+        <WeekPopup
+          weekStart={weekPopup.weekStart}
+          weekNum={weekPopup.weekNum}
+          allEntries={entries.filter(e => {
+            const wStartYmd = toYMD(weekPopup.weekStart);
+            const wEndYmd   = toYMD(addDays(weekPopup.weekStart, 6));
+            return e.entryDate >= wStartYmd && e.entryDate <= wEndYmd;
+          })}
+          onClose={() => setWeekPopup(null)}
+          onGoToWeek={() => { setFocus(weekPopup.weekStart); setView("week"); setWeekPopup(null); }}
+          onSelect={e => { setModal(e); setWeekPopup(null); }}
+        />
+      )}
 
       {/* Day entries popup */}
       {dayPopup && (
@@ -1678,7 +1829,10 @@ export default function Journal() {
                 const weekNum = isoWeekNum(wednesday);
                 return (
                   <React.Fragment key={row}>
-                    <div className="journal-month-weeknum">{weekNum}</div>
+                    <div className="journal-month-weeknum" role="button" tabIndex={0}
+                      onClick={() => setWeekPopup({ weekStart: addDays(gridStart, row * 7), weekNum })}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setWeekPopup({ weekStart: addDays(gridStart, row * 7), weekNum }); }}
+                    >{weekNum}</div>
                     {Array.from({ length: 7 }, (_, col) => {
                       const i = row * 7 + col;
                       const day = addDays(gridStart, i);
