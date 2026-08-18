@@ -142,6 +142,28 @@ router.post("/items/:id/activities", async (req, res): Promise<void> => {
   res.status(201).json(activity);
 });
 
+router.patch("/activities/:id", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid activity id" }); return; }
+  const parsed = z.object({
+    content: z.string().trim().max(4_000).optional(),
+    occurredOn: calendarDate.optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid input", fields: parsed.error.issues }); return; }
+  const [existing] = await db.select().from(foodActivitiesTable).where(eq(foodActivitiesTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Activity not found" }); return; }
+  const update: Partial<typeof foodActivitiesTable.$inferInsert> = {};
+  if (parsed.data.content !== undefined) update.content = parsed.data.content;
+  if (parsed.data.occurredOn !== undefined) update.occurredOn = parsed.data.occurredOn;
+  const [activity] = await db.update(foodActivitiesTable).set(update).where(eq(foodActivitiesTable.id, id)).returning();
+  // also update the item's preparedOn if this is a prepared activity and occurredOn changed
+  if (existing.action === "prepared" && parsed.data.occurredOn) {
+    await db.update(foodItemsTable).set({ preparedOn: parsed.data.occurredOn, updatedAt: new Date() })
+      .where(eq(foodItemsTable.id, existing.foodItemId));
+  }
+  res.json(activity);
+});
+
 router.delete("/activities/:id", async (req, res): Promise<void> => {
   const id = parseId(req.params.id);
   if (!id) { res.status(400).json({ error: "Invalid activity id" }); return; }

@@ -62,7 +62,7 @@ function daysOld(dateOnlyStr: string): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const days = Math.round((today.getTime() - prepared.getTime()) / (1000 * 60 * 60 * 24));
-  if (days <= 0) return "got today";
+  if (days <= 0) return "today";
   if (days === 1) return "1 day old";
   return `${days} days old`;
 }
@@ -251,8 +251,8 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
             </label>
           </div>
           <label className="food-field">
-            <span>Initial Note (optional)</span>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Condition, plans, etc." rows={2} />
+            <span>Note</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Any details..." rows={2} />
           </label>
         </div>
         <div className="food-modal-footer food-modal-footer--right">
@@ -269,108 +269,176 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
 }
 
 function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; onClose: () => void; onUpdateItem: () => void }) {
-  const { data, reload, loading } = useApi<{ item: FoodItem; activities: FoodActivity[] }>(`/api/food/items/${itemId}/activities`);
-  const [activeSheet, setActionSheet] = useState<"log" | "move" | "status" | null>(null);
+  const { data, reload } = useApi<{ item: FoodItem; activities: FoodActivity[] }>(`/api/food/items/${itemId}/activities`);
+  const [editing, setEditing] = useState(false);
+  const [showLog, setShowLog] = useState(false);
 
   if (!data) {
     return (
       <div className="food-modal-backdrop" onClick={onClose}>
         <div className="food-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="food-loading" style={{ padding: "2rem", textAlign: "center" }}>
-            Loading timeline...
-          </div>
+          <div className="food-loading" style={{ padding: "2rem", textAlign: "center" }}>Loading…</div>
         </div>
       </div>
     );
   }
 
   const { item, activities } = data;
+  const preparedAct = activities.find((a) => a.action === "prepared");
+  const logActivities = activities.filter((a) => a.action !== "prepared");
 
   async function handleDeleteActivity(actId: number) {
-    if (!confirm("Delete this activity?")) return;
+    if (!confirm("Delete this entry?")) return;
     await api.del(`/api/food/activities/${actId}`);
     reload();
   }
 
   async function handleDeleteItem() {
-    if (!confirm("Delete this item entirely?")) return;
+    if (!confirm("Remove this item?")) return;
     await api.del(`/api/food/items/${itemId}`);
     onUpdateItem();
     onClose();
   }
 
+  async function handleSaveEdit(fields: { name: string; storageLocation: string; preparedOn: string; note: string }) {
+    await api.patch(`/api/food/items/${itemId}`, {
+      name: fields.name,
+      storageLocation: fields.storageLocation,
+      preparedOn: fields.preparedOn || undefined,
+    });
+    if (preparedAct) {
+      await api.patch(`/api/food/activities/${preparedAct.id}`, {
+        content: fields.note,
+        occurredOn: fields.preparedOn || preparedAct.occurredOn,
+      });
+    }
+    reload();
+    onUpdateItem();
+    setEditing(false);
+  }
+
   return (
     <div className="food-modal-backdrop" onClick={onClose}>
       <div className="food-modal" onClick={(e) => e.stopPropagation()}>
+
         <div className="food-modal-header">
-          <div>
-            <h2 className="food-modal-title">{item.name}</h2>
-            <div className="food-modal-subtitle">
-              {locationNames[item.storageLocation]} • {statusNames[item.status]}
-            </div>
-          </div>
-          <button className="food-modal-close" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+          <h2 className="food-modal-title">{item.name}</h2>
+          <button className="food-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
         <div className="food-modal-body food-modal-body--scroll">
-          <div className="food-timeline">
-            {activities.map((act) => (
-              <FoodActivityNode key={act.id} activity={act} onDelete={() => handleDeleteActivity(act.id)} />
-            ))}
+          {editing ? (
+            <EditItemForm
+              item={item}
+              note={preparedAct?.content || ""}
+              onSave={handleSaveEdit}
+              onCancel={() => setEditing(false)}
+            />
+          ) : (
+            <>
+              {/* Main info block */}
+              <div className="food-info-block">
+                <div className="food-info-row">
+                  <span className="food-info-date">
+                    {item.preparedOn ? formatMonthDay(item.preparedOn) : "—"}
+                  </span>
+                  <button className="food-edit-btn" onClick={() => setEditing(true)} aria-label="Edit">
+                    Edit
+                  </button>
+                </div>
+                {preparedAct?.content ? (
+                  <div className="food-info-note">{preparedAct.content}</div>
+                ) : null}
+              </div>
+
+              {/* Activity log */}
+              {logActivities.length > 0 && (
+                <div className="food-log-list">
+                  {logActivities.map((act) => (
+                    <FoodActivityNode key={act.id} activity={act} onDelete={() => handleDeleteActivity(act.id)} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {!editing && (
+          <div className="food-modal-footer">
+            <button className="food-btn-outline" onClick={() => setShowLog(true)}>+ Log</button>
+            <button className="food-btn-ghost food-btn-danger" style={{ marginLeft: "auto" }} onClick={handleDeleteItem}>
+              Delete
+            </button>
           </div>
-        </div>
+        )}
 
-        <div className="food-modal-footer">
-          <button className="food-btn-outline" onClick={() => setActionSheet("log")}>
-            Log
-          </button>
-          <button className="food-btn-outline" onClick={() => setActionSheet("move")}>
-            Move
-          </button>
-          <button className="food-btn-outline" onClick={() => setActionSheet("status")}>
-            Status
-          </button>
-          <button className="food-btn-ghost food-btn-danger" style={{ marginLeft: "auto" }} onClick={handleDeleteItem}>
-            Delete
-          </button>
-        </div>
-
-        {activeSheet === "log" && (
+        {showLog && (
           <LogActivitySheet
             itemId={itemId}
-            onClose={() => setActionSheet(null)}
-            onSaved={() => {
-              setActionSheet(null);
-              reload();
-            }}
-          />
-        )}
-        {activeSheet === "move" && (
-          <MoveSheet
-            item={item}
-            onClose={() => setActionSheet(null)}
-            onSaved={() => {
-              setActionSheet(null);
-              reload();
-              onUpdateItem();
-            }}
-          />
-        )}
-        {activeSheet === "status" && (
-          <StatusSheet
-            item={item}
-            onClose={() => setActionSheet(null)}
-            onSaved={() => {
-              setActionSheet(null);
-              reload();
-              onUpdateItem();
-            }}
+            onClose={() => setShowLog(false)}
+            onSaved={() => { setShowLog(false); reload(); }}
           />
         )}
       </div>
     </div>
+  );
+}
+
+function EditItemForm({
+  item, note, onSave, onCancel,
+}: {
+  item: FoodItem;
+  note: string;
+  onSave: (fields: { name: string; storageLocation: string; preparedOn: string; note: string }) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(item.name);
+  const [storageLocation, setStorageLocation] = useState(item.storageLocation);
+  const [preparedOn, setPreparedOn] = useState(item.preparedOn || "");
+  const [editNote, setEditNote] = useState(note);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try { await onSave({ name: name.trim(), storageLocation, preparedOn, note: editNote.trim() }); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <form onSubmit={submit} className="food-edit-form">
+      <label className="food-field">
+        <span>Name</span>
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+      </label>
+      <div className="food-field-row">
+        <label className="food-field">
+          <span>Location</span>
+          <select value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)}>
+            <option value="fridge">Fridge</option>
+            <option value="freezer">Freezer</option>
+            <option value="pantry">Pantry</option>
+            <option value="counter">Counter</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label className="food-field">
+          <span>Date</span>
+          <input type="date" value={preparedOn} onChange={(e) => setPreparedOn(e.target.value)} />
+        </label>
+      </div>
+      <label className="food-field">
+        <span>Note</span>
+        <textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} rows={3} />
+      </label>
+      <div className="food-modal-footer food-modal-footer--right">
+        <button type="button" className="food-btn-ghost" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="food-btn-primary" disabled={saving || !name.trim()}>
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -380,63 +448,32 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
   const [viewLink, setViewLink] = useState<JournalLink | null>(null);
 
   async function handleCreateLink(anchorText: string, content: string, occurrence: number) {
-    await api.post("/api/journal/links", {
-      sourceType: "food_activity",
-      sourceId: activity.id,
-      anchorText,
-      content,
-      occurrence,
-    });
+    await api.post("/api/journal/links", { sourceType: "food_activity", sourceId: activity.id, anchorText, content, occurrence });
     reload();
   }
 
   const actionLabels: Record<string, string> = {
-    prepared: "Prepared",
-    used: "Used",
-    cooked: "Cooked",
-    note: "Note",
-    moved: "Moved",
-    status: "Status Changed",
+    used: "Used", cooked: "Cooked", note: "Note", moved: "Moved", status: "Status",
   };
-
-  const isUserAction = ["note", "used", "cooked"].includes(activity.action);
 
   return (
     <>
-      <div className="food-timeline-node">
-        <div className="food-timeline-dot" data-action={activity.action} />
-        <div className="food-timeline-body">
-          <div className="food-timeline-header-row">
-            {activity.action !== "prepared" && (
-              <span className="food-timeline-action">{actionLabels[activity.action] || activity.action}</span>
-            )}
-            <span className="food-timeline-date">{formatMonthDay(activity.occurredOn)}</span>
-            {isUserAction && (
-              <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">
-                ✕
-              </button>
-            )}
-          </div>
-          {activity.content && (
-            <div className="food-timeline-text">
-              <LinkedContentArea text={activity.content} links={links || []} onCreateLink={handleCreateLink} onLinkClick={setViewLink} />
-            </div>
-          )}
+      <div className="food-log-entry">
+        <div className="food-log-entry-header">
+          <span className="food-log-entry-action">{actionLabels[activity.action] || activity.action}</span>
+          <span className="food-log-entry-date">{formatMonthDay(activity.occurredOn)}</span>
+          <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">✕</button>
         </div>
+        {activity.content && (
+          <div className="food-timeline-text">
+            <LinkedContentArea text={activity.content} links={links || []} onCreateLink={handleCreateLink} onLinkClick={setViewLink} />
+          </div>
+        )}
       </div>
       {viewLink && (
-        <LinkViewModal
-          link={viewLink}
-          onClose={() => setViewLink(null)}
-          onUpdate={() => {
-            reload();
-            setViewLink(null);
-          }}
-          onDelete={() => {
-            reload();
-            setViewLink(null);
-          }}
-        />
+        <LinkViewModal link={viewLink} onClose={() => setViewLink(null)}
+          onUpdate={() => { reload(); setViewLink(null); }}
+          onDelete={() => { reload(); setViewLink(null); }} />
       )}
     </>
   );
