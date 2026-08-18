@@ -59,6 +59,9 @@ function isoWeekKey(d: Date): string {
   const w = 1 + Math.round(((tmp.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
   return `${tmp.getFullYear()}-W${String(w).padStart(2, "0")}`;
 }
+function isoWeekNum(d: Date): number {
+  return parseInt(isoWeekKey(d).split("-W")[1], 10);
+}
 function periodKeyFor(tab: string, d: Date): string {
   if (tab === "day")   return toYMD(d);
   if (tab === "week")  return isoWeekKey(d);
@@ -1647,6 +1650,7 @@ export default function Journal() {
           <>
           <div className="journal-month">
             <div className="journal-month-header">
+              <span className="journal-month-header-wk" />
               {WEEKDAYS.map(w => <span key={w}>{w}</span>)}
             </div>
             <div className="journal-month-grid-wrap">
@@ -1668,55 +1672,63 @@ export default function Journal() {
                   );
                 })}
             <div className="journal-month-grid">
-              {Array.from({ length: totalDays }, (_, i) => {
-                const day = addDays(gridStart, i);
-                const ymd = toYMD(day);
-                const inMonth   = day >= monthStart && day <= monthEnd;
-                const dayEntries = byDate.get(ymd) ?? [];
-                const allDayEntries = [...carryoversForDate(ymd, entries), ...dayEntries];
-                const isT = ymd === todayYmd;
-                const hl  = highlights.find(h => h.date === ymd) ?? null;
-                const hasDayNote = dayNoteSet.has(ymd);
-                // Week marks live in the Saturday cell (i % 7 === 6)
-                const isSaturday = i % 7 === 6;
-                // Use Wednesday of each row (i-3) — mid-week, always the correct ISO week
-                const weekWed = isSaturday ? addDays(gridStart, i - 3) : null;
-                const weekKey = weekWed ? isoWeekKey(weekWed) : null;
-                const weekNoteCount = weekKey ? Math.min(weekNotesMap.get(weekKey) ?? 0, 2) : 0;
+              {Array.from({ length: totalDays / 7 }, (_, row) => {
+                // Wednesday of this row → always lands in the correct ISO week
+                const wednesday = addDays(gridStart, row * 7 + 3);
+                const weekNum = isoWeekNum(wednesday);
                 return (
-                  <div key={ymd}
-                    className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}${hl?" has-highlight":""}${hasDayNote?" has-day-note":""}`}
-                    style={hl ? { "--hl-color": hl.color } as React.CSSProperties : undefined}
-                    onClick={() => setDayPopup({ date: day, entries: allDayEntries })}>
-                    {isT && (
-                      <div className="journal-month-now-bar"
-                        style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
-                    )}
-                    {hl && <span className="journal-month-cell-hlabel" style={{ background: hl.color, color: contrastColor(hl.color) }}>{hl.label}</span>}
-                    <span className="journal-month-cell-num">{day.getDate()}</span>
-                    <div className="journal-month-lines">
-                      {[...dayEntries]
-                        .sort((a, b) => {
-                          const WHITE = "#f5f5f5";
-                          if (a.color === WHITE && b.color !== WHITE) return -1;
-                          if (b.color === WHITE && a.color !== WHITE) return 1;
-                          const ai = ENTRY_COLORS.findIndex(c => c.hex === a.color);
-                          const bi = ENTRY_COLORS.findIndex(c => c.hex === b.color);
-                          return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-                        })
-                        .map(e => (
-                        <div key={e.id} className="journal-month-line"
-                          style={{ background: e.color === BLACK ? undefined : e.color, ...(e.color === BLACK ? { background: "rgba(255,255,255,0.5)" } : {}) }} />
-                      ))}
-                    </div>
-                    {isSaturday && weekNoteCount > 0 && (
-                      <div className="journal-month-week-marks" aria-hidden="true">
-                        {Array.from({ length: weekNoteCount }, (_, ni) => (
-                          <span key={ni} className="journal-month-week-dash" />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <React.Fragment key={row}>
+                    <div className="journal-month-weeknum">{weekNum}</div>
+                    {Array.from({ length: 7 }, (_, col) => {
+                      const i = row * 7 + col;
+                      const day = addDays(gridStart, i);
+                      const ymd = toYMD(day);
+                      const inMonth    = day >= monthStart && day <= monthEnd;
+                      const dayEntries = byDate.get(ymd) ?? [];
+                      const allDayEntries = [...carryoversForDate(ymd, entries), ...dayEntries];
+                      const isT        = ymd === todayYmd;
+                      const hl         = highlights.find(h => h.date === ymd) ?? null;
+                      const hasDayNote = dayNoteSet.has(ymd);
+                      const isSaturday = col === 6;
+                      const weekKey    = isSaturday ? isoWeekKey(wednesday) : null;
+                      const weekNoteCount = weekKey ? Math.min(weekNotesMap.get(weekKey) ?? 0, 2) : 0;
+                      return (
+                        <div key={ymd}
+                          className={`journal-month-cell${!inMonth?" out-of-month":""}${isT?" is-today":""}${hl?" has-highlight":""}${hasDayNote?" has-day-note":""}${isSaturday?" journal-month-cell--sat":""}`}
+                          style={hl ? { "--hl-color": hl.color } as React.CSSProperties : undefined}
+                          onClick={() => setDayPopup({ date: day, entries: allDayEntries })}>
+                          {isT && (
+                            <div className="journal-month-now-bar"
+                              style={{ left:`${Math.min(100,(nowMin/1440)*100)}%` }} />
+                          )}
+                          {hl && <span className="journal-month-cell-hlabel" style={{ background: hl.color, color: contrastColor(hl.color) }}>{hl.label}</span>}
+                          <span className="journal-month-cell-num">{day.getDate()}</span>
+                          <div className="journal-month-lines">
+                            {[...dayEntries]
+                              .sort((a, b) => {
+                                const WHITE = "#f5f5f5";
+                                if (a.color === WHITE && b.color !== WHITE) return -1;
+                                if (b.color === WHITE && a.color !== WHITE) return 1;
+                                const ai = ENTRY_COLORS.findIndex(c => c.hex === a.color);
+                                const bi = ENTRY_COLORS.findIndex(c => c.hex === b.color);
+                                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                              })
+                              .map(e => (
+                              <div key={e.id} className="journal-month-line"
+                                style={{ background: e.color === BLACK ? undefined : e.color, ...(e.color === BLACK ? { background: "rgba(255,255,255,0.5)" } : {}) }} />
+                            ))}
+                          </div>
+                          {isSaturday && weekNoteCount > 0 && (
+                            <div className="journal-month-week-marks" aria-hidden="true">
+                              {Array.from({ length: weekNoteCount }, (_, ni) => (
+                                <span key={ni} className="journal-month-week-dash" />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </React.Fragment>
                 );
               })}
             </div>

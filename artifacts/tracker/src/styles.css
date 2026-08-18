@@ -2706,7 +2706,7 @@ a:hover {
 }
 .journal-month-header {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: 2rem repeat(7, 1fr);
   background: var(--paper-sunk);
   border-bottom: 1px solid var(--rule);
 }
@@ -2718,12 +2718,28 @@ a:hover {
   color: var(--ink-soft);
   padding: 0.5rem 0;
 }
+.journal-month-header-wk {
+  border-right: 1px solid var(--rule);
+}
 .journal-month-grid-wrap {
   position: relative;
 }
 .journal-month-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: 2rem repeat(7, 1fr);
+}
+.journal-month-weeknum {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.4rem;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-sunk);
+  user-select: none;
 }
 .journal-month-cell {
   min-height: 80px;
@@ -2739,7 +2755,7 @@ a:hover {
   /* no overflow:hidden — tooltips need to escape the cell */
 }
 .journal-month-cell:hover { background: var(--hover); }
-.journal-month-cell:nth-child(7n) { border-right: none; }
+.journal-month-cell--sat { border-right: none; }
 .journal-month-cell.out-of-month .journal-month-cell-num,
 .journal-month-cell.out-of-month .journal-month-lines {
   opacity: 0.3;
