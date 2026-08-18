@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db, foodActivitiesTable, foodItemsTable, journalLinksTable } from "@workspace/db";
 
@@ -61,7 +61,7 @@ router.get("/items", async (_req, res): Promise<void> => {
       .from(foodActivitiesTable)
       .where(and(
         inArray(foodActivitiesTable.foodItemId, ids),
-        eq(foodActivitiesTable.action, "note"),
+        ne(foodActivitiesTable.action, "prepared"),
       ))
       .orderBy(desc(foodActivitiesTable.occurredOn), desc(foodActivitiesTable.id));
 
