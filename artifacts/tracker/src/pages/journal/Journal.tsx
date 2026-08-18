@@ -9,7 +9,7 @@ import {
   IcTrash, IcEdit,
   EntryForm, EntryModal,
 } from "./EntryModal";
-import { type JournalLink, LinkedContentArea, LinkViewModal } from "./LinkedContent";
+import { type JournalLink, LinkedContentArea, LinkViewModal, renderLinked } from "./LinkedContent";
 import HighlightModal, { type DayHighlight } from "./HighlightModal";
 import HighlightCountdown from "../../components/HighlightCountdown";
 
@@ -261,6 +261,7 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
   const [editContent, setEditContent] = useState("");
   const [dpLinks, setDpLinks] = useState<JournalLink[]>([]);
   const [dpViewingLink, setDpViewingLink] = useState<JournalLink | null>(null);
+  const [entryLinks, setEntryLinks] = useState<JournalLink[]>([]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -273,6 +274,15 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose, notesModalOpen, dpViewingLink]);
+
+  // Fetch links for entries when popup opens
+  useEffect(() => {
+    if (entries.length === 0) return;
+    const ids = new Set(entries.map(e => e.id));
+    api.get<JournalLink[]>("/api/journal/links?sourceType=entry")
+      .then(all => setEntryLinks(all.filter(l => ids.has(l.sourceId))))
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch links for day notes when the notes modal opens
   useEffect(() => {
@@ -348,6 +358,10 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
             ? <p className="day-popup-empty">No entries yet.</p>
             : sorted.map(e => {
                 const isCarryover = e.entryDate !== toYMD(date);
+                const rowLinks = entryLinks.filter(l => l.sourceId === e.id);
+                // Show content preview (not subject) so anchor highlights are meaningful
+                const previewText = e.subject || e.content.slice(0, 60) || "—";
+                const showingContent = !e.subject && !!e.content;
                 return (
                   <button key={e.id} className={`day-popup-row${isCarryover ? " is-carryover" : ""}`} onClick={() => { onClose(); onSelect(e); }}>
                     <span className="day-popup-dot" style={{ background: e.color, ...br(e.color) }} />
@@ -355,7 +369,14 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
                       ? <span className="day-popup-time" style={{ fontStyle: "italic" }}>— {e.endTime ? fmtTime(e.endTime) : ""}</span>
                       : <span className="day-popup-time">{fmtRange(e.startTime, e.endTime)}</span>
                     }
-                    <span className="day-popup-label">{e.subject || e.content.slice(0, 60) || "—"}</span>
+                    <span className="day-popup-label">
+                      {showingContent && rowLinks.length > 0
+                        ? renderLinked(previewText, rowLinks, () => {})
+                        : previewText}
+                    </span>
+                    {rowLinks.length > 0 && (
+                      <span className="dp-link-icon" title={`${rowLinks.length} link${rowLinks.length !== 1 ? "s" : ""}`}>🔗</span>
+                    )}
                   </button>
                 );
               })

@@ -1716,6 +1716,18 @@ a:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  flex: 1;
+}
+/* Anchor highlights inside the popup row — visual only, not clickable */
+.day-popup-label .jlink-anchor {
+  pointer-events: none;
+  cursor: inherit;
+}
+.dp-link-icon {
+  font-size: 0.78rem;
+  opacity: 0.55;
+  flex-shrink: 0;
+  line-height: 1;
 }
 .day-popup-footer {
   padding: 0.6rem 1rem;
