@@ -292,6 +292,7 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
   async function handleDeleteActivity(actId: number) {
     await api.del(`/api/food/activities/${actId}`);
     reload();
+    onUpdateItem();
   }
 
   async function handleDeleteItem() {
