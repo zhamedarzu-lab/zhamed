@@ -576,9 +576,6 @@ function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWe
                   style={{ cursor: dayEntries.length > 0 ? "pointer" : "default" }}
                 >
                   <span className="week-popup-day-label">{dayLabel}</span>
-                  {dayEntries.length > 0
-                    ? <span className="week-popup-day-count">{dayEntries.length}</span>
-                    : <span className="week-popup-day-empty-badge">—</span>}
                   {notes.length > 0 && (
                     <button
                       className="week-popup-notes-badge"
@@ -588,6 +585,9 @@ function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWe
                       {notes.length} 📝
                     </button>
                   )}
+                  {dayEntries.length > 0
+                    ? <span className="week-popup-day-count">{dayEntries.length}</span>
+                    : <span className="week-popup-day-empty-badge">—</span>}
                   {dayEntries.length > 0 && (
                     <span className={`week-popup-chevron${isCollapsed ? " collapsed" : ""}`}>›</span>
                   )}
