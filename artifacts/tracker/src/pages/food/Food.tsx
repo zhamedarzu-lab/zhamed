@@ -378,7 +378,7 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
           <LogActivitySheet
             itemId={itemId}
             onClose={() => setShowLog(false)}
-            onSaved={() => { setShowLog(false); reload(); }}
+            onSaved={() => { setShowLog(false); reload(); onUpdateItem(); }}
           />
         )}
         {showStatus && (
