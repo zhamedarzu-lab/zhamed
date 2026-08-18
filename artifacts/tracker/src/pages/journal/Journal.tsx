@@ -949,7 +949,7 @@ export default function Journal() {
         <Link to="/journal/search" className="journal-search-link" aria-label="Search entries">
           Search
         </Link>
-        <Link to="/food" className="journal-food-link" aria-label="Food inventory">
+        <Link to="/journal/food" className="journal-food-link" aria-label="Food inventory">
           Food
         </Link>
         <button className="journal-add-btn" onClick={() => setAdding(a => !a)} aria-label="Add entry">

@@ -34,7 +34,6 @@ function WordmarkNav() {
   const { pathname } = useLocation();
   const section =
     pathname.startsWith("/journal") ? "Journal"
-    : pathname.startsWith("/food") ? "Food"
     : pathname.startsWith("/fitness") ? "Fitness"
     : "Finance";
 
@@ -95,8 +94,8 @@ function AuthedApp() {
           <Route path="/journal"                 element={<Journal />} />
           <Route path="/journal/search"          element={<JournalSearch />} />
           <Route path="/journal/loose-ends"      element={<JournalLooseEnds />} />
+          <Route path="/journal/food"            element={<Food />} />
           <Route path="/fitness"                 element={<Fitness />} />
-          <Route path="/food"                    element={<Food />} />
           <Route path="*"                        element={<NotFound />} />
         </Routes>
       </main>
