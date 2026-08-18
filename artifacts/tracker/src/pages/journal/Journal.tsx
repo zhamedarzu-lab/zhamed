@@ -480,11 +480,12 @@ type WeekPopupProps = {
   weekStart: Date;
   weekNum: number;
   allEntries: Entry[];
+  dayNotes: PeriodNote[];
   onClose: () => void;
   onGoToWeek: () => void;
   onSelect: (e: Entry) => void;
 };
-function WeekPopup({ weekStart, weekNum, allEntries, onClose, onGoToWeek, onSelect }: WeekPopupProps) {
+function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWeek, onSelect }: WeekPopupProps) {
   const todayYmd = toYMD(new Date());
   const [collapsed, setCollapsed] = useState<Set<string>>(() => {
     const s = new Set<string>();
@@ -563,6 +564,7 @@ function WeekPopup({ weekStart, weekNum, allEntries, onClose, onGoToWeek, onSele
             const isToday    = ymd === todayYmd;
             const isCollapsed = collapsed.has(ymd);
             const dayLabel   = day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+            const notes = dayNotes.filter(n => n.periodKey === ymd);
             return (
               <div key={ymd} className={`week-popup-day${dayEntries.length === 0 ? " week-popup-day--empty" : ""}`}>
                 <button
@@ -578,6 +580,13 @@ function WeekPopup({ weekStart, weekNum, allEntries, onClose, onGoToWeek, onSele
                     <span className={`week-popup-chevron${isCollapsed ? " collapsed" : ""}`}>›</span>
                   )}
                 </button>
+                {notes.length > 0 && (
+                  <ul className="week-popup-day-notes">
+                    {notes.map(n => (
+                      <li key={n.id} className="week-popup-day-note">{n.content}</li>
+                    ))}
+                  </ul>
+                )}
                 {!isCollapsed && dayEntries.length > 0 && (
                   <div className="week-popup-day-entries">
                     {dayEntries.map(e => {
@@ -941,6 +950,12 @@ export default function Journal() {
             const wStartYmd = toYMD(weekPopup.weekStart);
             const wEndYmd   = toYMD(addDays(weekPopup.weekStart, 6));
             return e.entryDate >= wStartYmd && e.entryDate <= wEndYmd;
+          })}
+          dayNotes={allPeriodNotes.filter(n => {
+            if (n.periodType !== "day") return false;
+            const wStartYmd = toYMD(weekPopup.weekStart);
+            const wEndYmd   = toYMD(addDays(weekPopup.weekStart, 6));
+            return n.periodKey >= wStartYmd && n.periodKey <= wEndYmd;
           })}
           onClose={() => setWeekPopup(null)}
           onGoToWeek={() => { setFocus(weekPopup.weekStart); setView("week"); setWeekPopup(null); }}
