@@ -7,7 +7,7 @@ import { formatFoodDate } from "./foodDate.js";
 type FoodItem = {
   id: number;
   name: string;
-  storageLocation: "fridge" | "freezer" | "pantry" | "counter" | "other";
+  storageLocation: "fridge" | "table";
   status: "on_hand" | "finished" | "tossed" | "avoid";
   preparedOn?: string;
   store?: string;
@@ -26,10 +26,7 @@ type FoodActivity = {
 
 const locationNames: Record<string, string> = {
   fridge: "Fridge",
-  freezer: "Freezer",
-  pantry: "Pantry",
-  counter: "Counter",
-  other: "Other",
+  table: "Table",
 };
 
 const statusNames: Record<string, string> = {
@@ -94,7 +91,7 @@ export default function Food() {
   }, [items]);
 
   const groupedActive = useMemo(() => {
-    const groups: Record<string, FoodItem[]> = { fridge: [], freezer: [], pantry: [], counter: [], other: [] };
+    const groups: Record<string, FoodItem[]> = { fridge: [], table: [] };
     for (const item of activeStock) {
       if (groups[item.storageLocation]) groups[item.storageLocation].push(item);
     }
@@ -125,7 +122,7 @@ export default function Food() {
 
         {view === "active" && !loading && activeStock.length === 0 && (
           <div className="food-empty">
-            <div className="food-empty-title">Your pantry is empty</div>
+            <div className="food-empty-title">Nothing here</div>
             <div className="food-empty-subtitle">Add provisions to start tracking what you have.</div>
           </div>
         )}
@@ -200,6 +197,7 @@ export default function Food() {
 function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any) => Promise<void> }) {
   const [name, setName] = useState("");
   const [storageLocation, setStorageLocation] = useState("fridge");
+  // locations: fridge, table only
   const [preparedOn, setPreparedOn] = useState(() => new Date().toISOString().split("T")[0]);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -240,10 +238,7 @@ function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any)
               <span>Location</span>
               <select value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)}>
                 <option value="fridge">Fridge</option>
-                <option value="freezer">Freezer</option>
-                <option value="pantry">Pantry</option>
-                <option value="counter">Counter</option>
-                <option value="other">Other</option>
+                <option value="table">Table</option>
               </select>
             </label>
             <label className="food-field">
@@ -418,10 +413,7 @@ function EditItemForm({
           <span>Location</span>
           <select value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)}>
             <option value="fridge">Fridge</option>
-            <option value="freezer">Freezer</option>
-            <option value="pantry">Pantry</option>
-            <option value="counter">Counter</option>
-            <option value="other">Other</option>
+            <option value="table">Table</option>
           </select>
         </label>
         <label className="food-field">
@@ -559,10 +551,7 @@ function MoveSheet({ item, onClose, onSaved }: { item: FoodItem; onClose: () => 
         <h3 className="food-sheet-title">Move Provision</h3>
         <select value={loc} onChange={(e) => setLoc(e.target.value as any)} className="food-sheet-textarea" style={{ height: "48px" }}>
           <option value="fridge">Fridge</option>
-          <option value="freezer">Freezer</option>
-          <option value="pantry">Pantry</option>
-          <option value="counter">Counter</option>
-          <option value="other">Other</option>
+          <option value="table">Table</option>
         </select>
         <div className="food-modal-footer food-modal-footer--right">
           <button type="button" className="food-btn-ghost" onClick={onClose}>
