@@ -43,6 +43,11 @@ function formatDate(iso: string) {
   return formatFoodDate(iso);
 }
 
+function formatMonthDay(dateOnlyStr: string): string {
+  const [, m, d] = dateOnlyStr.split("-").map(Number);
+  return `${m}/${d}`;
+}
+
 function formatRelative(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -402,8 +407,12 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
         <div className="food-timeline-dot" data-action={activity.action} />
         <div className="food-timeline-body">
           <div className="food-timeline-header-row">
-            <span className="food-timeline-action">{actionLabels[activity.action] || activity.action}</span>
-            <span className="food-timeline-date">{formatDate(activity.occurredOn)}</span>
+            {activity.action !== "purchased" && (
+              <span className="food-timeline-action">{actionLabels[activity.action] || activity.action}</span>
+            )}
+            <span className="food-timeline-date">
+              {activity.action === "purchased" ? formatMonthDay(activity.occurredOn) : formatDate(activity.occurredOn)}
+            </span>
             {isUserAction && (
               <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">
                 ✕

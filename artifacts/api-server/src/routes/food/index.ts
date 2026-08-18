@@ -77,19 +77,11 @@ router.post("/items", async (req, res): Promise<void> => {
   }).returning();
 
   const activities: Array<typeof foodActivitiesTable.$inferSelect> = [];
-  if (data.purchasedOn || data.store) {
-    const [activity] = await db.insert(foodActivitiesTable).values({
-      foodItemId: item.id, action: "purchased", occurredOn: data.purchasedOn ?? today(),
-      content: "Prepared",
-    }).returning();
-    activities.push(activity);
-  }
-  if (data.note) {
-    const [activity] = await db.insert(foodActivitiesTable).values({
-      foodItemId: item.id, action: "note", occurredOn: data.purchasedOn ?? today(), content: data.note,
-    }).returning();
-    activities.push(activity);
-  }
+  const [activity] = await db.insert(foodActivitiesTable).values({
+    foodItemId: item.id, action: "purchased", occurredOn: data.purchasedOn ?? today(),
+    content: data.note?.trim() || null,
+  }).returning();
+  activities.push(activity);
   res.status(201).json({ item, activities });
 });
 
