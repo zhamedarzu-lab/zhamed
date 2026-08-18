@@ -131,18 +131,6 @@ export function Notice({ children }: { children?: ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Field — labelled form-field wrapper
-// ---------------------------------------------------------------------------
-export function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // MoneyInput — controlled text input that normalises to a number
 // ---------------------------------------------------------------------------
 export function MoneyInput({

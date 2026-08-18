@@ -1,27 +1,8 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { nextPayday, cycleProgress } from "../lib/payday";
 import { useApi } from "../lib/api";
 import { todayIso } from "../lib/format";
-
-const pad2 = (n: number) => String(n).padStart(2, "0");
-
-function useNow(intervalMs: number): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
-
-const fmtClock = (d: Date) => {
-  const h = d.getHours();
-  return `${h % 12 || 12}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())} ${h >= 12 ? "pm" : "am"}`;
-};
-
-/** Same day arithmetic as the journal top bar: minutes elapsed of 1440. */
-const dayPct = (d: Date) => ((d.getHours() * 60 + d.getMinutes()) / 1440) * 100;
+import { dayProgressPct, fmtClock, useNow } from "../lib/clock";
 
 type GoalPeriod = "day" | "week" | "month";
 type ExerciseStat = {
@@ -83,7 +64,7 @@ export default function Home() {
   const now     = useNow(1000);
   const payday  = nextPayday(now);
   const cyclePct  = cycleProgress(now) * 100;
-  const todayPct  = dayPct(now);
+  const todayPct  = dayProgressPct(now);
 
   const fitSummary = useApi<FitnessSummary>(`/api/fitness/summary?today=${todayIso()}`);
   const fitGoal    = fitSummary.data

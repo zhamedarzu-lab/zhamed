@@ -25,16 +25,6 @@ export function shortDate(iso: string) {
   });
 }
 
-export function longDate(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 /** "2026-07" -> "July 2026" */
 export function monthName(month: string) {
   const [y, m] = month.split("-").map(Number);
@@ -50,17 +40,6 @@ export function shortMonth(month: string) {
   return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short" });
 }
 
-/** Which paycheck of the month: 1 -> "1st". Only ever 1, 2, or 3. */
-export function ordinal(n: number) {
-  return `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
-}
-
-/**
- * Which paycheck of its month, for display. Written as an ordinal rather than
- * "n/2" because a month can carry a third paycheck, and "3/2" reads as an
- * error. "1st" is right whether the month held two or three.
- */
-export const seqLabel = (seq: number) => ordinal(seq);
 /** "1/2", "2/2" — fraction label when you know the total paychecks in the month. */
 export const seqFrac = (seq: number, total: number) => `${seq}/${total}`;
 

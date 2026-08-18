@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { cashAccountsTable, cashSnapshotsTable, cashSpendingLogTable, paychecksTable } from "@workspace/db";
@@ -13,47 +13,58 @@ const router: IRouter = Router();
 // and a running balance.
 
 router.get("/cash-accounts", async (_req, res): Promise<void> => {
-  const [accounts, entries] = await Promise.all([
+  // The sparkline only ever plots one point per calendar day, so the day
+  // totals are grouped in the database. This used to select every row of the
+  // spending log — full description, category and notes included — and reduce
+  // it in JS, which meant the Cash page got slower with every purchase logged.
+  //
+  // The day bucket is pinned to UTC because the JS version it replaces used
+  // `toISOString()`; a bare to_char would follow the database session's
+  // timezone and silently move entries across day boundaries.
+  const [accounts, dayTotals] = await Promise.all([
     db.select().from(cashAccountsTable).orderBy(cashAccountsTable.sortOrder),
-    // Fetch all spending log entries ordered oldest-first so we can build
-    // running-balance history in a single forward pass.
-    db.select().from(cashSpendingLogTable).orderBy(cashSpendingLogTable.loggedAt),
+    db
+      .select({
+        cashAccountId: cashSpendingLogTable.cashAccountId,
+        day: sql<string>`to_char(${cashSpendingLogTable.loggedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`.as("day"),
+        delta: sql<string>`SUM(${cashSpendingLogTable.amount})`,
+      })
+      .from(cashSpendingLogTable)
+      .groupBy(
+        cashSpendingLogTable.cashAccountId,
+        sql`to_char(${cashSpendingLogTable.loggedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
+      )
+      .orderBy(
+        cashSpendingLogTable.cashAccountId,
+        sql`to_char(${cashSpendingLogTable.loggedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
+      ),
   ]);
 
-  // Group entries by account
-  const byAccount = new Map<number, typeof entries>();
-  for (const e of entries) {
-    if (!byAccount.has(e.cashAccountId)) byAccount.set(e.cashAccountId, []);
-    byAccount.get(e.cashAccountId)!.push(e);
+  const byAccount = new Map<number, Array<{ day: string; delta: number }>>();
+  for (const row of dayTotals) {
+    let list = byAccount.get(row.cashAccountId);
+    if (!list) { list = []; byAccount.set(row.cashAccountId, list); }
+    list.push({ day: row.day, delta: Number(row.delta) });
   }
 
   res.json(
     accounts.map((a) => {
-      const acct = byAccount.get(a.id) ?? [];
+      // Already ordered by day ascending, so one forward pass gives both the
+      // running balance and the cumulative history.
+      const days = byAccount.get(a.id) ?? [];
 
-      // Running balance = sum of all signed amounts
-      const currentBalance = round(acct.reduce((s, e) => s + Number(e.amount), 0));
-
-      // Most-recent entry date
-      const lastEntry = acct.at(-1);
-      const lastUpdated = lastEntry?.loggedAt
-        ? new Date(lastEntry.loggedAt).toISOString().slice(0, 10)
-        : null;
-
-      // Balance history: cumulative sum by calendar day (for the sparkline chart)
-      const dayTotals = new Map<string, number>();
-      for (const e of acct) {
-        const day = e.loggedAt
-          ? new Date(e.loggedAt).toISOString().slice(0, 10)
-          : new Date().toISOString().slice(0, 10);
-        dayTotals.set(day, (dayTotals.get(day) ?? 0) + Number(e.amount));
-      }
       let running = 0;
-      const balanceHistory = [...dayTotals.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, delta]) => ({ date, value: round((running += delta)) }));
+      const balanceHistory = days.map(({ day, delta }) => ({
+        date: day,
+        value: round((running += delta)),
+      }));
 
-      return { ...a, currentBalance, lastUpdated, balanceHistory };
+      return {
+        ...a,
+        currentBalance: round(running),
+        lastUpdated: days.at(-1)?.day ?? null,
+        balanceHistory,
+      };
     }),
   );
 });

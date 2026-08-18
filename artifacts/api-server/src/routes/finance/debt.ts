@@ -15,9 +15,28 @@ const router: IRouter = Router();
 const KIND = z.enum(["card", "bnpl", "loan", "other"]);
 
 router.get("/debt-accounts", async (_req, res): Promise<void> => {
-  const [accounts, snapshots, pendingAllocs] = await Promise.all([
+  const [accounts, latestSnapshots, pendingAllocs] = await Promise.all([
     db.select().from(debtAccountsTable).orderBy(debtAccountsTable.sortOrder),
-    db.select().from(debtSnapshotsTable).orderBy(desc(debtSnapshotsTable.snapshotDate)),
+    // Only the newest snapshot per account is ever read here. DISTINCT ON does
+    // that in the database — this used to select every snapshot ever recorded
+    // and throw all but the first row of each account away in JS, so the cost
+    // of opening the Debt page grew with the whole balance history.
+    //
+    // The `id DESC` tiebreak makes same-day snapshots deterministic: the most
+    // recently inserted one wins, which is what "current balance" means. The
+    // old version took whichever row Postgres happened to return first.
+    db
+      .selectDistinctOn([debtSnapshotsTable.debtAccountId], {
+        debtAccountId: debtSnapshotsTable.debtAccountId,
+        snapshotDate: debtSnapshotsTable.snapshotDate,
+        balance: debtSnapshotsTable.balance,
+      })
+      .from(debtSnapshotsTable)
+      .orderBy(
+        debtSnapshotsTable.debtAccountId,
+        desc(debtSnapshotsTable.snapshotDate),
+        desc(debtSnapshotsTable.id),
+      ),
     // Paycheck money tagged for a card that hasn't been folded into a balance
     // update yet — powers the "sent since last update" prompt on the Debt page.
     db
@@ -28,11 +47,8 @@ router.get("/debt-accounts", async (_req, res): Promise<void> => {
       ),
   ]);
 
-  // Snapshots arrive newest-first, so the first one seen per account is latest.
-  const latestByAccount = new Map<number, (typeof snapshots)[number]>();
-  for (const s of snapshots) {
-    if (!latestByAccount.has(s.debtAccountId)) latestByAccount.set(s.debtAccountId, s);
-  }
+  const latestByAccount = new Map<number, (typeof latestSnapshots)[number]>();
+  for (const s of latestSnapshots) latestByAccount.set(s.debtAccountId, s);
 
   const pendingByAccount = new Map<number, number>();
   for (const p of pendingAllocs) {

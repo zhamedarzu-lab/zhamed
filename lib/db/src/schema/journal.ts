@@ -11,7 +11,12 @@ export const journalEntriesTable = pgTable("journal_entries", {
   looseEndLink: integer("loose_end_link").references((): any => journalEntriesTable.id),
   looseEndType: text("loose_end_type"),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, t => [
+  // Every journal read is a date window (`?from=&to=`) sorted by start time.
+  // This is the table that grows fastest and it had no index but the pkey.
+  index("journal_entries_entry_date_idx").on(t.entryDate),
+  index("journal_entries_start_time_idx").on(t.startTime),
+]);
 
 export type JournalEntry = typeof journalEntriesTable.$inferSelect;
 export type InsertJournalEntry = typeof journalEntriesTable.$inferInsert;
@@ -27,7 +32,7 @@ export const dayHighlightsTable = pgTable("day_highlights", {
   endTime:       text("end_time"),
   entryId:       integer("entry_id"),
   createdAt:     timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, t => [index("day_highlights_date_idx").on(t.date)]);
 
 export type DayHighlight = typeof dayHighlightsTable.$inferSelect;
 export type InsertDayHighlight = typeof dayHighlightsTable.$inferInsert;

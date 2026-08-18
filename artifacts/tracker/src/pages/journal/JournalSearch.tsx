@@ -82,8 +82,14 @@ export default function JournalSearch() {
       setEntries(ents);
       setPeriodNotes(notes);
       setEntryLinks(links);
-    }).finally(() => setLoading(false));
-    setTimeout(() => inputRef.current?.focus(), 80);
+    })
+      .catch(() => { /* the empty-state below is the error state */ })
+      .finally(() => setLoading(false));
+
+    // Focus once the modal has settled; cleared on unmount so a quick
+    // navigation away does not leave the timer running.
+    const focusTimer = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(focusTimer);
   }, []);
 
   // Always show all palette colors in fixed ROYGBIV order

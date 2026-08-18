@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { cashSpendingLogTable, cashAccountsTable } from "@workspace/db";
@@ -36,11 +36,6 @@ router.get("/cash-spending/summary", async (req, res): Promise<void> => {
     return;
   }
 
-  const entries = await db
-    .select()
-    .from(cashSpendingLogTable)
-    .where(eq(cashSpendingLogTable.cashAccountId, accountId));
-
   const now = new Date();
 
   const startOfDay = new Date(now);
@@ -53,6 +48,23 @@ router.get("/cash-spending/summary", async (req, res): Promise<void> => {
   startOfWeek.setHours(0, 0, 0, 0);
 
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Nothing older than the earliest window can affect any of these figures, so
+  // the rest never has to leave the database. The week can start before the 1st
+  // of the month, so the bound is whichever of the two comes first.
+  const earliest = startOfWeek < startOfMonth ? startOfWeek : startOfMonth;
+
+  const entries = await db
+    .select({
+      amount: cashSpendingLogTable.amount,
+      category: cashSpendingLogTable.category,
+      loggedAt: cashSpendingLogTable.loggedAt,
+    })
+    .from(cashSpendingLogTable)
+    .where(and(
+      eq(cashSpendingLogTable.cashAccountId, accountId),
+      gte(cashSpendingLogTable.loggedAt, earliest),
+    ));
 
   // Track spending only (negative entries = expenses; deposits are excluded
   // from the "spent" stats so the numbers reflect what went out the door).
@@ -149,10 +161,7 @@ const patchSchema = z.object({
 });
 
 router.patch("/cash-spending/:id", async (req, res): Promise<void> => {
-  let id: number;
-  try { id = parseId(req.params.id); }
-  catch { res.status(400).json({ error: "Invalid id" }); return; }
-
+  const id = parseId(req.params.id);
   const body = parseBody(patchSchema, req.body, res);
   if (!body) return;
 
@@ -180,9 +189,7 @@ router.patch("/cash-spending/:id", async (req, res): Promise<void> => {
 // ── Delete an entry ───────────────────────────────────────────────────────────
 
 router.delete("/cash-spending/:id", async (req, res): Promise<void> => {
-  let id: number;
-  try { id = parseId(req.params.id); }
-  catch { res.status(400).json({ error: "Invalid id" }); return; }
+  const id = parseId(req.params.id);
 
   const deleted = await db
     .delete(cashSpendingLogTable)

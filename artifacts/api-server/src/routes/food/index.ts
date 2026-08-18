@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db, foodActivitiesTable, foodItemsTable, journalLinksTable } from "@workspace/db";
 
@@ -49,27 +49,29 @@ router.get("/items", async (_req, res): Promise<void> => {
   const rows = await db.select().from(foodItemsTable)
     .orderBy(asc(foodItemsTable.status), desc(foodItemsTable.updatedAt), asc(foodItemsTable.name));
 
-  // Attach most recent non-prepared activity content as lastNote
+  // Attach the most recent non-empty activity content as lastNote. DISTINCT ON
+  // returns one row per item straight from the database — the previous version
+  // pulled every activity ever recorded and dropped all but the first of each,
+  // so listing the pantry cost the whole activity history.
   const ids = rows.map((r) => r.id);
-  let lastNoteMap: Record<number, string> = {};
+  const lastNoteMap = new Map<number, string>();
   if (ids.length) {
-    const recent = await db.select({
-      foodItemId: foodActivitiesTable.foodItemId,
-      content: foodActivitiesTable.content,
-    })
+    const recent = await db
+      .selectDistinctOn([foodActivitiesTable.foodItemId], {
+        foodItemId: foodActivitiesTable.foodItemId,
+        content: foodActivitiesTable.content,
+      })
       .from(foodActivitiesTable)
-      .where(inArray(foodActivitiesTable.foodItemId, ids))
-      .orderBy(desc(foodActivitiesTable.id));
+      .where(and(
+        inArray(foodActivitiesTable.foodItemId, ids),
+        ne(foodActivitiesTable.content, ""),
+      ))
+      .orderBy(foodActivitiesTable.foodItemId, desc(foodActivitiesTable.id));
 
-    // Keep only the first (most recent) per item
-    for (const row of recent) {
-      if (!lastNoteMap[row.foodItemId] && row.content) {
-        lastNoteMap[row.foodItemId] = row.content;
-      }
-    }
+    for (const row of recent) lastNoteMap.set(row.foodItemId, row.content);
   }
 
-  res.json(rows.map((r) => ({ ...r, lastNote: lastNoteMap[r.id] ?? null })));
+  res.json(rows.map((r) => ({ ...r, lastNote: lastNoteMap.get(r.id) ?? null })));
 });
 
 router.get("/items/:id/links", async (req, res): Promise<void> => {

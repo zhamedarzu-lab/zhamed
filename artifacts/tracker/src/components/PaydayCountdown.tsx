@@ -1,57 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { nextPayday, formatCountdown, cycleProgress } from "../lib/payday";
+import { countdownModes, dayProgressPct, fmtClock, pad2, useNow, weekdayDate } from "../lib/clock";
 import PaydayCalendar from "./PaydayCalendar";
-
-/** Ticks once a second so the countdown reads live instead of stale. */
-function useNow(intervalMs: number): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
-
-const pad2 = (n: number) => String(n).padStart(2, "0");
-
-const weekdayDate = (d: Date) =>
-  d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-
-const fmtClock = (d: Date) => {
-  const h = d.getHours(), m = d.getMinutes(), s = d.getSeconds();
-  return `${h % 12 || 12}:${pad2(m)}:${pad2(s)} ${h >= 12 ? "pm" : "am"}`;
-};
-
-// Each cell: [value, label, pad] — pad=true uses 2-digit zero-padding (for
-// remainder units 0-59). The leading "total" unit in collapsed modes is never
-// padded since it can be 3+ digits.
-type Cell = [number, string, boolean];
-
-function getModes(totalSeconds: number): Cell[][] {
-  const days    = Math.floor(totalSeconds / 86400);
-  const hours   = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const totalHours   = Math.floor(totalSeconds / 3600);
-  const totalMinutes = Math.floor(totalSeconds / 60);
-
-  return [
-    // Mode 0: d h m s  (all components, each padded to 2 digits)
-    [[days, "days", true], [hours, "hrs", true], [minutes, "min", true], [seconds, "sec", true]],
-    // Mode 1: translate days → total hours, keep m s remainders
-    [[totalHours, "hrs", false], [minutes, "min", true], [seconds, "sec", true]],
-    // Mode 2: translate hours → total minutes, keep s remainder
-    [[totalMinutes, "min", false], [seconds, "sec", true]],
-    // Mode 3: total seconds only
-    [[totalSeconds, "sec", false]],
-  ];
-}
-
-function dayProgressPct(now: Date): number {
-  return Math.round(((now.getHours() * 60 + now.getMinutes()) / 1440) * 100);
-}
 
 export default function PaydayCountdown() {
   const { pathname } = useLocation();
@@ -62,7 +13,7 @@ export default function PaydayCountdown() {
   const payday = nextPayday(now);
   const msLeft = payday.getTime() - now.getTime();
   const progressPct = isJournal
-    ? dayProgressPct(now)
+    ? Math.round(dayProgressPct(now))
     : Math.round(cycleProgress(now) * 100);
 
   const totalSeconds = Math.max(0, Math.round(msLeft / 1000));
@@ -71,7 +22,7 @@ export default function PaydayCountdown() {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  const modes = getModes(totalSeconds);
+  const modes = countdownModes(totalSeconds);
   const cells = modes[displayMode];
 
   // Click-away and Escape both close the popover; only wired up while open.
@@ -158,16 +109,11 @@ export default function PaydayCountdown() {
       {!isFinance && (
         <div className="payday-trigger-wrap">
           <div className="payday-strip">
-            <button
-              type="button"
-              className="payday-field payday-field-btn"
-              onClick={() => {}}
-              aria-label="Today's date"
-            >
+            <div className="payday-field">
               <span className="eyebrow">Today</span>
               <span className="fig payday-today">{weekdayDate(now)}</span>
               <span className="payday-clock fig">{fmtClock(now)}</span>
-            </button>
+            </div>
           </div>
         </div>
       )}

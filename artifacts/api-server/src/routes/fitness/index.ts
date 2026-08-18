@@ -32,9 +32,22 @@ const ExerciseInput = z.object({
 router.post("/exercises", async (req, res): Promise<void> => {
   const data = parseBody(ExerciseInput, req.body, res);
   if (!data) return;
+  // Everything ExerciseInput accepts gets written. The insert used to take
+  // only name/unit/colour, so an exercise created with a goal came back
+  // without one and the caller had to PATCH it straight back in.
   const [row] = await db
     .insert(exercisesTable)
-    .values({ name: data.name, unit: data.unit, color: data.color ?? null })
+    .values({
+      name:  data.name,
+      unit:  data.unit,
+      color: data.color ?? null,
+      ...(data.active    !== undefined ? { active:    data.active    } : {}),
+      ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
+      goalAmount:    data.goalAmount != null ? String(data.goalAmount) : null,
+      goalPeriod:    data.goalPeriod    ?? null,
+      goalDeadline:  data.goalDeadline  ?? null,
+      goalStartDate: data.goalStartDate ?? null,
+    })
     .returning();
   res.status(201).json(row);
 });
@@ -128,7 +141,7 @@ const EffortInput = z.object({
   exerciseId: z.number().int().positive(),
   date:       z.string().regex(DATE_RE),
   amount:     z.number().positive(),
-  slot:       z.enum(["early morning","morning","after morning","noon","afternoon","evening","night","midnight"]).optional(),
+  slot:       z.enum(SLOTS).optional(),
 });
 
 router.post("/efforts", async (req, res): Promise<void> => {

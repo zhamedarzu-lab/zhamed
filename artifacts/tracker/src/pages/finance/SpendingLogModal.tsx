@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type JSX } from "react";
 import { api, useApi } from "../../lib/api";
 import { dollars, toAmount } from "../../lib/format";
 import { Loading } from "../../components/ui";
@@ -123,7 +123,7 @@ function AnalyticsOverlay({
   summary,
   onClose,
 }: {
-  summary: Summary | undefined;
+  summary: Summary | null;
   onClose: () => void;
 }) {
   const [period, setPeriod] = useState<StatPeriod>("month");

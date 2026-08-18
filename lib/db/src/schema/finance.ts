@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import { desc } from "drizzle-orm";
 
 export const debtAccountsTable = pgTable("debt_accounts", {
   id:          serial("id").primaryKey(),
@@ -60,6 +61,12 @@ export const debtSnapshotsTable = pgTable(
   (t) => [
     index("debt_snapshots_date_idx").on(t.snapshotDate),
     index("debt_snapshots_account_id_idx").on(t.debtAccountId),
+    // Serves the DISTINCT ON that reads each account's current balance.
+    index("debt_snapshots_account_latest_idx").on(
+      t.debtAccountId,
+      desc(t.snapshotDate),
+      desc(t.id),
+    ),
   ],
 );
 
@@ -143,14 +150,21 @@ export const extraIncomeTable = pgTable("extra_income", {
   note: text("note").notNull().default(""),
 });
 
-export const monthlySubscriptionItemsTable = pgTable("monthly_subscription_items", {
-  id:        serial("id").primaryKey(),
-  month:     text("month").notNull(),
-  name:      text("name").notNull(),
-  amount:    numeric("amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  sortOrder: integer("sort_order").notNull().default(0),
-  active:    boolean("active").notNull().default(true),
-});
+export const monthlySubscriptionItemsTable = pgTable(
+  "monthly_subscription_items",
+  {
+    id:        serial("id").primaryKey(),
+    month:     text("month").notNull(),            // YYYY-MM
+    name:      text("name").notNull(),
+    amount:    numeric("amount", { precision: 10, scale: 2 }).notNull().default("0"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active:    boolean("active").notNull().default(true),
+  },
+  (t) => [
+    // Same access pattern as bills, which has had this index since 0029.
+    index("monthly_subscription_items_month_idx").on(t.month),
+  ],
+);
 
 export const monthlyBillItemsTable = pgTable(
   "monthly_bill_items",
@@ -182,6 +196,9 @@ export const cashSpendingLogTable = pgTable(
   (t) => [
     index("cash_spending_log_account_id_idx").on(t.cashAccountId),
     index("cash_spending_log_logged_at_idx").on(t.loggedAt),
+    // Both the entry list and the spending summary filter by account and then
+    // bound or sort by time; neither single-column index covers that on its own.
+    index("cash_spending_log_account_logged_at_idx").on(t.cashAccountId, t.loggedAt),
   ],
 );
 

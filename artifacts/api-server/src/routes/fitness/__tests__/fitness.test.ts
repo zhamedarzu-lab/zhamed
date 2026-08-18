@@ -227,3 +227,50 @@ describe("DELETE /api/fitness/exercises/:id", () => {
     expect(exercises).toHaveLength(0);
   });
 });
+
+describe("POST /api/fitness/exercises", () => {
+  it("stores the goal fields the input schema accepts", async () => {
+    const res = await request(app).post("/api/fitness/exercises").send({
+      name: "Goal On Create",
+      unit: "reps",
+      color: "#123456",
+      goalAmount: 40,
+      goalPeriod: "week",
+      goalStartDate: "2099-01-01",
+    });
+    expect(res.status).toBe(201);
+
+    try {
+      const [row] = await db
+        .select()
+        .from(exercisesTable)
+        .where(eq(exercisesTable.id, res.body.id));
+      expect(Number(row!.goalAmount)).toBe(40);
+      expect(row!.goalPeriod).toBe("week");
+      expect(row!.goalStartDate).toBe("2099-01-01");
+      expect(row!.color).toBe("#123456");
+    } finally {
+      await db.delete(exercisesTable).where(eq(exercisesTable.id, res.body.id));
+    }
+  });
+
+  it("leaves the goal columns null when no goal is given", async () => {
+    const res = await request(app)
+      .post("/api/fitness/exercises")
+      .send({ name: "No Goal", unit: "min" });
+    expect(res.status).toBe(201);
+
+    try {
+      const [row] = await db
+        .select()
+        .from(exercisesTable)
+        .where(eq(exercisesTable.id, res.body.id));
+      expect(row!.goalAmount).toBeNull();
+      expect(row!.goalPeriod).toBeNull();
+      expect(row!.goalDeadline).toBeNull();
+      expect(row!.active).toBe(true);
+    } finally {
+      await db.delete(exercisesTable).where(eq(exercisesTable.id, res.body.id));
+    }
+  });
+});

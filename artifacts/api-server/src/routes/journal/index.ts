@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { foodActivitiesTable, journalEntriesTable, dayHighlightsTable, journalPeriodNotesTable, journalLinksTable } from "@workspace/db";
-import { and, gte, lte, desc, eq, isNull, like, notInArray, sql } from "drizzle-orm";
+import { and, gte, lte, desc, eq, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -101,6 +101,7 @@ router.patch("/entries/:id", async (req, res) => {
     .set(patch)
     .where(eq(journalEntriesTable.id, id))
     .returning();
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json(row);
 });
 

@@ -12,6 +12,9 @@ import {
   monthlyBillItemsTable,
   journalEntriesTable,
   dayHighlightsTable,
+  journalPeriodNotesTable,
+  journalLinksTable,
+  cashSpendingLogTable,
   exercisesTable,
   effortsTable,
   foodItemsTable,
@@ -20,7 +23,12 @@ import {
 
 const router = Router();
 
-// GET /api/export  — full JSON dump of every table; triggers file download
+// GET /api/export  — full JSON dump of every table; triggers file download.
+//
+// Every table in the schema has to be listed here. Period notes, journal links
+// and the cash spending log were all missing, so an export taken as a backup
+// silently dropped them — the one file you would restore from was the one that
+// did not have them.
 router.get("/export", async (_req, res) => {
   const [
     paychecks,
@@ -34,6 +42,9 @@ router.get("/export", async (_req, res) => {
     bills,
     journalEntries,
     dayHighlights,
+    journalPeriodNotes,
+    journalLinks,
+    cashSpendingLog,
     exercises,
     efforts,
     foodItems,
@@ -50,6 +61,9 @@ router.get("/export", async (_req, res) => {
     db.select().from(monthlyBillItemsTable),
     db.select().from(journalEntriesTable),
     db.select().from(dayHighlightsTable),
+    db.select().from(journalPeriodNotesTable),
+    db.select().from(journalLinksTable),
+    db.select().from(cashSpendingLogTable),
     db.select().from(exercisesTable),
     db.select().from(effortsTable),
     db.select().from(foodItemsTable),
@@ -75,6 +89,9 @@ router.get("/export", async (_req, res) => {
     bills,
     journalEntries,
     dayHighlights,
+    journalPeriodNotes,
+    journalLinks,
+    cashSpendingLog,
     exercises,
     efforts,
     foodItems,

@@ -169,7 +169,11 @@ export default function Fitness() {
   const summary = useApi<Summary>(`/api/fitness/summary?today=${todayIso()}`);
   const health  = useApi<HealthData>(`/api/fitness/health?today=${todayIso()}`);
 
-  function reloadAll() { void summary.reload(); void health.reload(); }
+  // Children type this as `() => Promise<unknown>` and `await` it before
+  // closing a modal, so it has to return the reload rather than fire and
+  // forget — otherwise the await resolves instantly and the panel repaints
+  // from stale data.
+  function reloadAll() { return Promise.all([summary.reload(), health.reload()]); }
   const [error,    setError]    = useState<string | null>(null);
   const [addOpen,       setAddOpen]       = useState(false);
   const [newName,       setNewName]       = useState("");

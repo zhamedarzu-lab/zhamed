@@ -3,35 +3,9 @@
  * show_countdown=true, each with its own independent d/h/m/s cycling timer
  * and a progress bar from creation → target.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { DayHighlight } from "../pages/journal/HighlightModal";
-
-function useNow(ms: number) {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), ms);
-    return () => clearInterval(id);
-  }, [ms]);
-  return now;
-}
-
-const pad2 = (n: number) => String(n).padStart(2, "0");
-
-type Cell = [number, string];
-function getModes(totalSec: number): Cell[][] {
-  const days    = Math.floor(totalSec / 86400);
-  const hours   = Math.floor((totalSec % 86400) / 3600);
-  const minutes = Math.floor((totalSec % 3600) / 60);
-  const seconds = totalSec % 60;
-  const totalHours   = Math.floor(totalSec / 3600);
-  const totalMinutes = Math.floor(totalSec / 60);
-  return [
-    [[days, "days"], [hours, "hrs"], [minutes, "min"], [seconds, "sec"]],
-    [[totalHours, "hrs"], [minutes, "min"], [seconds, "sec"]],
-    [[totalMinutes, "min"], [seconds, "sec"]],
-    [[totalSec, "sec"]],
-  ];
-}
+import { countdownModes, pad2, useNow } from "../lib/clock";
 
 function CountdownStrip({ highlight, now }: { highlight: DayHighlight; now: Date }) {
   const [mode, setMode] = useState(0);
@@ -49,7 +23,7 @@ function CountdownStrip({ highlight, now }: { highlight: DayHighlight; now: Date
 
   const msLeft   = Math.max(0, target.getTime() - now.getTime());
   const totalSec = Math.round(msLeft / 1000);
-  const modes    = getModes(totalSec);
+  const modes    = countdownModes(totalSec);
   const cells    = modes[mode % modes.length];
 
   const targetDate = target.toLocaleDateString("en-US", {
@@ -78,8 +52,8 @@ function CountdownStrip({ highlight, now }: { highlight: DayHighlight; now: Date
             <span className="hl-countdown-cells">
               {cells.map(([val, label]) => (
                 <span key={label} className="hl-countdown-cell">
-                  <span className="hl-countdown-num">{pad2(val as number)}</span>
-                  <span className="hl-countdown-unit">{label as string}</span>
+                  <span className="hl-countdown-num">{pad2(val)}</span>
+                  <span className="hl-countdown-unit">{label}</span>
                 </span>
               ))}
             </span>
