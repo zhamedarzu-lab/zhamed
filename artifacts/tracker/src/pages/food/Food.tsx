@@ -10,7 +10,7 @@ type FoodItem = {
   storageLocation: "fridge" | "table" | "pantry";
   status: "on_hand" | "finished" | "tossed" | "avoid";
   preparedOn?: string;
-  store?: string;
+  lastNote?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -144,7 +144,10 @@ export default function Food() {
                 <div className="food-rows">
                   {list.map((item) => (
                     <div key={item.id} className="food-row" onClick={() => setOpenItemId(item.id)}>
-                      <span className="food-row-name">{item.name}</span>
+                      <div className="food-row-main">
+                        <span className="food-row-name">{item.name}</span>
+                        {item.lastNote && <span className="food-row-note">{item.lastNote}</span>}
+                      </div>
                       <span className="food-row-age">{item.preparedOn ? daysOld(item.preparedOn) : formatRelative(item.updatedAt)}</span>
                     </div>
                   ))}
@@ -154,20 +157,20 @@ export default function Food() {
           })}
 
         {view === "history" && historyStock.length > 0 && (
-          <div className="food-history-list">
-            {historyStock.map((item) => (
-              <div key={item.id} className="food-history-item" onClick={() => setOpenItemId(item.id)}>
-                <div>
-                  <div className="food-history-name">{item.name}</div>
-                  <div className="food-history-meta">
-                    {locationNames[item.storageLocation]}{item.preparedOn ? ` • since ${formatMonthDay(item.preparedOn)}` : ""}
+          <div className="food-location-group">
+            <div className="food-rows">
+              {historyStock.map((item) => (
+                <div key={item.id} className="food-row" onClick={() => setOpenItemId(item.id)}>
+                  <div className="food-row-main">
+                    <span className="food-row-name">{item.name}</span>
+                    {item.lastNote && <span className="food-row-note">{item.lastNote}</span>}
                   </div>
+                  <span className="food-row-status" data-status={item.status}>
+                    {statusNames[item.status]}
+                  </span>
                 </div>
-                <div className="food-history-status" data-status={item.status}>
-                  {statusNames[item.status]}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

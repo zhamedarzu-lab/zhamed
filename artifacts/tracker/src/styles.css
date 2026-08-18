@@ -7797,10 +7797,23 @@ button.btn-icon {
 }
 .food-row:last-child { border-bottom: none; }
 .food-row:active { opacity: 0.6; }
+.food-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
 .food-row-name {
   font-size: 0.9375rem;
   color: var(--ink);
   font-weight: 400;
+}
+.food-row-note {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .food-row-age {
   font-size: 0.8rem;
@@ -7808,6 +7821,14 @@ button.btn-icon {
   flex-shrink: 0;
   font-family: var(--fig);
 }
+.food-row-status {
+  font-size: 0.75rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  color: var(--ink-faint);
+}
+.food-row-status[data-status="finished"] { color: var(--food-green); }
+.food-row-status[data-status="tossed"] { color: var(--food-red); }
 
 .food-history-list {
   display: flex;

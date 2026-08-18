@@ -49,7 +49,31 @@ const today = () => new Date().toISOString().slice(0, 10);
 router.get("/items", async (_req, res): Promise<void> => {
   const rows = await db.select().from(foodItemsTable)
     .orderBy(asc(foodItemsTable.status), desc(foodItemsTable.updatedAt), asc(foodItemsTable.name));
-  res.json(rows);
+
+  // Attach most recent non-prepared activity content as lastNote
+  const ids = rows.map((r) => r.id);
+  let lastNoteMap: Record<number, string> = {};
+  if (ids.length) {
+    const recent = await db.select({
+      foodItemId: foodActivitiesTable.foodItemId,
+      content: foodActivitiesTable.content,
+    })
+      .from(foodActivitiesTable)
+      .where(and(
+        inArray(foodActivitiesTable.foodItemId, ids),
+        eq(foodActivitiesTable.action, "note"),
+      ))
+      .orderBy(desc(foodActivitiesTable.occurredOn), desc(foodActivitiesTable.id));
+
+    // Keep only the first (most recent) per item
+    for (const row of recent) {
+      if (!lastNoteMap[row.foodItemId] && row.content) {
+        lastNoteMap[row.foodItemId] = row.content;
+      }
+    }
+  }
+
+  res.json(rows.map((r) => ({ ...r, lastNote: lastNoteMap[r.id] ?? null })));
 });
 
 router.get("/items/:id/activities", async (req, res): Promise<void> => {
