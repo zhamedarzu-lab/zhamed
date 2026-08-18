@@ -80,7 +80,7 @@ router.post("/items", async (req, res): Promise<void> => {
   if (data.purchasedOn || data.store) {
     const [activity] = await db.insert(foodActivitiesTable).values({
       foodItemId: item.id, action: "purchased", occurredOn: data.purchasedOn ?? today(),
-      content: data.store ? `Bought from ${data.store}` : "Added to inventory",
+      content: "Prepared",
     }).returning();
     activities.push(activity);
   }

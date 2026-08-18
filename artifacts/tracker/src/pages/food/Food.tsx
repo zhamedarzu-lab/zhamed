@@ -386,7 +386,7 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
   }
 
   const actionLabels: Record<string, string> = {
-    purchased: "Purchased",
+    purchased: "Prepared",
     used: "Used",
     cooked: "Cooked",
     note: "Note",
