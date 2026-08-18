@@ -486,7 +486,11 @@ type WeekPopupProps = {
 };
 function WeekPopup({ weekStart, weekNum, allEntries, onClose, onGoToWeek, onSelect }: WeekPopupProps) {
   const todayYmd = toYMD(new Date());
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    const s = new Set<string>();
+    for (let i = 0; i < 7; i++) s.add(toYMD(addDays(weekStart, i)));
+    return s;
+  });
   const [weekLinks, setWeekLinks] = useState<JournalLink[]>([]);
 
   useEffect(() => {
