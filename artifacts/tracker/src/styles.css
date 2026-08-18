@@ -7771,45 +7771,42 @@ button.btn-icon {
   font-weight: 600;
 }
 
-.food-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
+/* Compact list rows */
+.food-location-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 0 0 0.4rem 0;
+  margin-bottom: 0.1rem;
 }
-
-.food-card {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1), border-color 0.2s, background 0.2s;
+.food-rows {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
-.food-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--amber);
-  background: color-mix(in srgb, var(--amber) 4%, var(--paper));
-}
-.food-card-name {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--ink);
-  margin: 0;
-  line-height: 1.2;
-}
-.food-card-meta {
-  font-size: 0.75rem;
-  color: var(--ink-soft);
+.food-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+  gap: 1rem;
+  transition: opacity 0.1s;
 }
-.food-card-time {
-  font-family: var(--fig);
+.food-row:last-child { border-bottom: none; }
+.food-row:active { opacity: 0.6; }
+.food-row-name {
+  font-size: 0.9375rem;
+  color: var(--ink);
+  font-weight: 400;
+}
+.food-row-age {
+  font-size: 0.8rem;
   color: var(--amber);
+  flex-shrink: 0;
+  font-family: var(--fig);
 }
 
 .food-history-list {
@@ -7860,7 +7857,7 @@ button.btn-icon {
 .food-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.55);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -7882,8 +7879,23 @@ button.btn-icon {
   animation: modalScale 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @keyframes modalScale {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+/* Detail modal — bottom sheet variant */
+.food-modal-backdrop:has(.food-modal--sheet) {
+  align-items: flex-end;
+  padding: 0;
+}
+.food-modal--sheet {
+  border-radius: 16px 16px 0 0;
+  max-width: 100%;
+  border-bottom: none;
+  animation: sheetUp 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes sheetUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .food-modal-header {
@@ -7895,11 +7907,25 @@ button.btn-icon {
   background: var(--paper);
   z-index: 10;
 }
+.food-modal-header--compact {
+  padding: 1rem 1.25rem 0.75rem;
+}
 .food-modal-title {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--ink);
   margin: 0 0 0.25rem 0;
+}
+.food-modal-title--sm {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.1rem 0;
+}
+.food-modal-loc {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .food-modal-subtitle {
   font-size: 0.8125rem;
@@ -7931,6 +7957,10 @@ button.btn-icon {
 .food-modal-body--scroll {
   padding-top: 1rem;
 }
+.food-modal-body--tight {
+  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+}
 
 .food-modal-footer {
   padding: 1rem 1.5rem;
@@ -7943,6 +7973,54 @@ button.btn-icon {
 .food-modal-footer--right {
   justify-content: flex-end;
 }
+.food-modal-footer--slim {
+  padding: 0.65rem 1.25rem;
+  justify-content: space-between;
+}
+
+/* Plain text link buttons used in slim footer */
+.food-link-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.food-link-btn:hover { color: var(--ink); }
+.food-link-btn--danger { color: color-mix(in srgb, var(--food-red) 70%, var(--ink-soft)); }
+.food-link-btn--danger:hover { color: var(--food-red); }
+
+/* Detail meta — date + note inline */
+.food-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+}
+.food-detail-date {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+.food-detail-note {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  flex: 1;
+  line-height: 1.5;
+}
+.food-detail-edit {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  transition: color 0.12s;
+}
+.food-detail-edit:hover { color: var(--amber); }
 
 .food-field {
   display: flex;
@@ -8113,14 +8191,11 @@ button.btn-icon {
   color: var(--food-red);
 }
 .food-timeline-text {
-  background: var(--paper-sunk);
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  padding: 0.75rem;
   font-size: 0.875rem;
   color: var(--ink-soft);
   white-space: pre-wrap;
   line-height: 1.5;
+  padding: 0.2rem 0 0;
 }
 
 /* Action Sheets */
@@ -8275,27 +8350,27 @@ button.btn-icon {
 .food-log-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 .food-log-entry {
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--surface) 40%, transparent);
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--rule);
 }
+.food-log-entry:last-child { border-bottom: none; }
 .food-log-entry-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 .food-log-entry-action {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: var(--ink-soft);
+  color: var(--ink-faint);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   flex: 1;
 }
 .food-log-entry-date {
-  font-size: 0.8rem;
-  color: var(--ink-soft);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
 }

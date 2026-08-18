@@ -140,14 +140,12 @@ export default function Food() {
             if (list.length === 0) return null;
             return (
               <div key={loc} className="food-location-group">
-                <h2 className="food-location-title">{locationNames[loc]}</h2>
-                <div className="food-grid">
+                <div className="food-location-label">{locationNames[loc]}</div>
+                <div className="food-rows">
                   {list.map((item) => (
-                    <div key={item.id} className="food-card" onClick={() => setOpenItemId(item.id)}>
-                      <h3 className="food-card-name">{item.name}</h3>
-                      <div className="food-card-meta">
-                        <span className="food-card-time">{item.preparedOn ? daysOld(item.preparedOn) : formatRelative(item.updatedAt)}</span>
-                      </div>
+                    <div key={item.id} className="food-row" onClick={() => setOpenItemId(item.id)}>
+                      <span className="food-row-name">{item.name}</span>
+                      <span className="food-row-age">{item.preparedOn ? daysOld(item.preparedOn) : formatRelative(item.updatedAt)}</span>
                     </div>
                   ))}
                 </div>
@@ -319,14 +317,17 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
 
   return (
     <div className="food-modal-backdrop" onClick={onClose}>
-      <div className="food-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="food-modal food-modal--sheet" onClick={(e) => e.stopPropagation()}>
 
-        <div className="food-modal-header">
-          <h2 className="food-modal-title">{item.name}</h2>
+        <div className="food-modal-header food-modal-header--compact">
+          <div>
+            <h2 className="food-modal-title food-modal-title--sm">{item.name}</h2>
+            <span className="food-modal-loc">{locationNames[item.storageLocation]}</span>
+          </div>
           <button className="food-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
-        <div className="food-modal-body food-modal-body--scroll">
+        <div className="food-modal-body food-modal-body--tight">
           {editing ? (
             <EditItemForm
               item={item}
@@ -336,22 +337,12 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
             />
           ) : (
             <>
-              {/* Main info block */}
-              <div className="food-info-block">
-                <div className="food-info-row">
-                  <span className="food-info-date">
-                    {item.preparedOn ? formatMonthDay(item.preparedOn) : "—"}
-                  </span>
-                  <button className="food-edit-btn" onClick={() => setEditing(true)} aria-label="Edit">
-                    Edit
-                  </button>
-                </div>
-                {preparedAct?.content ? (
-                  <div className="food-info-note">{preparedAct.content}</div>
-                ) : null}
+              <div className="food-detail-meta">
+                <span className="food-detail-date">{item.preparedOn ? formatMonthDay(item.preparedOn) : "—"}</span>
+                {preparedAct?.content && <span className="food-detail-note">{preparedAct.content}</span>}
+                <button className="food-detail-edit" onClick={() => setEditing(true)}>Edit</button>
               </div>
 
-              {/* Activity log */}
               {logActivities.length > 0 && (
                 <div className="food-log-list">
                   {logActivities.map((act) => (
@@ -364,11 +355,9 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
         </div>
 
         {!editing && (
-          <div className="food-modal-footer">
-            <button className="food-btn-outline" onClick={() => setShowLog(true)}>+ Log</button>
-            <button className="food-btn-ghost food-btn-danger" style={{ marginLeft: "auto" }} onClick={handleDeleteItem}>
-              Delete
-            </button>
+          <div className="food-modal-footer food-modal-footer--slim">
+            <button className="food-link-btn" onClick={() => setShowLog(true)}>+ log</button>
+            <button className="food-link-btn food-link-btn--danger" onClick={handleDeleteItem}>delete</button>
           </div>
         )}
 
