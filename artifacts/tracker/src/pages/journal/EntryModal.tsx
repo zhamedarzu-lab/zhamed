@@ -126,6 +126,11 @@ type EntryFormProps = {
   onCancel: () => void;
   onPunch?: (note: string, color: string) => void;
 };
+const FOOD_RE = /\b(breakfast|lunch|dinner|brunch|supper|snack|meal|eat(ing)?|food|coffee|tea|drink|juice|smoothie|boba|latte|espresso|pizza|burger|sushi|salad|soup|pasta|sandwich|taco|ramen|noodle|rice|steak|bbq|grill|dessert|cake|cookie|donut|ice\s*cream|restaurant|cafe|diner|takeout|takeaway|leftovers?|groceries|grocery|cooking|baked|baking)\b/i;
+const FOOD_COLOR = "#e55c00";
+
+function isFoodSubject(s: string) { return FOOD_RE.test(s); }
+
 export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: EntryFormProps) {
   const [subject,      setSubject]      = useState(initial?.subject ?? "");
   const [content,      setContent]      = useState(initial?.content ?? "");
@@ -239,7 +244,11 @@ export function EntryForm({ entryDate, initial, onSave, onCancel, onPunch }: Ent
           placeholder="Subject"
           value={subject}
           autoFocus={!initial?.subject}
-          onChange={e => setSubject(e.target.value)}
+          onChange={e => {
+            const v = e.target.value;
+            setSubject(v);
+            if (isFoodSubject(v)) setColor(FOOD_COLOR);
+          }}
         />
       )}
       {showOpenPicker && (
