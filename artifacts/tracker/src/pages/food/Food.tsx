@@ -163,7 +163,7 @@ export default function Food() {
                 <div>
                   <div className="food-history-name">{item.name}</div>
                   <div className="food-history-meta">
-                    {locationNames[item.storageLocation]}{item.purchasedOn ? ` • since ${formatDate(item.purchasedOn)}` : ""}
+                    {locationNames[item.storageLocation]}{item.purchasedOn ? ` • since ${formatMonthDay(item.purchasedOn)}` : ""}
                   </div>
                 </div>
                 <div className="food-history-status" data-status={item.status}>
