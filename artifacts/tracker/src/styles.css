@@ -5253,6 +5253,10 @@ button.btn-icon {
   justify-content: center;
   width: 2rem;
   height: 2rem;
+  /* reset <button> defaults */
+  background: none;
+  border: none;
+  padding: 0;
   color: var(--row-color);
   font-size: 1.6rem;
   font-weight: 300;
@@ -5264,6 +5268,12 @@ button.btn-icon {
   opacity: 0.6;
 }
 .ft-log-btn:active { opacity: 1; }
+.ft-log-btn:focus-visible {
+  outline: 2px solid var(--row-color);
+  outline-offset: 3px;
+  border-radius: 4px;
+  opacity: 1;
+}
 
 .ft-row-main {
   display: flex;
