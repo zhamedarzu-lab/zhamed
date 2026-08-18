@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import SpendingLogModal from "./SpendingLogModal";
 import { api, useApi } from "../../lib/api";
 import { dollars, shortDate } from "../../lib/format";
+import { localTimeZone } from "../../lib/clock";
 import {
   BalanceChart,
   Empty,
@@ -51,7 +52,11 @@ export default function Cash() {
     if (addOpen) nameRef.current?.focus();
   }, [addOpen]);
 
-  const accounts = useApi<Account[]>("/api/finance/cash-accounts");
+  // The balance sparkline plots one point per calendar day; which day a
+  // purchase lands on depends on the reader's zone, so send it.
+  const accounts = useApi<Account[]>(
+    `/api/finance/cash-accounts?tz=${encodeURIComponent(localTimeZone())}`,
+  );
 
   // ── Local order (drag-to-reorder) ─────────────────────────────────────────
   const [localOrder, setLocalOrder] = useState<Account[]>([]);

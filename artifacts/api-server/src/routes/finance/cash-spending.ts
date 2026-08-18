@@ -3,7 +3,7 @@ import { and, desc, eq, gte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { cashSpendingLogTable, cashAccountsTable } from "@workspace/db";
-import { money, parseBody, parseId, round } from "./shared.js";
+import { money, optionalInstantQuery, parseBody, parseId, round } from "./shared.js";
 
 const router: IRouter = Router();
 
@@ -36,23 +36,37 @@ router.get("/cash-spending/summary", async (req, res): Promise<void> => {
     return;
   }
 
+  // "Today" has to mean the viewer's today. The client sends the instants its
+  // own day, week and month began at, because only the browser knows the
+  // reader's zone and its DST rules; computing them here meant the window
+  // rolled over at the *server's* midnight, which on a UTC host is the wrong
+  // moment for everybody not on UTC.
+  //
+  // The server-local arithmetic stays as the fallback so a direct API call
+  // with no params still behaves the way it always did.
   const now = new Date();
 
-  const startOfDay = new Date(now);
-  startOfDay.setHours(0, 0, 0, 0);
+  const serverDayStart = new Date(now);
+  serverDayStart.setHours(0, 0, 0, 0);
 
-  // ISO week starts Monday (dow 0 = Sunday → diff -6, otherwise 1 - dow)
+  // Week starts Monday (dow 0 = Sunday → diff -6, otherwise 1 - dow)
   const dow = now.getDay();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow));
-  startOfWeek.setHours(0, 0, 0, 0);
+  const serverWeekStart = new Date(now);
+  serverWeekStart.setDate(now.getDate() + (dow === 0 ? -6 : 1 - dow));
+  serverWeekStart.setHours(0, 0, 0, 0);
 
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfDay = optionalInstantQuery(req.query.dayStart) ?? serverDayStart;
+  const startOfWeek = optionalInstantQuery(req.query.weekStart) ?? serverWeekStart;
+  const startOfMonth =
+    optionalInstantQuery(req.query.monthStart) ??
+    new Date(now.getFullYear(), now.getMonth(), 1);
 
   // Nothing older than the earliest window can affect any of these figures, so
   // the rest never has to leave the database. The week can start before the 1st
-  // of the month, so the bound is whichever of the two comes first.
-  const earliest = startOfWeek < startOfMonth ? startOfWeek : startOfMonth;
+  // of the month, so the bound is whichever of the three comes first — `day` is
+  // in there because a client is free to send boundaries this server did not
+  // compute and need not have ordered them the way it would.
+  const earliest = [startOfDay, startOfWeek, startOfMonth].reduce((a, b) => (a < b ? a : b));
 
   const entries = await db
     .select({

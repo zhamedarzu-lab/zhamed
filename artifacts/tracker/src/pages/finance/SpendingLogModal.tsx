@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, type JSX } from "react";
 import { api, useApi } from "../../lib/api";
 import { dollars, toAmount } from "../../lib/format";
+import { periodStartParams } from "../../lib/clock";
 import { Loading } from "../../components/ui";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -231,7 +232,14 @@ interface Props {
 
 export default function SpendingLogModal({ accountId, accountName, balance, onClose, onChanged }: Props) {
   const entries = useApi<SpendingEntry[]>(`/api/finance/cash-spending?accountId=${accountId}`);
-  const summary  = useApi<Summary>(`/api/finance/cash-spending/summary?accountId=${accountId}`);
+  // Today/this week/this month are the *viewer's*, so the boundaries are
+  // computed here and sent along; the server would otherwise use its own
+  // midnight. Frozen for the life of the modal so a reload does not shift the
+  // window mid-session.
+  const [periodParams] = useState(periodStartParams);
+  const summary  = useApi<Summary>(
+    `/api/finance/cash-spending/summary?accountId=${accountId}&${periodParams}`,
+  );
 
   const [sign, setSign]         = useState<"+" | "-">("-");
   const [amount, setAmount]     = useState("");

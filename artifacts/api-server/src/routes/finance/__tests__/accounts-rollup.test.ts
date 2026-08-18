@@ -160,11 +160,57 @@ describe("GET /api/finance/cash-accounts — balance history", () => {
     expect(account?.lastUpdated).toBe("2099-01-03");
   });
 
-  it("buckets days by UTC, so a late-evening UTC entry stays on its own day", async () => {
+  it("buckets days by UTC when no zone is given", async () => {
     await entry("10.00", "2099-02-01T23:30:00Z");
     await entry("5.00", "2099-02-02T00:30:00Z");
 
     const account = find((await request(app).get("/api/finance/cash-accounts")).body);
     expect(account?.balanceHistory.map((p) => p.date)).toEqual(["2099-02-01", "2099-02-02"]);
+  });
+
+  it("buckets days in the zone the client sends", async () => {
+    // 23:30Z and 00:30Z are consecutive UTC days but the same evening in New
+    // York (18:30 and 19:30 on Feb 1), so they belong to one point there.
+    await entry("10.00", "2099-02-01T23:30:00Z");
+    await entry("5.00", "2099-02-02T00:30:00Z");
+
+    const res = await request(app).get(
+      "/api/finance/cash-accounts?tz=America%2FNew_York",
+    );
+    const account = find(res.body);
+    expect(account?.balanceHistory).toEqual([{ date: "2099-02-01", value: 15 }]);
+    expect(account?.lastUpdated).toBe("2099-02-01");
+  });
+
+  it("applies the zone's offset as it stood on the day, not as it stands now", async () => {
+    // New York is UTC-5 in January and UTC-4 in July. 04:30Z lands on the 15th
+    // in winter (23:30 on the 14th would need -5) and on the 15th in summer —
+    // so pick times that only agree if each row gets its own offset:
+    //   winter: 2099-01-15T04:30Z -> 2099-01-14 23:30 EST
+    //   summer: 2099-07-15T04:30Z -> 2099-07-15 00:30 EDT
+    await entry("1.00", "2099-01-15T04:30:00Z");
+    await entry("2.00", "2099-07-15T04:30:00Z");
+
+    const res = await request(app).get(
+      "/api/finance/cash-accounts?tz=America%2FNew_York",
+    );
+    const account = find(res.body);
+    expect(account?.balanceHistory.map((p) => p.date)).toEqual([
+      "2099-01-14",
+      "2099-07-15",
+    ]);
+  });
+
+  it("falls back to UTC for a zone name it does not recognise", async () => {
+    await entry("10.00", "2099-02-01T23:30:00Z");
+    await entry("5.00", "2099-02-02T00:30:00Z");
+
+    const res = await request(app).get("/api/finance/cash-accounts?tz=Not/AZone");
+    expect(res.status).toBe(200);
+    const account = find(res.body);
+    expect(account?.balanceHistory.map((p) => p.date)).toEqual([
+      "2099-02-01",
+      "2099-02-02",
+    ]);
   });
 });

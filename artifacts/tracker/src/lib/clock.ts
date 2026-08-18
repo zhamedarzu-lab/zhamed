@@ -61,3 +61,52 @@ export function countdownModes(totalSeconds: number): CountdownCell[][] {
     [[totalSeconds, "sec", false]],
   ];
 }
+
+/**
+ * The instants at which today, this week and this month began **for the person
+ * looking at the screen**.
+ *
+ * The spending summary used to compute these on the server, where "midnight"
+ * is the server's midnight — on a UTC host that rolls "today's spending" over
+ * at the wrong time for everyone who is not on UTC. The browser is the only
+ * party that knows the viewer's zone and its DST rules, so it does the
+ * arithmetic and sends the three instants along.
+ *
+ * The week starts Monday, which is what the summary has always used.
+ */
+export function localPeriodStarts(now: Date = new Date()) {
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  const dow = now.getDay(); // 0 = Sunday
+
+  return {
+    dayStart:   new Date(y, m, d),
+    weekStart:  new Date(y, m, d + (dow === 0 ? -6 : 1 - dow)),
+    monthStart: new Date(y, m, 1),
+  };
+}
+
+/** Those three instants as query params, ready to append to a request. */
+export function periodStartParams(now: Date = new Date()): string {
+  const { dayStart, weekStart, monthStart } = localPeriodStarts(now);
+  return (
+    `dayStart=${encodeURIComponent(dayStart.toISOString())}` +
+    `&weekStart=${encodeURIComponent(weekStart.toISOString())}` +
+    `&monthStart=${encodeURIComponent(monthStart.toISOString())}`
+  );
+}
+
+/**
+ * The viewer's IANA zone ("America/New_York"), for the endpoints that have to
+ * bucket a whole history by calendar day rather than compare against a few
+ * fixed instants — only the database can do that per row, and it needs the
+ * zone by name to get past DST changes right.
+ */
+export function localTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}

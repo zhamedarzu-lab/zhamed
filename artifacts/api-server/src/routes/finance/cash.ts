@@ -3,7 +3,7 @@ import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@workspace/db";
 import { cashAccountsTable, cashSnapshotsTable, cashSpendingLogTable, paychecksTable } from "@workspace/db";
-import { DATE_RE, money, optionalDateQuery, optionalIdQuery, parseBody, parseId, round } from "./shared.js";
+import { DATE_RE, money, optionalDateQuery, optionalIdQuery, parseBody, parseId, round, timeZoneQuery } from "./shared.js";
 
 const router: IRouter = Router();
 
@@ -12,32 +12,42 @@ const router: IRouter = Router();
 // credit limit, no utilization, no paycheck-payment attribution: just a name
 // and a running balance.
 
-router.get("/cash-accounts", async (_req, res): Promise<void> => {
+router.get("/cash-accounts", async (req, res): Promise<void> => {
   // The sparkline only ever plots one point per calendar day, so the day
   // totals are grouped in the database. This used to select every row of the
   // spending log — full description, category and notes included — and reduce
   // it in JS, which meant the Cash page got slower with every purchase logged.
   //
-  // The day bucket is pinned to UTC because the JS version it replaces used
-  // `toISOString()`; a bare to_char would follow the database session's
-  // timezone and silently move entries across day boundaries.
+  // Which day a purchase falls on depends on where you are standing, so the
+  // client sends its zone and Postgres does the conversion per row — an offset
+  // would be wrong either side of a DST change, and the session's own timezone
+  // is not the reader's. No `?tz=` means UTC, which is what this returned
+  // before it took a zone at all.
+  const tz = timeZoneQuery(req.query.tz);
+
+  // The zone is bound once, in a subquery. Repeating the expression in GROUP BY
+  // would bind a *second* placeholder, and Postgres compares the two as
+  // different expressions and rejects the query.
+  const dayBuckets = db
+    .select({
+      cashAccountId: cashSpendingLogTable.cashAccountId,
+      amount: cashSpendingLogTable.amount,
+      day: sql<string>`to_char(${cashSpendingLogTable.loggedAt} AT TIME ZONE ${tz}, 'YYYY-MM-DD')`.as("day"),
+    })
+    .from(cashSpendingLogTable)
+    .as("day_buckets");
+
   const [accounts, dayTotals] = await Promise.all([
     db.select().from(cashAccountsTable).orderBy(cashAccountsTable.sortOrder),
     db
       .select({
-        cashAccountId: cashSpendingLogTable.cashAccountId,
-        day: sql<string>`to_char(${cashSpendingLogTable.loggedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`.as("day"),
-        delta: sql<string>`SUM(${cashSpendingLogTable.amount})`,
+        cashAccountId: dayBuckets.cashAccountId,
+        day: dayBuckets.day,
+        delta: sql<string>`SUM(${dayBuckets.amount})`,
       })
-      .from(cashSpendingLogTable)
-      .groupBy(
-        cashSpendingLogTable.cashAccountId,
-        sql`to_char(${cashSpendingLogTable.loggedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
-      )
-      .orderBy(
-        cashSpendingLogTable.cashAccountId,
-        sql`to_char(${cashSpendingLogTable.loggedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`,
-      ),
+      .from(dayBuckets)
+      .groupBy(dayBuckets.cashAccountId, dayBuckets.day)
+      .orderBy(dayBuckets.cashAccountId, dayBuckets.day),
   ]);
 
   const byAccount = new Map<number, Array<{ day: string; delta: number }>>();

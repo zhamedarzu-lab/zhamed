@@ -21,6 +21,36 @@ export function optionalIdQuery(raw: unknown): number | undefined {
   return isNaN(n) ? undefined : n;
 }
 
+/**
+ * `?dayStart=2026-08-18T00:00:00-04:00` style filters — an instant supplied by
+ * the client, so a window is bounded by the viewer's midnight rather than the
+ * server's. Undefined when absent or unparseable, which leaves the caller to
+ * fall back to its own arithmetic.
+ */
+export function optionalInstantQuery(raw: unknown): Date | undefined {
+  if (typeof raw !== "string" || raw.length === 0) return undefined;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+/**
+ * `?tz=America/New_York` — a validated IANA zone name, for the queries that
+ * bucket a whole history by calendar day and so need the zone rather than a
+ * fixed offset. Falls back to UTC, which is what these endpoints did before
+ * they took a zone at all.
+ */
+export function timeZoneQuery(raw: unknown): string {
+  if (typeof raw !== "string" || raw.length === 0 || raw.length > 64) return "UTC";
+  try {
+    // Throws RangeError on anything Node's ICU does not recognise, which is
+    // what keeps an arbitrary string from reaching the database.
+    new Intl.DateTimeFormat("en-US", { timeZone: raw });
+    return raw;
+  } catch {
+    return "UTC";
+  }
+}
+
 /** `?from=YYYY-MM-DD` / `?to=YYYY-MM-DD` style filters — undefined when absent or invalid. */
 export function optionalDateQuery(raw: unknown): string | undefined {
   if (typeof raw !== "string") return undefined;
