@@ -14,7 +14,7 @@ export type JournalLink = {
   id: number;
   anchorText: string;
   content: string;
-  sourceType: "entry" | "period_note";
+  sourceType: "entry" | "period_note" | "food_activity";
   sourceId: number;
   occurrence: number;   // 0 = first match, 1 = second, etc.
   createdAt: string;

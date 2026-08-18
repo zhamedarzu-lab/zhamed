@@ -11,6 +11,7 @@ import Journal from "./pages/journal/Journal";
 import JournalSearch from "./pages/journal/JournalSearch";
 import JournalLooseEnds from "./pages/journal/JournalLooseEnds";
 import Fitness from "./pages/fitness/Fitness";
+import Food from "./pages/food/Food";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import PaydayCountdown from "./components/PaydayCountdown";
@@ -33,6 +34,7 @@ function WordmarkNav() {
   const { pathname } = useLocation();
   const section =
     pathname.startsWith("/journal") ? "Journal"
+    : pathname.startsWith("/food") ? "Food"
     : pathname.startsWith("/fitness") ? "Fitness"
     : "Finance";
 
@@ -94,6 +96,7 @@ function AuthedApp() {
           <Route path="/journal/search"          element={<JournalSearch />} />
           <Route path="/journal/loose-ends"      element={<JournalLooseEnds />} />
           <Route path="/fitness"                 element={<Fitness />} />
+          <Route path="/food"                    element={<Food />} />
           <Route path="*"                        element={<NotFound />} />
         </Routes>
       </main>

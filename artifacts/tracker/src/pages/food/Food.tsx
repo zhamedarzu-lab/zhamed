@@ -1,0 +1,558 @@
+import React, { useState, useMemo } from "react";
+import { api, useApi } from "../../lib/api";
+import { LinkedContentArea, JournalLink, LinkViewModal } from "../journal/LinkedContent";
+import { formatFoodDate } from "./foodDate.js";
+
+type FoodItem = {
+  id: number;
+  name: string;
+  storageLocation: "fridge" | "freezer" | "pantry" | "counter" | "other";
+  status: "on_hand" | "finished" | "tossed" | "avoid";
+  purchasedOn?: string;
+  store?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type FoodActivity = {
+  id: number;
+  foodItemId: number;
+  action: "purchased" | "used" | "cooked" | "note" | "moved" | "status";
+  occurredOn: string;
+  content: string;
+  createdAt: string;
+};
+
+const locationNames: Record<string, string> = {
+  fridge: "Fridge",
+  freezer: "Freezer",
+  pantry: "Pantry",
+  counter: "Counter",
+  other: "Other",
+};
+
+const statusNames: Record<string, string> = {
+  on_hand: "On hand",
+  finished: "Finished",
+  tossed: "Tossed",
+  avoid: "Avoid",
+};
+
+function formatDate(iso: string) {
+  return formatFoodDate(iso);
+}
+
+function formatRelative(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days}d ago`;
+}
+
+export default function Food() {
+  const { data: items, reload, loading } = useApi<FoodItem[]>("/api/food/items");
+  const [view, setView] = useState<"active" | "history">("active");
+  const [showAdd, setShowAdd] = useState(false);
+  const [openItemId, setOpenItemId] = useState<number | null>(null);
+
+  const activeStock = useMemo(() => {
+    if (!items) return [];
+    return items.filter((i) => i.status === "on_hand");
+  }, [items]);
+
+  const historyStock = useMemo(() => {
+    if (!items) return [];
+    return items
+      .filter((i) => i.status !== "on_hand")
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [items]);
+
+  const groupedActive = useMemo(() => {
+    const groups: Record<string, FoodItem[]> = { fridge: [], freezer: [], pantry: [], counter: [], other: [] };
+    for (const item of activeStock) {
+      if (groups[item.storageLocation]) groups[item.storageLocation].push(item);
+    }
+    return groups;
+  }, [activeStock]);
+
+  return (
+    <div className="food-view">
+      <div className="food-header">
+        <div className="food-view-toggle">
+          <button className={view === "active" ? "active" : ""} onClick={() => setView("active")}>
+            Active Stock
+          </button>
+          <button className={view === "history" ? "active" : ""} onClick={() => setView("history")}>
+            History
+          </button>
+        </div>
+        <button className="food-add-btn" onClick={() => setShowAdd(true)}>
+          + Add Provision
+        </button>
+      </div>
+
+      <div className="food-content">
+        {loading && !items && <div className="food-loading">Loading inventory...</div>}
+
+        {view === "active" && !loading && activeStock.length === 0 && (
+          <div className="food-empty">
+            <div className="food-empty-title">Your pantry is empty</div>
+            <div className="food-empty-subtitle">Add provisions to start tracking what you have.</div>
+          </div>
+        )}
+
+        {view === "history" && !loading && historyStock.length === 0 && (
+          <div className="food-empty">
+            <div className="food-empty-title">No history yet</div>
+            <div className="food-empty-subtitle">Items you finish or toss will appear here.</div>
+          </div>
+        )}
+
+        {view === "active" &&
+          (Object.entries(groupedActive) as [FoodItem["storageLocation"], FoodItem[]][]).map(([loc, list]) => {
+            if (list.length === 0) return null;
+            return (
+              <div key={loc} className="food-location-group">
+                <h2 className="food-location-title">{locationNames[loc]}</h2>
+                <div className="food-grid">
+                  {list.map((item) => (
+                    <div key={item.id} className="food-card" onClick={() => setOpenItemId(item.id)}>
+                      <h3 className="food-card-name">{item.name}</h3>
+                      <div className="food-card-meta">
+                        <span className="food-card-time">{formatRelative(item.updatedAt)}</span>
+                        {item.store && <span className="food-card-store">{item.store}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+        {view === "history" && historyStock.length > 0 && (
+          <div className="food-history-list">
+            {historyStock.map((item) => (
+              <div key={item.id} className="food-history-item" onClick={() => setOpenItemId(item.id)}>
+                <div>
+                  <div className="food-history-name">{item.name}</div>
+                  <div className="food-history-meta">
+                    {locationNames[item.storageLocation]} • {formatDate(item.updatedAt)}
+                  </div>
+                </div>
+                <div className="food-history-status" data-status={item.status}>
+                  {statusNames[item.status]}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {showAdd && (
+        <AddFoodModal
+          onClose={() => setShowAdd(false)}
+          onAdd={async (data) => {
+            await api.post("/api/food/items", data);
+            reload();
+          }}
+        />
+      )}
+
+      {openItemId && (
+        <ItemDetailModal
+          itemId={openItemId}
+          onClose={() => setOpenItemId(null)}
+          onUpdateItem={reload}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddFoodModal({ onClose, onAdd }: { onClose: () => void; onAdd: (d: any) => Promise<void> }) {
+  const [name, setName] = useState("");
+  const [storageLocation, setStorageLocation] = useState("fridge");
+  const [purchasedOn, setPurchasedOn] = useState(() => new Date().toISOString().split("T")[0]);
+  const [store, setStore] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onAdd({
+        name: name.trim(),
+        storageLocation,
+        purchasedOn: purchasedOn || undefined,
+        store: store.trim() || undefined,
+        note: note.trim() || undefined,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="food-modal-backdrop" onClick={onClose}>
+      <form className="food-modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <div className="food-modal-header">
+          <h2 className="food-modal-title">New Provision</h2>
+          <button type="button" className="food-modal-close" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <div className="food-modal-body">
+          <label className="food-field">
+            <span>Item Name</span>
+            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Heirloom Tomatoes" />
+          </label>
+          <div className="food-field-row">
+            <label className="food-field">
+              <span>Location</span>
+              <select value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)}>
+                <option value="fridge">Fridge</option>
+                <option value="freezer">Freezer</option>
+                <option value="pantry">Pantry</option>
+                <option value="counter">Counter</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label className="food-field">
+              <span>Date Purchased</span>
+              <input type="date" value={purchasedOn} onChange={(e) => setPurchasedOn(e.target.value)} />
+            </label>
+          </div>
+          <label className="food-field">
+            <span>Store / Origin</span>
+            <input value={store} onChange={(e) => setStore(e.target.value)} placeholder="e.g., Farmer's Market" />
+          </label>
+          <label className="food-field">
+            <span>Initial Note (optional)</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Condition, plans, etc." rows={2} />
+          </label>
+        </div>
+        <div className="food-modal-footer food-modal-footer--right">
+          <button type="button" className="food-btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="food-btn-primary" disabled={saving || !name.trim()}>
+            {saving ? "Adding..." : "Add Provision"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; onClose: () => void; onUpdateItem: () => void }) {
+  const { data, reload, loading } = useApi<{ item: FoodItem; activities: FoodActivity[] }>(`/api/food/items/${itemId}/activities`);
+  const [activeSheet, setActionSheet] = useState<"log" | "move" | "status" | null>(null);
+
+  if (!data) {
+    return (
+      <div className="food-modal-backdrop" onClick={onClose}>
+        <div className="food-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="food-loading" style={{ padding: "2rem", textAlign: "center" }}>
+            Loading timeline...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { item, activities } = data;
+
+  async function handleDeleteActivity(actId: number) {
+    if (!confirm("Delete this activity?")) return;
+    await api.del(`/api/food/activities/${actId}`);
+    reload();
+  }
+
+  async function handleDeleteItem() {
+    if (!confirm("Delete this item entirely?")) return;
+    await api.del(`/api/food/items/${itemId}`);
+    onUpdateItem();
+    onClose();
+  }
+
+  return (
+    <div className="food-modal-backdrop" onClick={onClose}>
+      <div className="food-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="food-modal-header">
+          <div>
+            <h2 className="food-modal-title">{item.name}</h2>
+            <div className="food-modal-subtitle">
+              {locationNames[item.storageLocation]} • {statusNames[item.status]}
+              {item.store && ` • ${item.store}`}
+            </div>
+          </div>
+          <button className="food-modal-close" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <div className="food-modal-body food-modal-body--scroll">
+          <div className="food-timeline">
+            {activities.map((act) => (
+              <FoodActivityNode key={act.id} activity={act} onDelete={() => handleDeleteActivity(act.id)} />
+            ))}
+          </div>
+        </div>
+
+        <div className="food-modal-footer">
+          <button className="food-btn-outline" onClick={() => setActionSheet("log")}>
+            Log
+          </button>
+          <button className="food-btn-outline" onClick={() => setActionSheet("move")}>
+            Move
+          </button>
+          <button className="food-btn-outline" onClick={() => setActionSheet("status")}>
+            Status
+          </button>
+          <button className="food-btn-ghost food-btn-danger" style={{ marginLeft: "auto" }} onClick={handleDeleteItem}>
+            Delete
+          </button>
+        </div>
+
+        {activeSheet === "log" && (
+          <LogActivitySheet
+            itemId={itemId}
+            onClose={() => setActionSheet(null)}
+            onSaved={() => {
+              setActionSheet(null);
+              reload();
+            }}
+          />
+        )}
+        {activeSheet === "move" && (
+          <MoveSheet
+            item={item}
+            onClose={() => setActionSheet(null)}
+            onSaved={() => {
+              setActionSheet(null);
+              reload();
+              onUpdateItem();
+            }}
+          />
+        )}
+        {activeSheet === "status" && (
+          <StatusSheet
+            item={item}
+            onClose={() => setActionSheet(null)}
+            onSaved={() => {
+              setActionSheet(null);
+              reload();
+              onUpdateItem();
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDelete: () => void }) {
+  const url = activity.content ? `/api/journal/links?sourceType=food_activity&sourceId=${activity.id}` : null;
+  const { data: links, reload } = useApi<JournalLink[]>(url);
+  const [viewLink, setViewLink] = useState<JournalLink | null>(null);
+
+  async function handleCreateLink(anchorText: string, content: string, occurrence: number) {
+    await api.post("/api/journal/links", {
+      sourceType: "food_activity",
+      sourceId: activity.id,
+      anchorText,
+      content,
+      occurrence,
+    });
+    reload();
+  }
+
+  const actionLabels: Record<string, string> = {
+    purchased: "Purchased",
+    used: "Used",
+    cooked: "Cooked",
+    note: "Note",
+    moved: "Moved",
+    status: "Status Changed",
+  };
+
+  const isUserAction = ["note", "used", "cooked"].includes(activity.action);
+
+  return (
+    <>
+      <div className="food-timeline-node">
+        <div className="food-timeline-dot" data-action={activity.action} />
+        <div className="food-timeline-body">
+          <div className="food-timeline-header-row">
+            <span className="food-timeline-action">{actionLabels[activity.action] || activity.action}</span>
+            <span className="food-timeline-date">{formatDate(activity.occurredOn)}</span>
+            {isUserAction && (
+              <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">
+                ✕
+              </button>
+            )}
+          </div>
+          {activity.content && (
+            <div className="food-timeline-text">
+              <LinkedContentArea text={activity.content} links={links || []} onCreateLink={handleCreateLink} onLinkClick={setViewLink} />
+            </div>
+          )}
+        </div>
+      </div>
+      {viewLink && (
+        <LinkViewModal
+          link={viewLink}
+          onClose={() => setViewLink(null)}
+          onUpdate={() => {
+            reload();
+            setViewLink(null);
+          }}
+          onDelete={() => {
+            reload();
+            setViewLink(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function LogActivitySheet({ itemId, onClose, onSaved }: { itemId: number; onClose: () => void; onSaved: () => void }) {
+  const [action, setAction] = useState("used");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    try {
+      await api.post(`/api/food/items/${itemId}/activities`, {
+        action,
+        occurredOn: new Date().toISOString().slice(0, 10),
+        content: content.trim(),
+      });
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="food-sheet-overlay" onClick={onClose}>
+      <form className="food-sheet" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h3 className="food-sheet-title">Log Activity</h3>
+        <div className="food-sheet-tabs">
+          <button type="button" className={action === "used" ? "active" : ""} onClick={() => setAction("used")}>
+            Used
+          </button>
+          <button type="button" className={action === "cooked" ? "active" : ""} onClick={() => setAction("cooked")}>
+            Cooked
+          </button>
+          <button type="button" className={action === "note" ? "active" : ""} onClick={() => setAction("note")}>
+            Note
+          </button>
+        </div>
+        <textarea
+          autoFocus
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Details... (e.g. used half for soup)"
+          rows={3}
+          className="food-sheet-textarea"
+        />
+        <div className="food-modal-footer food-modal-footer--right">
+          <button type="button" className="food-btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="food-btn-primary" disabled={saving || !content.trim()}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function MoveSheet({ item, onClose, onSaved }: { item: FoodItem; onClose: () => void; onSaved: () => void }) {
+  const [loc, setLoc] = useState(item.storageLocation);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    try {
+      await api.patch(`/api/food/items/${item.id}`, { storageLocation: loc });
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="food-sheet-overlay" onClick={onClose}>
+      <form className="food-sheet" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h3 className="food-sheet-title">Move Provision</h3>
+        <select value={loc} onChange={(e) => setLoc(e.target.value as any)} className="food-sheet-textarea" style={{ height: "48px" }}>
+          <option value="fridge">Fridge</option>
+          <option value="freezer">Freezer</option>
+          <option value="pantry">Pantry</option>
+          <option value="counter">Counter</option>
+          <option value="other">Other</option>
+        </select>
+        <div className="food-modal-footer food-modal-footer--right">
+          <button type="button" className="food-btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="food-btn-primary" disabled={saving || loc === item.storageLocation}>
+            {saving ? "Moving..." : "Move"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function StatusSheet({ item, onClose, onSaved }: { item: FoodItem; onClose: () => void; onSaved: () => void }) {
+  const [status, setStatus] = useState(item.status);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    try {
+      await api.patch(`/api/food/items/${item.id}`, { status });
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="food-sheet-overlay" onClick={onClose}>
+      <form className="food-sheet" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <h3 className="food-sheet-title">Update Status</h3>
+        <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="food-sheet-textarea" style={{ height: "48px" }}>
+          <option value="on_hand">On hand</option>
+          <option value="finished">Finished</option>
+          <option value="tossed">Tossed</option>
+          <option value="avoid">Avoid</option>
+        </select>
+        <div className="food-modal-footer food-modal-footer--right">
+          <button type="button" className="food-btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="food-btn-primary" disabled={saving || status === item.status}>
+            {saving ? "Updating..." : "Update"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

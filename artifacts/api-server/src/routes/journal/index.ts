@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { journalEntriesTable, dayHighlightsTable, journalPeriodNotesTable, journalLinksTable } from "@workspace/db";
+import { foodActivitiesTable, journalEntriesTable, dayHighlightsTable, journalPeriodNotesTable, journalLinksTable } from "@workspace/db";
 import { and, gte, lte, desc, eq, isNull, like, notInArray, sql } from "drizzle-orm";
 
 const router = Router();
@@ -344,7 +344,7 @@ router.delete("/period-notes/:id", async (req, res) => {
 const LinkInput = z.object({
   anchorText: z.string().min(1),
   content:    z.string().min(1),
-  sourceType: z.enum(["entry", "period_note"]),
+  sourceType: z.enum(["entry", "period_note", "food_activity"]),
   sourceId:   z.number().int().positive(),
   occurrence: z.number().int().min(0).default(0),
 });
@@ -376,11 +376,16 @@ router.post("/links", async (req, res) => {
       .from(journalEntriesTable)
       .where(eq(journalEntriesTable.id, r.data.sourceId));
     if (!src) { res.status(404).json({ error: "Source entry not found" }); return; }
-  } else {
+  } else if (r.data.sourceType === "period_note") {
     const [src] = await db.select({ id: journalPeriodNotesTable.id })
       .from(journalPeriodNotesTable)
       .where(eq(journalPeriodNotesTable.id, r.data.sourceId));
     if (!src) { res.status(404).json({ error: "Source period note not found" }); return; }
+  } else {
+    const [src] = await db.select({ id: foodActivitiesTable.id })
+      .from(foodActivitiesTable)
+      .where(eq(foodActivitiesTable.id, r.data.sourceId));
+    if (!src) { res.status(404).json({ error: "Source food activity not found" }); return; }
   }
 
   const [row] = await db.insert(journalLinksTable).values(r.data).returning();
