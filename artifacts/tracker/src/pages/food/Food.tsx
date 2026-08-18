@@ -465,19 +465,14 @@ function FoodActivityNode({ activity, onDelete }: { activity: FoodActivity; onDe
 
   return (
     <>
-      <div className="food-log-entry">
-        <div className="food-log-entry-header">
-          {activity.action !== "note" && (
-            <span className="food-log-entry-action">{actionLabels[activity.action] || activity.action}</span>
-          )}
-          <span className="food-log-entry-date">{formatMonthDay(activity.occurredOn)}</span>
-          <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">✕</button>
-        </div>
-        {activity.content && (
-          <div className="food-timeline-text">
+      <div className="food-detail-row">
+        <span className="food-detail-date">{formatMonthDay(activity.occurredOn)}</span>
+        <span className="food-detail-note" style={{ flex: 1 }}>
+          {activity.content ? (
             <LinkedContentArea text={activity.content} links={links || []} onCreateLink={handleCreateLink} onLinkClick={setViewLink} />
-          </div>
-        )}
+          ) : null}
+        </span>
+        <button className="food-timeline-del" onClick={onDelete} aria-label="Delete">✕</button>
       </div>
       {viewLink && (
         <LinkViewModal link={viewLink} onClose={() => setViewLink(null)}

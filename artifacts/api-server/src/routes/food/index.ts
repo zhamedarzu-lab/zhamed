@@ -60,7 +60,7 @@ router.get("/items", async (_req, res): Promise<void> => {
     })
       .from(foodActivitiesTable)
       .where(inArray(foodActivitiesTable.foodItemId, ids))
-      .orderBy(desc(foodActivitiesTable.occurredOn), desc(foodActivitiesTable.id));
+      .orderBy(desc(foodActivitiesTable.id));
 
     // Keep only the first (most recent) per item
     for (const row of recent) {
