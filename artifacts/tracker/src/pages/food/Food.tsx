@@ -286,13 +286,11 @@ function ItemDetailModal({ itemId, onClose, onUpdateItem }: { itemId: number; on
   const logActivities = activities.filter((a) => a.action !== "prepared");
 
   async function handleDeleteActivity(actId: number) {
-    if (!confirm("Delete this entry?")) return;
     await api.del(`/api/food/activities/${actId}`);
     reload();
   }
 
   async function handleDeleteItem() {
-    if (!confirm("Remove this item?")) return;
     await api.del(`/api/food/items/${itemId}`);
     onUpdateItem();
     onClose();
