@@ -90,6 +90,7 @@ router.patch("/entries/:id", async (req, res) => {
   const patch: Record<string, unknown> = {};
   if (parsed.data.subject      !== undefined) patch.subject      = parsed.data.subject;
   if (parsed.data.content      !== undefined) patch.content      = parsed.data.content;
+  if (parsed.data.entryDate    !== undefined) patch.entryDate    = parsed.data.entryDate;
   if (parsed.data.startTime    !== undefined) patch.startTime    = new Date(parsed.data.startTime!);
   if (parsed.data.endTime      !== undefined) patch.endTime      = parsed.data.endTime ? new Date(parsed.data.endTime) : null;
   if (parsed.data.color        !== undefined) patch.color        = parsed.data.color;

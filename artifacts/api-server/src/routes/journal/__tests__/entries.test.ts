@@ -79,11 +79,18 @@ describe("PATCH /api/journal/entries/:id", () => {
     const entry = await makeEntry("2099-09-09", { subject: "before", content: "body" });
     const res = await request(app)
       .patch(`/api/journal/entries/${entry.id}`)
-      .send({ subject: "after" });
+      .send({ subject: "after", entryDate: "2099-09-10" });
 
     expect(res.status).toBe(200);
     expect(res.body.subject).toBe("after");
     expect(res.body.content).toBe("body");
+    expect(res.body.entryDate).toBe("2099-09-10");
+
+    const [persisted] = await db
+      .select()
+      .from(journalEntriesTable)
+      .where(eq(journalEntriesTable.id, entry.id));
+    expect(persisted!.entryDate).toBe("2099-09-10");
   });
 
   it("404s for an id that does not exist rather than reporting a phantom save", async () => {
