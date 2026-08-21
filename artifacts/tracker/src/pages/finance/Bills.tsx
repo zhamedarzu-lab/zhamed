@@ -204,7 +204,7 @@ export default function Bills() {
                   onColorChange={setColor}
                   onRename={(name) => void patch(b.id, { name })}
                   onAmountChange={(amount) => void patch(b.id, { amount })}
-                  onRemove={() => void remove(b, `Remove "${b.name}" from ${monthName(month)}?`)}
+                  onRemove={() => void remove(b)}
                 />
               ))}
             </tbody>

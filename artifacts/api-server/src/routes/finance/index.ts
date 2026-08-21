@@ -31,6 +31,7 @@ router.use(
     carryAmounts: true,
     supportsActive: true,
     supportsDueDay: true,
+    supportsBillingCycle: true,
   }),
 );
 

@@ -67,15 +67,14 @@ export function useMonthlyItems<T extends MonthlyItem>(
       setData((prev) => [...(prev ?? []), created]);
     });
 
-  const patch = (id: number, changes: Partial<Pick<T, "name" | "amount" | "active">>) =>
+  const patch = (id: number, changes: Partial<T>) =>
     guard(async () => {
       const updated = await api.patch<T>(`${base}/${id}`, changes);
       setData((prev) => (prev ?? []).map((i) => (i.id === id ? updated : i)));
     });
 
-  const remove = (item: T, confirmText: string) =>
+  const remove = (item: T) =>
     guard(async () => {
-      if (!confirm(confirmText)) return;
       await api.del(`${base}/${item.id}`);
       setData((prev) => (prev ?? []).filter((i) => i.id !== item.id));
     });
@@ -138,9 +137,24 @@ export function AmountCell({
 }
 
 export function RemoveCell({ name, onRemove }: { name: string; onRemove: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  if (confirming) {
+    return (
+      <td>
+        <span className="inline-confirm">
+          <button className="quiet danger inline-confirm-yes" onClick={() => { setConfirming(false); onRemove(); }}>
+            Delete
+          </button>
+          <button className="quiet inline-confirm-no" onClick={() => setConfirming(false)}>
+            Cancel
+          </button>
+        </span>
+      </td>
+    );
+  }
   return (
     <td>
-      <button className="quiet danger btn-icon" onClick={onRemove} aria-label={`Remove ${name}`}>
+      <button className="quiet danger btn-icon" onClick={() => setConfirming(true)} aria-label={`Remove ${name}`}>
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" strokeWidth="2" strokeLinecap="round"

@@ -4234,6 +4234,46 @@ button.btn-icon {
 .due-day-input::-webkit-inner-spin-button,
 .due-day-input::-webkit-outer-spin-button { -webkit-appearance: none; }
 
+/* Billing cycle pill (mo / yr) inside the amount cell */
+.sub-amount-cell { vertical-align: top; }
+
+.sub-amount-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cycle-pill {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid;
+  cursor: pointer;
+  background: none;
+  line-height: 1.6;
+}
+.cycle-pill--mo {
+  color: var(--ink-faint);
+  border-color: var(--border);
+}
+.cycle-pill--yr {
+  color: #40c8b0;
+  border-color: #40c8b055;
+  background: #40c8b011;
+}
+
+.sub-annual-hint {
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  text-align: right;
+  margin-top: 1px;
+  padding-right: 2px;
+}
+
 /* Charged (past due this month) row — subtly dimmed */
 .sub-row-charged { opacity: 0.55; }
 .sub-row-charged:hover { opacity: 0.8; }
