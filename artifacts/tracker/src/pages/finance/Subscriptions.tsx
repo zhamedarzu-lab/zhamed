@@ -13,7 +13,6 @@ import {
   useMonthlyItems,
   type MonthlyItem,
 } from "../../components/finance-ui";
-import { api } from "../../lib/api";
 import FinanceNav from "./FinanceNav";
 
 const BUDGET_KEY = "subs-budget";
@@ -21,7 +20,7 @@ const DEFAULT_BUDGET = 200;
 
 type SubItem = MonthlyItem & { active: boolean; dueDay: number | null };
 
-// ── Due-day cell ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function ordinal(n: number) {
   const s = ["th", "st", "nd", "rd"];
@@ -29,7 +28,22 @@ function ordinal(n: number) {
   return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
 }
 
-function DueDayCell({ item, onChange }: { item: SubItem; onChange: (day: number | null) => void }) {
+const MONTH_NAMES = [
+  "Jan","Feb","Mar","Apr","May","Jun",
+  "Jul","Aug","Sep","Oct","Nov","Dec",
+];
+
+// ── Due-day cell ──────────────────────────────────────────────────────────────
+
+function DueDayCell({
+  item,
+  charged,
+  onChange,
+}: {
+  item: SubItem;
+  charged: boolean;
+  onChange: (day: number | null) => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState("");
 
@@ -41,12 +55,8 @@ function DueDayCell({ item, onChange }: { item: SubItem; onChange: (day: number 
   function commit() {
     setEditing(false);
     const parsed = parseInt(val, 10);
-    if (val.trim() === "" || isNaN(parsed)) {
-      onChange(null);
-    } else {
-      const clamped = Math.min(31, Math.max(1, parsed));
-      onChange(clamped);
-    }
+    if (val.trim() === "" || isNaN(parsed)) onChange(null);
+    else onChange(Math.min(31, Math.max(1, parsed)));
   }
 
   function onKey(e: React.KeyboardEvent) {
@@ -74,17 +84,49 @@ function DueDayCell({ item, onChange }: { item: SubItem; onChange: (day: number 
 
   return (
     <td className="num col-due">
-      <button className="due-day-btn" onClick={startEdit} title="Set due day">
-        {item.dueDay != null ? ordinal(item.dueDay) : <span className="due-day-empty">—</span>}
+      <button
+        className={`due-day-btn${charged ? " due-day-charged" : ""}`}
+        onClick={startEdit}
+        title="Set due day"
+      >
+        {item.dueDay != null
+          ? ordinal(item.dueDay)
+          : <span className="due-day-empty">—</span>}
       </button>
     </td>
   );
+}
+
+// ── Today marker row ──────────────────────────────────────────────────────────
+
+function TodayMarkerRow({ day, month }: { day: number; month: string }) {
+  const [yr, mo] = month.split("-").map(Number);
+  const label = `${MONTH_NAMES[(mo ?? 1) - 1]} ${day}`;
+  return (
+    <tr className="sub-today-marker">
+      <td colSpan={5}>
+        <span className="sub-today-label">Today · {label}</span>
+      </td>
+    </tr>
+  );
+}
+
+// ── Sorting ───────────────────────────────────────────────────────────────────
+
+function sortByDueDay(items: SubItem[]): SubItem[] {
+  return [...items].sort((a, b) => {
+    if (a.dueDay == null && b.dueDay == null) return 0;
+    if (a.dueDay == null) return 1;
+    if (b.dueDay == null) return -1;
+    return a.dueDay - b.dueDay;
+  });
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Subscriptions() {
   const month = currentMonth();
+  const todayDay = new Date().getDate();
   const [budget, setBudget] = useBudget(BUDGET_KEY, DEFAULT_BUDGET);
 
   const { items, loading, error, add, patch, remove } = useMonthlyItems<SubItem>(
@@ -93,13 +135,30 @@ export default function Subscriptions() {
   );
 
   const active = items.filter((b) => b.active);
-  const paused = items.filter((b) => !b.active);
+  const paused  = items.filter((b) => !b.active);
   const activeTotal = active.reduce((s, b) => s + b.amount, 0);
   const pausedTotal = paused.reduce((s, b) => s + b.amount, 0);
   const leftover = budget - activeTotal;
 
-  const renderRow = (b: SubItem) => (
-    <tr key={b.id} className={b.active ? undefined : "sub-row-paused"}>
+  // Sort active items ascending by dueDay (nulls at end)
+  const sortedActive = sortByDueDay(active);
+  const past     = sortedActive.filter((b) => b.dueDay != null && b.dueDay <  todayDay);
+  const todayItems = sortedActive.filter((b) => b.dueDay != null && b.dueDay === todayDay);
+  const upcoming = sortedActive.filter((b) => b.dueDay != null && b.dueDay >  todayDay);
+  const noDue    = sortedActive.filter((b) => b.dueDay == null);
+
+  // Show the today marker only when there are items on both sides (or at least items with due days)
+  const hasDueDays = sortedActive.some((b) => b.dueDay != null);
+  const showMarker = hasDueDays;
+
+  const renderRow = (b: SubItem, charged = false) => (
+    <tr
+      key={b.id}
+      className={[
+        b.active ? undefined : "sub-row-paused",
+        charged ? "sub-row-charged" : undefined,
+      ].filter(Boolean).join(" ")}
+    >
       <td>
         <button
           className={`sub-toggle ${b.active ? "sub-toggle-on" : "sub-toggle-off"}`}
@@ -115,7 +174,11 @@ export default function Subscriptions() {
         onRename={(name) => void patch(b.id, { name })}
       />
       <AmountCell item={b} onChange={(amount) => void patch(b.id, { amount })} />
-      <DueDayCell item={b} onChange={(dueDay) => void api.patch(`/api/finance/subscriptions/${b.id}`, { dueDay }).then(() => patch(b.id, { dueDay } as Partial<SubItem>))} />
+      <DueDayCell
+        item={b}
+        charged={charged}
+        onChange={(dueDay) => void patch(b.id, { dueDay } as Partial<SubItem>)}
+      />
       <RemoveCell name={b.name} onRemove={() => void remove(b, `Remove "${b.name}"?`)} />
     </tr>
   );
@@ -153,7 +216,29 @@ export default function Subscriptions() {
               </tr>
             </thead>
             <tbody>
-              {active.map(renderRow)}
+              {/* Past (already charged this month) */}
+              {past.map((b) => renderRow(b, true))}
+
+              {/* Today marker */}
+              {showMarker && <TodayMarkerRow day={todayDay} month={month} />}
+
+              {/* Due today */}
+              {todayItems.map((b) => renderRow(b, false))}
+
+              {/* Upcoming */}
+              {upcoming.map((b) => renderRow(b, false))}
+
+              {/* No due day set */}
+              {noDue.length > 0 && hasDueDays && (
+                <tr className="sub-divider-row sub-no-due-divider">
+                  <td colSpan={5}>
+                    <span className="eyebrow">No due date</span>
+                  </td>
+                </tr>
+              )}
+              {noDue.map((b) => renderRow(b, false))}
+
+              {/* Paused */}
               {paused.length > 0 && active.length > 0 && (
                 <tr className="sub-divider-row">
                   <td colSpan={5}>
@@ -161,7 +246,7 @@ export default function Subscriptions() {
                   </td>
                 </tr>
               )}
-              {paused.map(renderRow)}
+              {sortByDueDay(paused).map((b) => renderRow(b, false))}
             </tbody>
           </table>
         )}
