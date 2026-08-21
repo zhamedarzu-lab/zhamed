@@ -16,18 +16,19 @@ import {
 import { api } from "../../lib/api";
 import FinanceNav from "./FinanceNav";
 
-// Lazy for the same reason as MonthlyCharts — see the note there.
 const BillsCharts = lazy(() => import("./BillsCharts"));
 
-const BUDGET_KEY = "bills-budget";
+const BUDGET_KEY   = "bills-budget";
 const DEFAULT_BUDGET = 2000;
-const COLORS_KEY = "bill-colors";
+const COLORS_KEY   = "bill-colors";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type DragState = {
-  fromId: number;
-  overId: number;
+  fromId:  number;
+  overId:  number;
+  clientX: number;
+  clientY: number;
 };
 
 // ── Drag grip icon ────────────────────────────────────────────────────────────
@@ -42,23 +43,19 @@ function IcGrip() {
   );
 }
 
-// ── Bill colours (per-name, stored locally) ───────────────────────────────────
+// ── Bill colour swatch / picker (per-name, stored locally) ────────────────────
 
 function useBillColors() {
   const [colors, setColorsState] = useState<Record<string, string>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(COLORS_KEY) ?? "{}");
-    } catch {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem(COLORS_KEY) ?? "{}"); }
+    catch { return {}; }
   });
-  const setColor = (name: string, color: string) => {
+  const setColor = (name: string, color: string) =>
     setColorsState((prev) => {
       const next = { ...prev, [name]: color };
       localStorage.setItem(COLORS_KEY, JSON.stringify(next));
       return next;
     });
-  };
   return [colors, setColor] as const;
 }
 
@@ -71,11 +68,10 @@ export default function Bills() {
   const [reorderError, setReorderError] = useState<string | null>(null);
 
   const { items, loading, error, add, patch, remove } = useMonthlyItems<MonthlyItem>(
-    "bills",
-    month,
+    "bills", month,
   );
 
-  // Bump this whenever the bill list mutates so the chart re-fetches.
+  // Re-fetch the chart whenever the bill list mutates.
   const [chartKey, setChartKey] = useState(0);
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -88,13 +84,13 @@ export default function Bills() {
   const dragRef = useRef<DragState | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
 
-  // Sync from server when items load; skip while a drag is in flight.
+  // Sync from server; skip while a drag is live.
   useEffect(() => {
     if (dragRef.current) return;
     setLocalOrder(items);
   }, [items]);
 
-  // Visual reorder used only during the drag gesture.
+  // Live preview: insert the dragged row at the hovered position.
   const displayOrder = useMemo(() => {
     if (!dragState || dragState.fromId === dragState.overId) return localOrder;
     const fromIdx = localOrder.findIndex((b) => b.id === dragState.fromId);
@@ -106,8 +102,8 @@ export default function Bills() {
     return arr;
   }, [localOrder, dragState]);
 
-  function handleDragStart(id: number) {
-    const state: DragState = { fromId: id, overId: id };
+  function handleDragStart(id: number, clientX: number, clientY: number) {
+    const state: DragState = { fromId: id, overId: id, clientX, clientY };
     dragRef.current = state;
     setDragState({ ...state });
     document.documentElement.style.overflow = "hidden";
@@ -116,9 +112,10 @@ export default function Bills() {
 
   function handleDragMove(clientX: number, clientY: number) {
     if (!dragRef.current) return;
-    // The dragging row has pointer-events:none so elementFromPoint sees through
-    // it to whichever row is physically underneath the cursor.
-    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    dragRef.current.clientX = clientX;
+    dragRef.current.clientY = clientY;
+    // Ghost row has pointer-events:none so elementFromPoint sees the row below.
+    const el  = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
     const row = el?.closest("[data-bill-id]") as HTMLElement | null;
     if (row) {
       const id = parseInt(row.dataset.billId ?? "", 10);
@@ -158,12 +155,15 @@ export default function Bills() {
   const total    = localOrder.reduce((s, b) => s + b.amount, 0);
   const leftover = budget - total;
 
+  // The bill currently being dragged (for the floating card).
+  const draggingBill = dragState
+    ? localOrder.find((b) => b.id === dragState.fromId) ?? null
+    : null;
+
   return (
     <>
       <div className="page-head">
-        <div>
-          <h1>Bills</h1>
-        </div>
+        <div><h1>Bills</h1></div>
         <div className="button-row">
           <FinanceNav />
           <MonthPicker month={month} onChange={setMonth} />
@@ -199,7 +199,6 @@ export default function Bills() {
                   colors={colors}
                   month={month}
                   isDragging={dragState?.fromId === b.id}
-                  isDropTarget={dragState?.overId === b.id && dragState.fromId !== b.id}
                   onDragStart={handleDragStart}
                   onDragMove={handleDragMove}
                   onDragEnd={handleDragEnd}
@@ -215,9 +214,7 @@ export default function Bills() {
 
         {localOrder.length > 0 && (
           <div className="bills-stat-strip">
-            <Stat label="Total">
-              <span className="fig">{dollars(total)}</span>
-            </Stat>
+            <Stat label="Total"><span className="fig">{dollars(total)}</span></Stat>
             <BudgetStat budget={budget} onChange={setBudget} />
             <LeftoverStat leftover={leftover} />
           </div>
@@ -229,6 +226,21 @@ export default function Bills() {
           onAdd={(name) => add(name)}
         />
       </Panel>
+
+      {/* Floating drag card — follows the cursor while dragging */}
+      {draggingBill && dragState && (
+        <div
+          className="bill-drag-card"
+          style={{ left: dragState.clientX + 16, top: dragState.clientY - 22 }}
+        >
+          <span
+            className="bill-drag-card__swatch"
+            style={{ background: colors[draggingBill.name] ?? tagColor(draggingBill.name) }}
+          />
+          <span className="bill-drag-card__name">{draggingBill.name}</span>
+          <span className="bill-drag-card__amount">{dollars(draggingBill.amount)}</span>
+        </div>
+      )}
 
       <Suspense fallback={<Loading />}>
         <BillsCharts budget={budget} colors={colors} chartKey={chartKey} />
@@ -244,7 +256,6 @@ function BillRow({
   colors,
   month,
   isDragging,
-  isDropTarget,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -257,8 +268,7 @@ function BillRow({
   colors: Record<string, string>;
   month: string;
   isDragging: boolean;
-  isDropTarget: boolean;
-  onDragStart: (id: number) => void;
+  onDragStart: (id: number, clientX: number, clientY: number) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: () => void;
   onColorChange: (name: string, color: string) => void;
@@ -271,7 +281,7 @@ function BillRow({
   function onHandlePointerDown(e: React.PointerEvent) {
     e.stopPropagation();
     handleRef.current?.setPointerCapture(e.pointerId);
-    onDragStart(bill.id);
+    onDragStart(bill.id, e.clientX, e.clientY);
   }
   function onHandlePointerMove(e: React.PointerEvent) {
     if (!handleRef.current?.hasPointerCapture(e.pointerId)) return;
@@ -286,10 +296,7 @@ function BillRow({
   return (
     <tr
       data-bill-id={bill.id}
-      className={[
-        isDragging   ? "bill-row--dragging"    : "",
-        isDropTarget ? "bill-row--drop-target" : "",
-      ].filter(Boolean).join(" ") || undefined}
+      className={isDragging ? "bill-row--dragging" : undefined}
     >
       {/* Drag handle */}
       <td
