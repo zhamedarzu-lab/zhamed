@@ -5,7 +5,6 @@ import { dollars, seqFrac, shortDate, shortMonth, toAmount, todayIso } from "../
 import { BalanceChart, Empty, Loading, Notice, Panel, type Point } from "../../components/ui";
 import { AddItemRow } from "../../components/finance-ui";
 import FinanceNav from "./FinanceNav";
-import { isPayday, nextPayday } from "../../lib/payday";
 
 type Account = {
   id: number;
@@ -133,7 +132,6 @@ export default function Debt() {
 
   const refreshAll = () => Promise.all([accounts.reload(), snapshots.reload(), payments.reload()]);
 
-  const isPaydayToday = isPayday(new Date());
   const currentPaycheckId = useMemo(() => {
     const sorted = [...(paychecks.data ?? [])].sort(
       (a, b) => b.month.localeCompare(a.month) || b.seq - a.seq,
@@ -224,7 +222,6 @@ export default function Debt() {
               account={account}
               snapshots={snapshotsByAccount.get(account.id) ?? EMPTY}
               payments={paymentsByAccount.get(account.id) ?? EMPTY}
-              isPaydayToday={isPaydayToday}
               currentPaycheckId={currentPaycheckId}
               paychecks={[...(paychecks.data ?? [])].sort(
                 (a, b) => b.month.localeCompare(a.month) || b.seq - a.seq
@@ -252,7 +249,6 @@ function CardPanel({
   account,
   snapshots,
   payments,
-  isPaydayToday,
   currentPaycheckId,
   paychecks,
   onChanged,
@@ -261,7 +257,6 @@ function CardPanel({
   account: Account;
   snapshots: Snapshot[];
   payments: Payment[];
-  isPaydayToday: boolean;
   currentPaycheckId: number | null;
   paychecks: PaycheckOption[];
   onChanged: () => Promise<unknown>;
@@ -491,41 +486,35 @@ function CardPanel({
             Log <span className="bal-log-count">{log.length}</span>
           </button>
         )}
-        {isPaydayToday ? (
-          <div className="debt-log-wrap">
-            {paychecks.length > 0 && (
-              <select
-                className="debt-payday-select"
-                value={effectivePaycheckId ?? ""}
-                onChange={(e) => setSelectedPaycheckId(Number(e.target.value) || null)}
-              >
-                <option value="">No paycheck</option>
-                {paychecks.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {paydayPickerLabel(p, paychecks)}
-                  </option>
-                ))}
-              </select>
-            )}
-            <div className="debt-log-input-row">
-              <input
-                className="debt-bal-input"
-                inputMode="decimal"
-                value={balInput}
-                placeholder="Balance…"
-                onChange={(e) => { setBalInput(e.target.value); setApplied(0); }}
-                onKeyDown={(e) => e.key === "Enter" && updateBalance()}
-              />
-              <button onClick={updateBalance} disabled={busy || !balInput.trim()}>
-                Save
-              </button>
-            </div>
+        <div className="debt-log-wrap">
+          {paychecks.length > 0 && (
+            <select
+              className="debt-payday-select"
+              value={effectivePaycheckId ?? ""}
+              onChange={(e) => setSelectedPaycheckId(Number(e.target.value) || null)}
+            >
+              <option value="">No paycheck</option>
+              {paychecks.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {paydayPickerLabel(p, paychecks)}
+                </option>
+              ))}
+            </select>
+          )}
+          <div className="debt-log-input-row">
+            <input
+              className="debt-bal-input"
+              inputMode="decimal"
+              value={balInput}
+              placeholder="Balance…"
+              onChange={(e) => { setBalInput(e.target.value); setApplied(0); }}
+              onKeyDown={(e) => e.key === "Enter" && updateBalance()}
+            />
+            <button onClick={updateBalance} disabled={busy || !balInput.trim()}>
+              Save
+            </button>
           </div>
-        ) : (
-          <span className="debt-next-payday">
-            Next payday → {nextPayday(new Date()).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-          </span>
-        )}
+        </div>
       </div>
     </Panel>
   );
