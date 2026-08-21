@@ -4199,6 +4199,23 @@ button.btn-icon {
   transition: opacity 0.12s;
 }
 .bal-log-del:hover { opacity: 1; }
+/* Inline two-step confirm (replaces browser confirm() which is blocked in iOS WebView) */
+.inline-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+.inline-confirm-yes {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+}
+.inline-confirm-no {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  color: var(--ink-soft);
+}
+
 .bal-log-hint {
   font-size: 0.75rem;
   color: var(--ink-faint);

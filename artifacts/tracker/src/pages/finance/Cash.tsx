@@ -249,6 +249,7 @@ function AccountPanel({
   onError: (m: string | null) => void;
 }) {
   const [showSpendingLog, setShowSpendingLog] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const balance = account.currentBalance;
   const balColor = balance > 0 ? SPENDING_COLOR : balance < 0 ? "var(--stamp)" : "var(--ink-faint)";
@@ -318,21 +319,27 @@ function AccountPanel({
               key={account.id + account.name}
               onBlur={(e) => saveName(e.target.value)}
             />
-            <button
-              className="quiet danger btn-icon debt-card-remove"
-              title="Remove account"
-              onClick={async () => {
-                if (!confirm(`Remove "${account.name}"? This deletes all its history.`)) return;
-                await api.del(`/api/finance/cash-accounts/${account.id}`);
-                onChanged();
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                strokeLinejoin="round" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
+            {removing ? (
+              <span className="inline-confirm">
+                <button className="quiet danger inline-confirm-yes" onClick={async () => {
+                  await api.del(`/api/finance/cash-accounts/${account.id}`);
+                  onChanged();
+                }}>Delete</button>
+                <button className="quiet inline-confirm-no" onClick={() => setRemoving(false)}>Cancel</button>
+              </span>
+            ) : (
+              <button
+                className="quiet danger btn-icon debt-card-remove"
+                title="Remove account"
+                onClick={() => setRemoving(true)}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                  strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Balance */}

@@ -73,8 +73,9 @@ function BalanceLogModal({
   onDelete: (id: number) => Promise<void>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState("");
+  const [editingId,    setEditingId]    = useState<number | null>(null);
+  const [editValue,    setEditValue]    = useState("");
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -97,9 +98,8 @@ function BalanceLogModal({
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Remove this balance entry?")) return;
     setBusy(true);
-    try { await onDelete(id); } finally { setBusy(false); }
+    try { await onDelete(id); } finally { setBusy(false); setConfirmingId(null); }
   }
 
   return (
@@ -146,16 +146,23 @@ function BalanceLogModal({
                   </button>
                 )}
 
-                <button
-                  className="quiet danger btn-icon bal-log-del"
-                  title="Remove this entry"
-                  disabled={busy}
-                  onClick={() => handleDelete(s.id)}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
-                  </svg>
-                </button>
+                {confirmingId === s.id ? (
+                  <span className="inline-confirm">
+                    <button className="quiet danger inline-confirm-yes" disabled={busy} onClick={() => handleDelete(s.id)}>Delete</button>
+                    <button className="quiet inline-confirm-no" disabled={busy} onClick={() => setConfirmingId(null)}>Cancel</button>
+                  </span>
+                ) : (
+                  <button
+                    className="quiet danger btn-icon bal-log-del"
+                    title="Remove this entry"
+                    disabled={busy}
+                    onClick={() => setConfirmingId(s.id)}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                    </svg>
+                  </button>
+                )}
               </li>
             );
           })}
@@ -332,6 +339,7 @@ function CardPanel({
   const [busy,       setBusy]       = useState(false);
   const [applied,    setApplied]    = useState(0);
   const [showLog,    setShowLog]    = useState(false);
+  const [removing,   setRemoving]   = useState(false);
   const [selectedPaycheckId, setSelectedPaycheckId] = useState<number | null>(null);
 
   // Keep picker defaulted to the most recent paycheck once data arrives
@@ -440,14 +448,19 @@ function CardPanel({
             key={account.id + account.name}
             onBlur={(e) => saveName(e.target.value)}
           />
+          {removing ? (
+            <span className="inline-confirm">
+              <button className="quiet danger inline-confirm-yes" onClick={async () => {
+                await api.del(`/api/finance/debt-accounts/${account.id}`);
+                await onChanged();
+              }}>Delete</button>
+              <button className="quiet inline-confirm-no" onClick={() => setRemoving(false)}>Cancel</button>
+            </span>
+          ) : (
           <button
             className="quiet danger btn-icon debt-card-remove"
             title="Remove card"
-            onClick={async () => {
-              if (!confirm(`Remove "${account.name}"? This deletes all its history.`)) return;
-              await api.del(`/api/finance/debt-accounts/${account.id}`);
-              await onChanged();
-            }}
+            onClick={() => setRemoving(true)}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round"
@@ -455,6 +468,7 @@ function CardPanel({
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
           </button>
+          )}
         </div>
 
         {/* Balance */}

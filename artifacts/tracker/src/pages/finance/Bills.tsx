@@ -18,7 +18,6 @@ import FinanceNav from "./FinanceNav";
 
 const BillsCharts = lazy(() => import("./BillsCharts"));
 
-const BUDGET_KEY   = "bills-budget";
 const DEFAULT_BUDGET = 2000;
 const COLORS_KEY   = "bill-colors";
 
@@ -63,7 +62,7 @@ function useBillColors() {
 
 export default function Bills() {
   const [month, setMonth] = useState(currentMonth());
-  const [budget, setBudget] = useBudget(BUDGET_KEY, DEFAULT_BUDGET);
+  const [budget, setBudget] = useBudget(`bills-budget-${month}`, DEFAULT_BUDGET);
   const [colors, setColor] = useBillColors();
   const [reorderError, setReorderError] = useState<string | null>(null);
 

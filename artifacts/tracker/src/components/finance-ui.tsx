@@ -12,6 +12,11 @@ export function useBudget(storageKey: string, fallback: number) {
     const stored = parseFloat(localStorage.getItem(storageKey) ?? "");
     return isNaN(stored) ? fallback : stored;
   });
+  // Re-read when the key changes (e.g. navigating between months)
+  useEffect(() => {
+    const stored = parseFloat(localStorage.getItem(storageKey) ?? "");
+    setBudgetState(isNaN(stored) ? fallback : stored);
+  }, [storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const setBudget = (v: number) => {
     localStorage.setItem(storageKey, String(v));
     setBudgetState(v);
