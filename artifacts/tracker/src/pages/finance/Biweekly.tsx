@@ -99,7 +99,7 @@ export default function Biweekly() {
                 <div className="button-row" style={{ alignItems: "center" }}>
                   {p.totals.unallocated > 0.005 && (
                     <span className="paycheck-spending">
-                      <span className="paycheck-spending-label">surplus</span>
+                      <span className="paycheck-spending-label">spending</span>
                       <span className="fig" style={{ color: SPENDING_COLOR }}>{dollars(p.totals.unallocated)}</span>
                     </span>
                   )}
