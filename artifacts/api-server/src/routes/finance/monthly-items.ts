@@ -149,5 +149,21 @@ export function createMonthlyItemsRouter(opts: MonthlyItemsOptions): IRouter {
     res.sendStatus(204);
   });
 
+  /**
+   * PUT /{path}/reorder — accepts { ids: number[] } in the desired order and
+   * writes sortOrder = index for each.  Only touches the supplied IDs so other
+   * months are unaffected.
+   */
+  router.put(`/${path}/reorder`, async (req, res): Promise<void> => {
+    const data = parseBody(z.object({ ids: z.array(z.number().int()) }), req.body, res);
+    if (!data) return;
+    await Promise.all(
+      data.ids.map((id, idx) =>
+        db.update(table).set({ sortOrder: idx }).where(eq(table.id, id)),
+      ),
+    );
+    res.sendStatus(204);
+  });
+
   return router;
 }

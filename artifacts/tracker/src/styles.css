@@ -4214,6 +4214,9 @@ button.btn-icon {
   flex: 1;
 }
 
+.col-drag {
+  width: 28px;
+}
 .col-swatch {
   width: 32px;
 }
@@ -4222,6 +4225,27 @@ button.btn-icon {
 }
 .col-del {
   width: 40px;
+}
+
+/* Bills drag-to-reorder */
+.bill-drag-handle {
+  color: var(--ink-faint);
+  cursor: grab;
+  touch-action: none;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 4px;
+  transition: color 0.12s;
+}
+.bill-drag-handle:hover { color: var(--ink-soft); }
+.bill-drag-handle:active { cursor: grabbing; color: var(--ink); }
+
+.bill-row--dragging {
+  opacity: 0.35;
+  pointer-events: none; /* lets elementFromPoint see through to the row below */
+}
+.bill-row--drop-target td {
+  box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 var(--accent);
 }
 
 /* Bills inline add row */

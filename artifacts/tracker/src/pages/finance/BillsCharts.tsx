@@ -51,10 +51,11 @@ function ChartLegend({ payload }: any) {
 interface Props {
   budget: number;
   colors: Record<string, string>;
+  chartKey: number;
 }
 
-export default function BillsCharts({ budget, colors }: Props) {
-  const { data, loading } = useApi<History>("/api/finance/bills/history");
+export default function BillsCharts({ budget, colors, chartKey }: Props) {
+  const { data, loading } = useApi<History>("/api/finance/bills/history", [chartKey]);
 
   if (loading) return <Loading />;
   if (!data || data.months.length < 2) return null;
