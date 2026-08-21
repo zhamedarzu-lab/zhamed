@@ -326,7 +326,7 @@ export function AllocationList({
       {unallocated > 0.005 && (
         <li>
           <span className="alloc-dot" style={{ background: SPENDING_COLOR, opacity: 0.55 }} />
-          <span className="alloc-note muted">Spending</span>
+          <span className="alloc-note muted">Surplus</span>
           <span className="fig alloc-amt" style={{ color: SPENDING_COLOR }}>
             {dollars(unallocated)}
           </span>

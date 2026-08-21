@@ -12,13 +12,14 @@ export const SPENDING_COLOR = "#5fc97a";
 // Fixed accent for money added on top of a paycheck (bill surplus, refund,
 // gift) — never derived from tagColor, so it never gets confused with a spend
 // category in the legend.
-export const EXTRA_INCOME_COLOR = "#e0b04e";
+export const EXTRA_INCOME_COLOR = "#40c8b0";  // teal — clearly "incoming", distinct from all fallback ambers
 
 // Known tag categories → fixed colour. Matched by keyword so "bills 1/2"
 // still lands on the same blue as "bills".
 const TAG_KEYWORDS: Array<[RegExp, string]> = [
   [/bill/i,    "#6890cc"],  // bills      → carbon blue
-  [/cashapp/i, "#d4a644"],  // cashapp    → amber
+  [/cashapp/i, "#d4a644"],  // cashapp    → amber (no space — "CashApp")
+  [/borrow/i,  "#e08858"],  // borrow     → orange, reads as "loan/debt"
   [/cred/i,    "#cc8f7a"],  // credit     → terracotta
   [/debt/i,    "#9a7acc"],  // debt       → violet
   [/steam/i,   "#5ab8cc"],  // steamdeck  → sky

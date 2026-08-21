@@ -329,8 +329,8 @@ export default function PaycheckEditor() {
               {totals.remaining > 0.005 && (
                 <div className="tape-legend-row">
                   <span className="swatch" style={{ background: SPENDING_COLOR, opacity: 0.6 }} />
-                  <span className="label">Spending</span>
-                  <span className="value">{dollars(totals.remaining)}</span>
+                  <span className="label">Surplus</span>
+                  <span className="value" style={{ color: SPENDING_COLOR }}>{dollars(totals.remaining)}</span>
                 </div>
               )}
             </div>
