@@ -58,6 +58,9 @@ export function useApi<T>(url: string | null, deps: unknown[] = []) {
   }, [url]);
 
   useEffect(() => {
+    // Clear stale data immediately so the previous month's rows are never
+    // visible under the new month's label — prevents deleting the wrong rows.
+    setData(null);
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, ...deps]);
