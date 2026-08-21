@@ -4622,6 +4622,42 @@ button.btn-icon {
   main {
     padding: 1.25rem 0.875rem 3rem;
   }
+  /*
+   * The subscriptions table combines the cycle toggle and amount field in one
+   * cell. Keep that cell wide enough to avoid collapsing the amount on phones.
+   */
+  .subscriptions-table {
+    table-layout: fixed;
+  }
+  .subscriptions-table th,
+  .subscriptions-table td {
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+  .subscriptions-table .col-swatch {
+    width: 2.25rem;
+  }
+  .subscriptions-table .col-amount {
+    width: 6.5rem;
+  }
+  .subscriptions-table .col-due {
+    width: 3.6rem;
+  }
+  .subscriptions-table .col-del {
+    width: 2rem;
+  }
+  .subscriptions-table .sub-amount-wrap {
+    gap: 0.25rem;
+  }
+  .subscriptions-table .sub-amount-wrap input {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 100%;
+  }
+  .subscriptions-table .sub-annual-hint {
+    font-size: 0.625rem;
+    white-space: nowrap;
+  }
   .page-head {
     align-items: flex-start;
   }

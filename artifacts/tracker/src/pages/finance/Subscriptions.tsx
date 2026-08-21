@@ -67,7 +67,7 @@ function SubAmountCell({
         />
       </div>
       {annual && item.amount > 0 && (
-        <div className="sub-annual-hint">÷12 = {dollars(item.amount / 12)}/mo</div>
+        <div className="sub-annual-hint">≈ {dollars(item.amount / 12)}/mo</div>
       )}
     </td>
   );
@@ -241,7 +241,7 @@ export default function Subscriptions() {
             </Empty>
           </div>
         ) : (
-          <table>
+          <table className="subscriptions-table">
             <thead>
               <tr>
                 <th className="col-swatch" />
