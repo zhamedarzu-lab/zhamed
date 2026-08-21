@@ -4200,6 +4200,39 @@ button.btn-icon {
 }
 .bal-log-del:hover { opacity: 1; }
 /* Inline two-step confirm (replaces browser confirm() which is blocked in iOS WebView) */
+/* Due-day column */
+.col-due { width: 4.5rem; }
+
+.due-day-btn {
+  background: none;
+  border: none;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  width: 100%;
+  text-align: right;
+}
+.due-day-btn:hover { background: var(--surface-raised); }
+
+.due-day-empty { color: var(--ink-faint); }
+
+.due-day-input {
+  width: 100%;
+  text-align: right;
+  font: inherit;
+  font-size: 0.875rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 4px;
+  color: var(--ink);
+}
+.due-day-input::-webkit-inner-spin-button,
+.due-day-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
 .inline-confirm {
   display: flex;
   align-items: center;

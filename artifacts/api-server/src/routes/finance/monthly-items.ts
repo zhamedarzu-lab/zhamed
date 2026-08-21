@@ -33,13 +33,19 @@ export interface MonthlyItemsOptions {
   carryAmounts: boolean;
   /** Whether rows can be paused. */
   supportsActive: boolean;
+  /** Whether rows carry a day-of-month due date (1–31). */
+  supportsDueDay?: boolean;
 }
 
 export function createMonthlyItemsRouter(opts: MonthlyItemsOptions): IRouter {
-  const { table, path, carryAmounts, supportsActive } = opts;
+  const { table, path, carryAmounts, supportsActive, supportsDueDay } = opts;
   const router: IRouter = Router();
 
-  const shape = (item: typeof table.$inferSelect) => ({ ...item, amount: Number(item.amount) });
+  const shape = (item: typeof table.$inferSelect) => ({
+    ...item,
+    amount: Number(item.amount),
+    ...(supportsDueDay ? { dueDay: (item as Record<string, unknown>).dueDay ?? null } : {}),
+  });
 
   // History powers the charts: every month, every name, all in one payload.
   router.get(`/${path}/history`, async (_req, res): Promise<void> => {
@@ -88,6 +94,7 @@ export function createMonthlyItemsRouter(opts: MonthlyItemsOptions): IRouter {
           amount: carryAmounts ? s.amount : "0",
           sortOrder: s.sortOrder,
           ...(supportsActive ? { active: s.active } : {}),
+          ...(supportsDueDay ? { dueDay: (s as Record<string, unknown>).dueDay ?? null } : {}),
         })),
       )
       .returning();
@@ -124,6 +131,7 @@ export function createMonthlyItemsRouter(opts: MonthlyItemsOptions): IRouter {
         name: z.string().min(1).optional(),
         amount: z.number().min(0).optional(),
         ...(supportsActive ? { active: z.boolean().optional() } : {}),
+        ...(supportsDueDay ? { dueDay: z.number().int().min(1).max(31).nullable().optional() } : {}),
       }),
       req.body,
       res,
@@ -134,6 +142,7 @@ export function createMonthlyItemsRouter(opts: MonthlyItemsOptions): IRouter {
     if (data.name !== undefined) update.name = data.name;
     if (data.amount !== undefined) update.amount = money(data.amount);
     if (supportsActive && data.active !== undefined) update.active = data.active;
+    if (supportsDueDay && "dueDay" in data) update.dueDay = (data as Record<string, unknown>).dueDay ?? null;
 
     const [item] = await db.update(table).set(update).where(eq(table.id, id)).returning();
     if (!item) {

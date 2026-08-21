@@ -159,6 +159,7 @@ export const monthlySubscriptionItemsTable = pgTable(
     amount:    numeric("amount", { precision: 10, scale: 2 }).notNull().default("0"),
     sortOrder: integer("sort_order").notNull().default(0),
     active:    boolean("active").notNull().default(true),
+    dueDay:    integer("due_day"),
   },
   (t) => [
     // Same access pattern as bills, which has had this index since 0029.

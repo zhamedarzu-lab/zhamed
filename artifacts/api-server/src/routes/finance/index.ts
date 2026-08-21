@@ -30,6 +30,7 @@ router.use(
     path: "subscriptions",
     carryAmounts: true,
     supportsActive: true,
+    supportsDueDay: true,
   }),
 );
 
