@@ -4238,31 +4238,13 @@ button.btn-icon {
 .sub-row-charged { opacity: 0.55; }
 .sub-row-charged:hover { opacity: 0.8; }
 
-/* Today marker row */
+/* Today marker row — just a thin accent line, no label */
 .sub-today-marker td {
   padding: 0;
-  position: relative;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #5fc97a55, transparent);
+  border: none;
 }
-.sub-today-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #5fc97a;
-  padding: 6px 12px;
-}
-.sub-today-label::before,
-.sub-today-label::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: #5fc97a;
-  opacity: 0.4;
-}
-.sub-today-label::before { flex: 0 0 0; }
 
 /* "No due date" sub-divider */
 .sub-no-due-divider td { opacity: 0.5; }

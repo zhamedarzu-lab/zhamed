@@ -28,11 +28,6 @@ function ordinal(n: number) {
   return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
 }
 
-const MONTH_NAMES = [
-  "Jan","Feb","Mar","Apr","May","Jun",
-  "Jul","Aug","Sep","Oct","Nov","Dec",
-];
-
 // ── Due-day cell ──────────────────────────────────────────────────────────────
 
 function DueDayCell({
@@ -99,14 +94,10 @@ function DueDayCell({
 
 // ── Today marker row ──────────────────────────────────────────────────────────
 
-function TodayMarkerRow({ day, month }: { day: number; month: string }) {
-  const [yr, mo] = month.split("-").map(Number);
-  const label = `${MONTH_NAMES[(mo ?? 1) - 1]} ${day}`;
+function TodayMarkerRow() {
   return (
     <tr className="sub-today-marker">
-      <td colSpan={5}>
-        <span className="sub-today-label">Today · {label}</span>
-      </td>
+      <td colSpan={5} />
     </tr>
   );
 }
@@ -220,7 +211,7 @@ export default function Subscriptions() {
               {past.map((b) => renderRow(b, true))}
 
               {/* Today marker */}
-              {showMarker && <TodayMarkerRow day={todayDay} month={month} />}
+              {showMarker && <TodayMarkerRow />}
 
               {/* Due today */}
               {todayItems.map((b) => renderRow(b, false))}
