@@ -4166,6 +4166,45 @@ button.btn-icon {
   font-size: 0.875rem;
   color: var(--ink);
   flex-shrink: 0;
+  margin-left: auto;
+}
+.bal-log-amt--editable {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-decoration: underline dotted var(--ink-faint);
+  text-underline-offset: 3px;
+}
+.bal-log-amt--editable:hover {
+  background: var(--paper-raised);
+  text-decoration-color: var(--ink-soft);
+}
+.bal-log-edit-input {
+  font-family: var(--fig);
+  font-size: 0.875rem;
+  width: 7rem;
+  margin-left: auto;
+  text-align: right;
+  padding: 2px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.bal-log-del {
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: opacity 0.12s;
+}
+.bal-log-del:hover { opacity: 1; }
+.bal-log-hint {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  text-align: center;
+  padding: 0.5rem 1rem 0.75rem;
+  margin: 0;
 }
 
 .debt-card-footer {

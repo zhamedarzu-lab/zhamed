@@ -280,6 +280,46 @@ router.post("/debt-snapshots", async (req, res): Promise<void> => {
   });
 });
 
+router.patch("/debt-snapshots/:id", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  const data = parseBody(
+    z.object({ balance: z.number().min(0) }),
+    req.body,
+    res,
+  );
+  if (!data) return;
+
+  const [snap] = await db
+    .update(debtSnapshotsTable)
+    .set({ balance: money(data.balance) })
+    .where(eq(debtSnapshotsTable.id, id))
+    .returning();
+
+  if (!snap) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  res.json({ ...snap, balance: Number(snap.balance), amountPaid: Number(snap.amountPaid) });
+});
+
+router.delete("/debt-snapshots/:id", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+
+  await db.transaction(async (tx) => {
+    // Revert any allocations cleared by this snapshot so they show as pending again.
+    await tx
+      .update(allocationsTable)
+      .set({ appliedSnapshotId: null })
+      .where(eq(allocationsTable.appliedSnapshotId, id));
+
+    await tx
+      .delete(debtSnapshotsTable)
+      .where(eq(debtSnapshotsTable.id, id));
+  });
+
+  res.sendStatus(204);
+});
+
 // ── Debt trend ────────────────────────────────────────────────────────────────
 
 router.get("/debt/trend", async (_req, res): Promise<void> => {

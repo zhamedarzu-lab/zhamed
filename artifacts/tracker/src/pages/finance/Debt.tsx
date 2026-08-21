@@ -63,17 +63,45 @@ function BalanceLogModal({
   log,
   paydayLabel: pdLabel,
   onClose,
+  onEdit,
+  onDelete,
 }: {
   log: Snapshot[];
   paydayLabel: (s: Snapshot) => string | null;
   onClose: () => void;
+  onEdit: (id: number, balance: number) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (editingId !== null) { setEditingId(null); return; }
+        onClose();
+      }
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, editingId]);
+
+  async function commitEdit(id: number) {
+    const v = parseFloat(editValue);
+    if (isNaN(v) || v < 0) { setEditingId(null); return; }
+    setBusy(true);
+    try { await onEdit(id, v); } finally { setBusy(false); }
+    setEditingId(null);
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Remove this balance entry?")) return;
+    setBusy(true);
+    try { await onDelete(id); } finally { setBusy(false); }
+  }
+
   return (
     <div className="bal-log-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bal-log-modal" ref={ref} role="dialog" aria-modal="true" aria-label="Balance log">
@@ -86,17 +114,53 @@ function BalanceLogModal({
         <ul className="bal-log-list">
           {log.map((s) => {
             const when = pdLabel(s);
+            const isEditing = editingId === s.id;
             return (
               <li key={s.id} className="bal-log-row">
                 <span className="bal-log-when">
                   {when ?? shortDate(s.snapshotDate)}
                   {s.loggedAt && <span className="bal-log-tod">{timeOfDay(s.loggedAt)}</span>}
                 </span>
-                <span className="bal-log-amt">{dollars(s.balance)}</span>
+
+                {isEditing ? (
+                  <input
+                    className="bal-log-edit-input"
+                    autoFocus
+                    inputMode="decimal"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => commitEdit(s.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                    disabled={busy}
+                  />
+                ) : (
+                  <button
+                    className="bal-log-amt bal-log-amt--editable"
+                    title="Click to correct this balance"
+                    onClick={() => { setEditingId(s.id); setEditValue(String(s.balance)); }}
+                  >
+                    {dollars(s.balance)}
+                  </button>
+                )}
+
+                <button
+                  className="quiet danger btn-icon bal-log-del"
+                  title="Remove this entry"
+                  disabled={busy}
+                  onClick={() => handleDelete(s.id)}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                  </svg>
+                </button>
               </li>
             );
           })}
         </ul>
+        <p className="bal-log-hint">Click a balance to correct it.</p>
       </div>
     </div>
   );
@@ -344,6 +408,26 @@ function CardPanel({
     await onChanged();
   }
 
+  async function handleEditSnapshot(id: number, balance: number) {
+    onError(null);
+    try {
+      await api.patch(`/api/finance/debt-snapshots/${id}`, { balance });
+      await onChanged();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not update balance.");
+    }
+  }
+
+  async function handleDeleteSnapshot(id: number) {
+    onError(null);
+    try {
+      await api.del(`/api/finance/debt-snapshots/${id}`);
+      await onChanged();
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Could not remove that entry.");
+    }
+  }
+
   return (
     <Panel bodyless>
       <div className="debt-card-body">
@@ -455,6 +539,8 @@ function CardPanel({
                 : null
             }
             onClose={() => setShowLog(false)}
+            onEdit={handleEditSnapshot}
+            onDelete={handleDeleteSnapshot}
           />
         )}
 
