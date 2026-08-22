@@ -158,6 +158,96 @@ function EntryLinkBadge({ links, onClick, className = "", style }: {
   );
 }
 
+function entryLinkLabel(entry: Entry): string {
+  const description = entry.subject?.trim() || entry.content.trim().slice(0, 42) || "Untitled entry";
+  return `${fmtTime(entry.startTime)} · ${description}`;
+}
+
+function EntryAssociationLinks({ links, entries, onCreate, onOpen, onDelete }: {
+  links: JournalLink[];
+  entries: Entry[];
+  onCreate: (entry: Entry) => Promise<void>;
+  onOpen: (entry: Entry) => void;
+  onDelete: (link: JournalLink) => Promise<void>;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const associationLinks = links.filter(link => link.targetType === "entry" && link.targetId != null);
+  const linkedIds = new Set(associationLinks.map(link => link.targetId));
+  const availableEntries = entries
+    .filter(entry => !linkedIds.has(entry.id))
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+  async function createAssociation() {
+    const entry = availableEntries.find(row => row.id === Number(selectedId));
+    if (!entry || saving) return;
+    setSaving(true);
+    try {
+      await onCreate(entry);
+      setSelectedId("");
+      setPickerOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="pnote-entry-associations">
+      {associationLinks.map(link => {
+        const entry = entries.find(row => row.id === link.targetId);
+        return (
+          <div key={link.id} className="pnote-entry-association">
+            <button
+              className="pnote-entry-association-open"
+              onClick={() => entry && onOpen(entry)}
+              disabled={!entry}
+              title={entry ? "Open linked entry" : "Linked entry is outside this view"}
+            >
+              <span aria-hidden="true">↗</span>
+              {entry ? entryLinkLabel(entry) : link.anchorText}
+            </button>
+            <button
+              className="pnote-entry-association-remove"
+              onClick={() => void onDelete(link)}
+              aria-label="Unlink entry"
+              title="Unlink entry"
+            >×</button>
+          </div>
+        );
+      })}
+      {pickerOpen ? (
+        <div className="pnote-entry-picker">
+          <select
+            value={selectedId}
+            onChange={event => setSelectedId(event.target.value)}
+            aria-label="Choose an entry to link"
+            autoFocus
+          >
+            <option value="">Choose an entry…</option>
+            {availableEntries.map(entry => (
+              <option key={entry.id} value={entry.id}>{entryLinkLabel(entry)}</option>
+            ))}
+          </select>
+          <button onClick={() => void createAssociation()} disabled={!selectedId || saving}>
+            {saving ? "Linking…" : "Link"}
+          </button>
+          <button onClick={() => { setPickerOpen(false); setSelectedId(""); }} disabled={saving}>Cancel</button>
+        </div>
+      ) : (
+        <button
+          className="pnote-entry-association-add"
+          onClick={() => setPickerOpen(true)}
+          disabled={availableEntries.length === 0}
+          title={availableEntries.length === 0 ? "All entries in this day are already linked" : "Link an entry to this note"}
+        >
+          ↗ Link entry
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ── punch clock ───────────────────────────────────────────────────── */
 const PUNCH_MAX = 3;
 type PunchState = { id: string; startTime: string; entryDate: string; content: string; color: string };
@@ -365,6 +455,24 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
     setEditContent("");
   }
 
+  async function linkEntryToNote(noteId: number, entry: Entry) {
+    const link = await api.post<JournalLink>("/api/journal/links", {
+      anchorText: entryLinkLabel(entry),
+      content: `Linked journal entry: ${entryLinkLabel(entry)}`,
+      sourceType: "period_note",
+      sourceId: noteId,
+      targetType: "entry",
+      targetId: entry.id,
+      occurrence: 0,
+    });
+    setDpLinks(prev => [link, ...prev]);
+  }
+
+  async function unlinkEntryFromNote(link: JournalLink) {
+    await api.del(`/api/journal/links/${link.id}`);
+    setDpLinks(prev => prev.filter(row => row.id !== link.id));
+  }
+
   return (
     <>
     <div className="entry-modal-backdrop" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -464,30 +572,41 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
                 {dayNotes.map((n, i) => (
                   <div key={n.id} className="pnm-entry">
                     <span className="pnm-entry-num">{i + 1}</span>
-                    {editingId === n.id ? (
-                      <input
-                        className="pnm-inline-edit"
-                        value={editContent}
-                        onChange={e => setEditContent(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") void handleEditSave(n.id); if (e.key === "Escape") { setEditingId(null); setEditContent(""); } }}
-                        onBlur={() => void handleEditSave(n.id)}
-                        autoFocus
-                      />
-                    ) : (
-                      <LinkedContentArea
-                        text={n.content}
-                        links={dpLinks.filter(l => l.sourceId === n.id)}
-                        onCreateLink={async (anchorText, content, occurrence) => {
-                          const link = await api.post<JournalLink>("/api/journal/links", {
-                            anchorText, content, occurrence, sourceType: "period_note", sourceId: n.id,
-                          });
-                          setDpLinks(prev => [link, ...prev]);
-                        }}
-                        onLinkClick={setDpViewingLink}
-                        onDoubleClick={() => { setEditingId(n.id); setEditContent(n.content); }}
-                        className="pnm-entry-text"
-                      />
-                    )}
+                    <div className="pnm-entry-main">
+                      {editingId === n.id ? (
+                        <input
+                          className="pnm-inline-edit"
+                          value={editContent}
+                          onChange={e => setEditContent(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") void handleEditSave(n.id); if (e.key === "Escape") { setEditingId(null); setEditContent(""); } }}
+                          onBlur={() => void handleEditSave(n.id)}
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <LinkedContentArea
+                            text={n.content}
+                            links={dpLinks.filter(l => l.sourceId === n.id && l.targetType == null)}
+                            onCreateLink={async (anchorText, content, occurrence) => {
+                              const link = await api.post<JournalLink>("/api/journal/links", {
+                                anchorText, content, occurrence, sourceType: "period_note", sourceId: n.id,
+                              });
+                              setDpLinks(prev => [link, ...prev]);
+                            }}
+                            onLinkClick={setDpViewingLink}
+                            onDoubleClick={() => { setEditingId(n.id); setEditContent(n.content); }}
+                            className="pnm-entry-text"
+                          />
+                          <EntryAssociationLinks
+                            links={dpLinks.filter(l => l.sourceId === n.id)}
+                            entries={entries}
+                            onCreate={entry => linkEntryToNote(n.id, entry)}
+                            onOpen={entry => { onClose(); onSelect(entry); }}
+                            onDelete={unlinkEntryFromNote}
+                          />
+                        </>
+                      )}
+                    </div>
                     <button className="pnm-entry-del" onClick={() => void onDeleteDayNote(n.id)} aria-label="Delete note">×</button>
                   </div>
                 ))}
@@ -957,6 +1076,26 @@ export default function Journal() {
     setPeriodNotes(prev => prev.map(n => n.id === id ? updated : n));
   }
 
+  async function linkPeriodNoteToEntry(noteId: number, entry: Entry): Promise<void> {
+    const link = await api.post<JournalLink>("/api/journal/links", {
+      anchorText: entryLinkLabel(entry),
+      content: `Linked journal entry: ${entryLinkLabel(entry)}`,
+      sourceType: "period_note",
+      sourceId: noteId,
+      targetType: "entry",
+      targetId: entry.id,
+      occurrence: 0,
+    });
+    setPnmLinks(prev => [link, ...prev]);
+    setAllLinks(prev => [link, ...prev]);
+  }
+
+  async function unlinkPeriodNoteEntry(link: JournalLink): Promise<void> {
+    await api.del(`/api/journal/links/${link.id}`);
+    setPnmLinks(prev => prev.filter(row => row.id !== link.id));
+    setAllLinks(prev => prev.filter(row => row.id !== link.id));
+  }
+
   function periodLabel() {
     if (view === "day") {
       if (toYMD(focus) === toYMD(new Date())) return "Today";
@@ -1191,6 +1330,9 @@ export default function Journal() {
       {/* Period notes modal */}
       {periodNotesOpen && (() => {
         const fYmd = toYMD(focus);
+        const dayNoteEntries = view === "day"
+          ? [...(byDate.get(fYmd) ?? []), ...carryoversForDate(fYmd, entries)]
+          : [];
         const title = view === "day"
           ? (fYmd === todayYmd
             ? (periodNotes.length === 1 ? "Note for today" : "Notes for today")
@@ -1219,35 +1361,48 @@ export default function Journal() {
                 ) : (
                   <div className="pnm-list">
                     {periodNotes.map((n, i) => (
-                      <div key={n.id} className="pnm-entry">
+                     <div key={n.id} className="pnm-entry">
                         <span className="pnm-entry-num">{i + 1}</span>
-                        {editingNoteId === n.id ? (
-                          <input
-                            className="pnm-inline-edit"
-                            value={editingContent}
-                            onChange={e => setEditingContent(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === "Enter") void editPeriodNote(n.id, editingContent);
-                              if (e.key === "Escape") { setEditingNoteId(null); setEditingContent(""); }
-                            }}
-                            onBlur={() => { if (editingContent.trim()) void editPeriodNote(n.id, editingContent); else { setEditingNoteId(null); setEditingContent(""); } }}
-                            autoFocus
-                          />
-                        ) : (
-                          <LinkedContentArea
-                            text={n.content}
-                            links={pnmLinks.filter(l => l.sourceId === n.id)}
-                            onCreateLink={async (anchorText, content, occurrence) => {
-                              const link = await api.post<JournalLink>("/api/journal/links", {
-                                anchorText, content, occurrence, sourceType: "period_note", sourceId: n.id,
-                              });
-                              setPnmLinks(prev => [link, ...prev]);
-                            }}
-                            onLinkClick={setViewingLink}
-                            onDoubleClick={() => { setEditingNoteId(n.id); setEditingContent(n.content); }}
-                            className="pnm-entry-text"
-                          />
-                        )}
+                       <div className="pnm-entry-main">
+                         {editingNoteId === n.id ? (
+                           <input
+                             className="pnm-inline-edit"
+                             value={editingContent}
+                             onChange={e => setEditingContent(e.target.value)}
+                             onKeyDown={e => {
+                               if (e.key === "Enter") void editPeriodNote(n.id, editingContent);
+                               if (e.key === "Escape") { setEditingNoteId(null); setEditingContent(""); }
+                             }}
+                             onBlur={() => { if (editingContent.trim()) void editPeriodNote(n.id, editingContent); else { setEditingNoteId(null); setEditingContent(""); } }}
+                             autoFocus
+                           />
+                         ) : (
+                           <>
+                             <LinkedContentArea
+                               text={n.content}
+                               links={pnmLinks.filter(l => l.sourceId === n.id && l.targetType == null)}
+                               onCreateLink={async (anchorText, content, occurrence) => {
+                                 const link = await api.post<JournalLink>("/api/journal/links", {
+                                   anchorText, content, occurrence, sourceType: "period_note", sourceId: n.id,
+                                 });
+                                 setPnmLinks(prev => [link, ...prev]);
+                               }}
+                               onLinkClick={setViewingLink}
+                               onDoubleClick={() => { setEditingNoteId(n.id); setEditingContent(n.content); }}
+                               className="pnm-entry-text"
+                             />
+                             {view === "day" && n.periodType === "day" && (
+                               <EntryAssociationLinks
+                                 links={pnmLinks.filter(l => l.sourceId === n.id)}
+                                 entries={dayNoteEntries}
+                                 onCreate={entry => linkPeriodNoteToEntry(n.id, entry)}
+                                 onOpen={entry => { setPeriodNotesOpen(false); setModal(entry); }}
+                                 onDelete={unlinkPeriodNoteEntry}
+                               />
+                             )}
+                           </>
+                         )}
+                       </div>
                         <button className="pnm-entry-del" onClick={() => void deletePeriodNote(n.id)} aria-label="Delete note">×</button>
                       </div>
                     ))}

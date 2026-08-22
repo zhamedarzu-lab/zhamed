@@ -53,6 +53,8 @@ export const journalLinksTable = pgTable("journal_links", {
   content:    text("content").notNull(),
   sourceType: text("source_type").notNull(),
   sourceId:   integer("source_id").notNull(),
+  targetType: text("target_type"),
+  targetId:   integer("target_id"),
   occurrence: integer("occurrence").notNull().default(0),
   createdAt:  timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, t => [index("idx_journal_links_source").on(t.sourceType, t.sourceId)]);

@@ -6954,6 +6954,13 @@ button.btn-icon {
   border-radius: 10px;
   padding: 0.75rem 0.85rem;
 }
+.pnm-entry-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
 .pnm-entry-num {
   flex-shrink: 0;
   width: 22px;
@@ -6969,12 +6976,105 @@ button.btn-icon {
   margin-top: 0.1rem;
 }
 .pnm-entry-text {
-  flex: 1;
   margin: 0;
   font-size: 0.9rem;
   color: rgba(255,255,255,0.82);
   line-height: 1.55;
   word-break: break-word;
+}
+.pnote-entry-associations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pnote-entry-association {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid rgba(233, 178, 71, 0.33);
+  border-radius: 7px;
+  background: rgba(233, 178, 71, 0.08);
+  overflow: hidden;
+}
+.pnote-entry-association-open,
+.pnote-entry-association-remove,
+.pnote-entry-association-add,
+.pnote-entry-picker button {
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.65);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.pnote-entry-association-open {
+  max-width: min(100%, 280px);
+  padding: 0.25rem 0.2rem 0.25rem 0.45rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.pnote-entry-association-open:hover:not(:disabled) {
+  color: #fff;
+}
+.pnote-entry-association-open:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.pnote-entry-association-remove {
+  padding: 0.2rem 0.4rem;
+  color: rgba(255,255,255,0.32);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.pnote-entry-association-remove:hover {
+  color: #ef6b81;
+  background: rgba(220,50,80,0.13);
+}
+.pnote-entry-association-add {
+  padding: 0.25rem 0.45rem;
+  border: 1px dashed rgba(233, 178, 71, 0.42);
+  border-radius: 7px;
+  color: rgba(255,255,255,0.55);
+}
+.pnote-entry-association-add:hover:not(:disabled) {
+  border-color: #e9b247;
+  color: #e9b247;
+}
+.pnote-entry-association-add:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.pnote-entry-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 100%;
+}
+.pnote-entry-picker select {
+  min-width: 0;
+  flex: 1;
+  color: rgba(255,255,255,0.88);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 7px;
+  padding: 0.28rem 0.42rem;
+  font: inherit;
+  font-size: 0.74rem;
+}
+.pnote-entry-picker button {
+  padding: 0.28rem 0.45rem;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 7px;
+}
+.pnote-entry-picker button:hover:not(:disabled) {
+  color: #fff;
+  border-color: #e9b247;
+}
+.pnote-entry-picker button:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 .pnm-entry-del {
   flex-shrink: 0;

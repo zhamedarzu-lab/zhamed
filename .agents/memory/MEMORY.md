@@ -9,3 +9,4 @@
 - [Money rounding convention](money-rounding.md) — frontend snaps amounts to cents at input time (MoneyInput/toAmount), not on every derived total
 - [Payday schedule](payday-schedule.md) — masthead countdown is a hardcoded anchor+14-day cycle, not a setting; update the anchor if the real schedule shifts
 - [Food inventory model](food-inventory.md) — provisions retain current state while dated activities preserve their history and observations
+- [Journal link targets](journal-link-targets.md) — direct associations use target metadata on the existing journal link model, not encoded note text

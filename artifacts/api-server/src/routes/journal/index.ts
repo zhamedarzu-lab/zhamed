@@ -348,7 +348,19 @@ const LinkInput = z.object({
   content:    z.string().min(1),
   sourceType: z.enum(["entry", "period_note", "food_activity"]),
   sourceId:   z.number().int().positive(),
+  targetType: z.enum(["entry"]).nullable().optional(),
+  targetId:   z.number().int().positive().nullable().optional(),
   occurrence: z.number().int().min(0).default(0),
+}).superRefine((value, ctx) => {
+  const hasTargetType = value.targetType != null;
+  const hasTargetId = value.targetId != null;
+  if (hasTargetType !== hasTargetId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["targetId"],
+      message: "targetType and targetId must be provided together",
+    });
+  }
 });
 
 // GET /api/journal/links?sourceType=&sourceId=
@@ -388,6 +400,13 @@ router.post("/links", async (req, res) => {
       .from(foodActivitiesTable)
       .where(eq(foodActivitiesTable.id, r.data.sourceId));
     if (!src) { res.status(404).json({ error: "Source food activity not found" }); return; }
+  }
+
+  if (r.data.targetType === "entry" && r.data.targetId != null) {
+    const [target] = await db.select({ id: journalEntriesTable.id })
+      .from(journalEntriesTable)
+      .where(eq(journalEntriesTable.id, r.data.targetId));
+    if (!target) { res.status(404).json({ error: "Target entry not found" }); return; }
   }
 
   const [row] = await db.insert(journalLinksTable).values(r.data).returning();

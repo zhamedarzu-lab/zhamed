@@ -16,6 +16,8 @@ export type JournalLink = {
   content: string;
   sourceType: "entry" | "period_note" | "food_activity";
   sourceId: number;
+  targetType: "entry" | null;
+  targetId: number | null;
   occurrence: number;   // 0 = first match, 1 = second, etc.
   createdAt: string;
 };
