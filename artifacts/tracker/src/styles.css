@@ -1746,6 +1746,33 @@ a:hover {
   flex-shrink: 0;
   line-height: 1;
 }
+.journal-entry-link-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  color: var(--amber);
+  opacity: 0.75;
+  line-height: 1;
+  border-radius: 4px;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+.journal-entry-link-badge[role="button"] {
+  cursor: pointer;
+}
+.journal-entry-link-badge[role="button"]:hover,
+.journal-entry-link-badge[role="button"]:focus-visible {
+  opacity: 1;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--amber) 18%, transparent);
+  outline: none;
+}
+.journal-entry-link-count {
+  font-size: 0.56rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .day-popup-footer {
   padding: 0.6rem 1rem;
   border-top: 1px solid var(--rule);
@@ -2056,6 +2083,13 @@ a:hover {
 .journal-hday-entry.is-future { opacity: 0.4; }
 .journal-hday-entry-label,
 .journal-hday-entry-time { display: none; }
+.journal-hday-entry-link {
+  position: absolute;
+  z-index: 9;
+  width: 14px;
+  height: 14px;
+  background: color-mix(in srgb, var(--paper) 80%, transparent);
+}
 .journal-hday-empty {
   position: absolute;
   top: 50%;
@@ -2493,6 +2527,15 @@ a:hover {
   white-space: normal;
 }
 .journal-week-line:hover .journal-week-line-tip { display: flex; }
+.journal-week-line-link {
+  position: absolute;
+  right: 7px;
+  z-index: 6;
+  min-width: 14px;
+  min-height: 14px;
+  padding: 1px;
+  background: color-mix(in srgb, var(--paper) 78%, transparent);
+}
 
 /* ── WEEK ENTRY LIST ── */
 .journal-week-list {

@@ -112,6 +112,47 @@ const IcSun   = () => (
     <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
   </svg>
 );
+const IcLink = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M10 13a5 5 0 0 0 7.07.07l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15" />
+    <path d="M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 7 20l1.15-1.15" />
+  </svg>
+);
+
+function EntryLinkBadge({ links, onClick, className = "", style }: {
+  links: JournalLink[];
+  onClick?: (link: JournalLink) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  if (links.length === 0) return null;
+  const label = `${links.length} linked reference${links.length !== 1 ? "s" : ""}`;
+  const activate = (event: React.MouseEvent | React.KeyboardEvent) => {
+    event.stopPropagation();
+    onClick?.(links[0]);
+  };
+  return (
+    <span
+      className={`journal-entry-link-badge ${className}`}
+      title={`${label} — open`}
+      aria-label={label}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      style={style}
+      onClick={onClick ? activate : undefined}
+      onKeyDown={onClick ? event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          activate(event);
+        }
+      } : undefined}
+    >
+      <IcLink />
+      {links.length > 1 && <span className="journal-entry-link-count">{links.length}</span>}
+    </span>
+  );
+}
 
 /* ── punch clock ───────────────────────────────────────────────────── */
 const PUNCH_MAX = 3;
@@ -377,9 +418,7 @@ function DayPopup({ date, entries, highlight, dayNotes, onClose, onSelect, onGoT
                         ? renderLinked(previewText, rowLinks, () => {})
                         : previewText}
                     </span>
-                    {rowLinks.length > 0 && (
-                      <span className="dp-link-icon" title={`${rowLinks.length} link${rowLinks.length !== 1 ? "s" : ""}`}>🔗</span>
-                    )}
+                    <EntryLinkBadge links={rowLinks} onClick={setDpViewingLink} />
                   </button>
                 );
               })
@@ -607,9 +646,7 @@ function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWe
                               ? renderLinked(previewText, rowLinks, () => {})
                               : previewText}
                           </span>
-                          {rowLinks.length > 0 && (
-                            <span className="dp-link-icon" title={`${rowLinks.length} link${rowLinks.length !== 1 ? "s" : ""}`}>🔗</span>
-                          )}
+                          <EntryLinkBadge links={rowLinks} />
                         </button>
                       );
                     })}
@@ -688,6 +725,7 @@ export default function Journal() {
   const [linksOpen,      setLinksOpen]      = useState(false);
   const [allLinks,       setAllLinks]       = useState<JournalLink[]>([]);
   const [linksLoading,   setLinksLoading]   = useState(false);
+  const [dayEntryLinks, setDayEntryLinks] = useState<JournalLink[]>([]);
   const [weekEntryLinks, setWeekEntryLinks] = useState<JournalLink[]>([]);
 
   function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
@@ -794,6 +832,15 @@ export default function Journal() {
     const ids = new Set(entries.map(e => e.id));
     api.get<JournalLink[]>("/api/journal/links?sourceType=entry")
       .then(all => setWeekEntryLinks(all.filter(l => ids.has(l.sourceId))))
+      .catch(() => {});
+  }, [view, entries]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch entry links for the day view whenever entries or focus changes
+  useEffect(() => {
+    if (view !== "day" || entries.length === 0) { setDayEntryLinks([]); return; }
+    const ids = new Set(entries.map(e => e.id));
+    api.get<JournalLink[]>("/api/journal/links?sourceType=entry")
+      .then(all => setDayEntryLinks(all.filter(l => ids.has(l.sourceId))))
       .catch(() => {});
   }, [view, entries]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1058,11 +1105,15 @@ export default function Journal() {
             setViewingLink(updated);
             setPnmLinks(prev => prev.map(l => l.id === updated.id ? updated : l));
             setAllLinks(prev => prev.map(l => l.id === updated.id ? updated : l));
+             setDayEntryLinks(prev => prev.map(l => l.id === updated.id ? updated : l));
+             setWeekEntryLinks(prev => prev.map(l => l.id === updated.id ? updated : l));
           }}
           onDelete={id => {
             setViewingLink(null);
             setPnmLinks(prev => prev.filter(l => l.id !== id));
             setAllLinks(prev => prev.filter(l => l.id !== id));
+             setDayEntryLinks(prev => prev.filter(l => l.id !== id));
+             setWeekEntryLinks(prev => prev.filter(l => l.id !== id));
           }}
         />
       )}
@@ -1370,6 +1421,7 @@ export default function Journal() {
                   {/* Entries — placed at (startHour col, startMinute row) */}
                   {dayEntries.map(e => {
                     const isCarryover = e.entryDate !== focusYmd;
+                    const rowLinks = dayEntryLinks.filter(l => l.sourceId === e.id);
                     // Pin carryovers to midnight column on today's grid
                     const startH   = isCarryover ? 0 : new Date(e.startTime).getHours();
                     const startM   = isCarryover ? 0 : new Date(e.startTime).getMinutes();
@@ -1386,23 +1438,31 @@ export default function Journal() {
 
                     const isFuture = isToday && (startH * 60 + startM) > nowMin;
                     return (
-                      <div key={e.id}
-                        className={`journal-hday-entry${isFuture ? " is-future" : ""}`}
-                        style={{
-                          left:   startH * COL_W + 2,
-                          top,
-                          width:  COL_W - 4,
-                          height: heightPx,
-                          "--entry-color": e.color,
-                        } as React.CSSProperties}
-                        onClick={() => setModal(e)}
-                        role="button" tabIndex={0}
-                        onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
-                        <p className="journal-hday-entry-label">
-                          {e.subject || (e.content ? e.content.slice(0, 60) : "—")}
-                        </p>
-                        <p className="journal-hday-entry-time">{fmtRange(e.startTime, e.endTime)}</p>
-                      </div>
+                      <React.Fragment key={e.id}>
+                        <div
+                          className={`journal-hday-entry${isFuture ? " is-future" : ""}`}
+                          style={{
+                            left:   startH * COL_W + 2,
+                            top,
+                            width:  COL_W - 4,
+                            height: heightPx,
+                            "--entry-color": e.color,
+                          } as React.CSSProperties}
+                          onClick={() => setModal(e)}
+                          role="button" tabIndex={0}
+                          onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
+                          <p className="journal-hday-entry-label">
+                            {e.subject || (e.content ? e.content.slice(0, 60) : "—")}
+                          </p>
+                          <p className="journal-hday-entry-time">{fmtRange(e.startTime, e.endTime)}</p>
+                        </div>
+                        <EntryLinkBadge
+                          links={rowLinks}
+                          className="journal-hday-entry-link"
+                          style={{ left: startH * COL_W + COL_W - 15, top: top - 5 }}
+                          onClick={setViewingLink}
+                        />
+                      </React.Fragment>
                     );
                   })}
 
@@ -1463,6 +1523,10 @@ export default function Journal() {
                         {isCloser && <span className="loose-end-badge loose-end-badge--closed">◉ </span>}
                         {e.subject || e.content || "—"}
                       </span>
+                      <EntryLinkBadge
+                        links={dayEntryLinks.filter(l => l.sourceId === e.id)}
+                        onClick={setViewingLink}
+                      />
                     </button>
                   );
                 })}
@@ -1591,6 +1655,7 @@ export default function Journal() {
                       })()}
                       {dayEntries.map(e => {
                         const isCarryover = e.entryDate !== ymd;
+                        const rowLinks = weekEntryLinks.filter(l => l.sourceId === e.id);
                         // Carryovers started yesterday — pin to top of this column
                         const startMin = isCarryover ? 0 : minuteOfDay(e.startTime);
                         const endMin   = e.endTime ? minuteOfDay(e.endTime) : null;
@@ -1603,21 +1668,29 @@ export default function Journal() {
                           ? `${(durMin / 1440) * 100}%`
                           : 3;
                         return (
-                          <div key={e.id} className="journal-week-line"
-                            style={{ top: topPct, height: heightVal, background: e.color === BLACK ? BLACK_STRIPE_WEEK : e.color, opacity: e.color === "#f5f5f5" ? 0.45 : 1, ...(e.color === BLACK ? { outline: "1px solid rgba(255,255,255,0.3)", outlineOffset: "-1px" } : {}) }}
-                            onClick={() => setModal(e)}
-                            role="button" tabIndex={0}
-                            onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
-                            <span className="journal-week-line-label">
-                              {e.subject || e.content || ""}
-                            </span>
-                            <div className="journal-week-line-tip">
-                              <span className="tip-time">{fmtRange(e.startTime, e.endTime)}</span>
-                              {e.subject && <strong className="tip-subject">{e.subject}</strong>}
-                              {e.content && <span className="tip-content">{e.content.slice(0, 80)}{e.content.length > 80 ? "…" : ""}</span>}
-                              {!e.subject && !e.content && <span className="tip-content">No content</span>}
+                          <React.Fragment key={e.id}>
+                            <div className="journal-week-line"
+                              style={{ top: topPct, height: heightVal, background: e.color === BLACK ? BLACK_STRIPE_WEEK : e.color, opacity: e.color === "#f5f5f5" ? 0.45 : 1, ...(e.color === BLACK ? { outline: "1px solid rgba(255,255,255,0.3)", outlineOffset: "-1px" } : {}) }}
+                              onClick={() => setModal(e)}
+                              role="button" tabIndex={0}
+                              onKeyDown={ev => ev.key === "Enter" && setModal(e)}>
+                              <span className="journal-week-line-label">
+                                {e.subject || e.content || ""}
+                              </span>
+                              <div className="journal-week-line-tip">
+                                <span className="tip-time">{fmtRange(e.startTime, e.endTime)}</span>
+                                {e.subject && <strong className="tip-subject">{e.subject}</strong>}
+                                {e.content && <span className="tip-content">{e.content.slice(0, 80)}{e.content.length > 80 ? "…" : ""}</span>}
+                                {!e.subject && !e.content && <span className="tip-content">No content</span>}
+                              </div>
                             </div>
-                          </div>
+                            <EntryLinkBadge
+                              links={rowLinks}
+                              className="journal-week-line-link"
+                              style={{ top: topPct }}
+                              onClick={setViewingLink}
+                            />
+                          </React.Fragment>
                         );
                       })}
                     </div>
@@ -1727,9 +1800,7 @@ export default function Journal() {
                                     ? renderLinked(previewText, rowLinks, () => {})
                                     : previewText}
                                 </span>
-                                {rowLinks.length > 0 && (
-                                  <span className="dp-link-icon" title={`${rowLinks.length} link${rowLinks.length !== 1 ? "s" : ""}`}>🔗</span>
-                                )}
+                                <EntryLinkBadge links={rowLinks} onClick={setViewingLink} />
                               </button>
                             );
                           })}
