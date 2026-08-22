@@ -15,6 +15,10 @@ import HighlightCountdown from "../../components/HighlightCountdown";
 
 type View = "day" | "week" | "month" | "year";
 
+function viewFromSearchParams(searchParams: URLSearchParams): View {
+  const view = searchParams.get("view");
+  return (view === "day" || view === "week" || view === "month" || view === "year") ? view : "month";
+}
 /** Format a raw "HH:MM" (24-hour) string → "h:mm am/pm" */
 function fmtHHMM(hhmm: string): string {
   const [hh, mm] = hhmm.split(":").map(Number);
@@ -688,16 +692,12 @@ function WeekPopup({ weekStart, weekNum, allEntries, dayNotes, onClose, onGoToWe
 
 /* ═══════════════════════════════════════════════════════════════════ */
 export default function Journal() {
-  const [searchParams] = useSearchParams();
-  const [view,     setView]     = useState<View>(() => {
-    const v = searchParams.get("view");
-    return (v === "day" || v === "week" || v === "month" || v === "year") ? v : "month";
-  });
-  const [focus,    setFocus]    = useState(() => {
-    const d = searchParams.get("date");
-    if (d) { const p = new Date(d + "T00:00:00"); if (!isNaN(p.getTime())) return p; }
-    return new Date();
-  });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [view,     setView]     = useState<View>(() => viewFromSearchParams(searchParams));
+  const [focus,    setFocus]    = useState(() => focusFromSearchParams(searchParams));
+  const searchParamsRef = useRef(searchParams);
+  const applyingUrlStateRef = useRef(false);
+  searchParamsRef.current = searchParams;
   const [entries,    setEntries]    = useState<Entry[]>([]);
   const [highlights, setHighlights] = useState<DayHighlight[]>([]);
   const [loading,    setLoading]    = useState(false);
@@ -727,6 +727,33 @@ export default function Journal() {
   const [linksLoading,   setLinksLoading]   = useState(false);
   const [dayEntryLinks, setDayEntryLinks] = useState<JournalLink[]>([]);
   const [weekEntryLinks, setWeekEntryLinks] = useState<JournalLink[]>([]);
+
+  // Rehydrate local state when browser navigation or a direct URL change updates the query.
+  useEffect(() => {
+    const nextView = viewFromSearchParams(searchParams);
+    const nextFocus = focusFromSearchParams(searchParams);
+    const viewChanged = nextView !== view;
+    const focusChanged = toYMD(nextFocus) !== toYMD(focus);
+    if (viewChanged || focusChanged) {
+      applyingUrlStateRef.current = true;
+      if (viewChanged) setView(nextView);
+      if (focusChanged) setFocus(nextFocus);
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the shareable URL current for tabs, date navigation, and view-to-view links.
+  useEffect(() => {
+    if (applyingUrlStateRef.current) {
+      applyingUrlStateRef.current = false;
+      return;
+    }
+    const next = new URLSearchParams(searchParamsRef.current);
+    next.set("view", view);
+    next.set("date", toYMD(focus));
+    if (next.toString() !== searchParamsRef.current.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [focus, setSearchParams, view]);
 
   function setPunches(ps: PunchState[]) { savePunches(ps); setPunchesRaw(ps); }
 
@@ -2038,4 +2065,13 @@ export default function Journal() {
       )}
     </div>
   );
+}
+
+function focusFromSearchParams(searchParams: URLSearchParams): Date {
+  const date = searchParams.get("date");
+  if (date) {
+    const parsed = new Date(date + "T00:00:00");
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
 }
