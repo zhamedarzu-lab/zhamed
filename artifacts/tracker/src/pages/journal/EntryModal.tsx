@@ -352,6 +352,15 @@ export type EntryModalProps = {
   onDelete: (id: number) => void;
   onNavigate?: (entry: Entry) => void;
 };
+
+type DayNote = {
+  id: number;
+  periodType: string;
+  periodKey: string;
+  content: string;
+  createdAt: string;
+};
+
 export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: EntryModalProps) {
   const [currentEntry, setCurrentEntry] = useState(entry);
   const [history,      setHistory]      = useState<Entry[]>([]);
@@ -360,6 +369,11 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
   const [closeEntry,   setCloseEntry]   = useState<Entry | null>(null);
   const [links,        setLinks]        = useState<JournalLink[]>([]);
   const [viewingLink,  setViewingLink]  = useState<JournalLink | null>(null);
+  const [dayNotes,     setDayNotes]     = useState<DayNote[]>([]);
+  const [dayNoteLinks, setDayNoteLinks] = useState<JournalLink[]>([]);
+  const [dayNotePickerOpen, setDayNotePickerOpen] = useState(false);
+  const [selectedDayNoteId, setSelectedDayNoteId] = useState("");
+  const [dayNoteSaving, setDayNoteSaving] = useState(false);
 
   // When parent opens a different entry, reset internal navigation
   useEffect(() => {
@@ -367,6 +381,8 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
     setHistory([]);
     setEditing(false);
     setConfirmMsg(null);
+    setDayNotePickerOpen(false);
+    setSelectedDayNoteId("");
   }, [entry.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch links for the current entry
@@ -375,6 +391,32 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
       .then(setLinks)
       .catch(() => {});
   }, [currentEntry.id]);
+
+  // Fetch day notes and direct note-to-entry associations for the current entry.
+  useEffect(() => {
+    let cancelled = false;
+    setDayNotes([]);
+    setDayNoteLinks([]);
+    Promise.all([
+      api.get<DayNote[]>(`/api/journal/period-notes?periodType=day&periodKey=${currentEntry.entryDate}`),
+      api.get<JournalLink[]>("/api/journal/links?sourceType=period_note"),
+    ]).then(([notes, allLinks]) => {
+      if (cancelled) return;
+      const noteIds = new Set(notes.map(note => note.id));
+      setDayNotes(notes);
+      setDayNoteLinks(allLinks.filter(link =>
+        noteIds.has(link.sourceId) &&
+        link.targetType === "entry" &&
+        link.targetId === currentEntry.id
+      ));
+    }).catch(() => {
+      if (!cancelled) {
+        setDayNotes([]);
+        setDayNoteLinks([]);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [currentEntry.id, currentEntry.entryDate]);
 
   const isOpener = currentEntry.looseEndType === 'open';
   const isCloser = currentEntry.looseEndType === 'close';
@@ -433,6 +475,37 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
   function confirmAndDelete() {
     onDelete(currentEntry.id);
     onClose();
+  }
+
+  const availableDayNotes = dayNotes.filter(note =>
+    !dayNoteLinks.some(link => link.sourceId === note.id)
+  );
+
+  async function linkCurrentEntryToDayNote() {
+    const note = availableDayNotes.find(row => row.id === Number(selectedDayNoteId));
+    if (!note || dayNoteSaving) return;
+    setDayNoteSaving(true);
+    try {
+      const link = await api.post<JournalLink>("/api/journal/links", {
+        anchorText: note.content.slice(0, 60),
+        content: `Day note: ${note.content}`,
+        sourceType: "period_note",
+        sourceId: note.id,
+        targetType: "entry",
+        targetId: currentEntry.id,
+        occurrence: 0,
+      });
+      setDayNoteLinks(prev => [link, ...prev]);
+      setSelectedDayNoteId("");
+      setDayNotePickerOpen(false);
+    } finally {
+      setDayNoteSaving(false);
+    }
+  }
+
+  async function unlinkDayNote(link: JournalLink) {
+    await api.del(`/api/journal/links/${link.id}`);
+    setDayNoteLinks(prev => prev.filter(row => row.id !== link.id));
   }
 
   return (
@@ -498,6 +571,53 @@ export function EntryModal({ entry, onClose, onUpdate, onDelete, onNavigate }: E
               {!currentEntry.subject && !currentEntry.content && (
                 <p className="entry-modal-empty">No content.</p>
               )}
+              <div className="entry-modal-day-notes">
+                <div className="entry-modal-day-notes-heading">Day notes</div>
+                {dayNoteLinks.length > 0 ? (
+                  <div className="entry-modal-day-note-list">
+                    {dayNoteLinks.map(link => {
+                      const note = dayNotes.find(row => row.id === link.sourceId);
+                      return (
+                        <div key={link.id} className="entry-modal-day-note-link">
+                          <span aria-hidden="true">↗</span>
+                          <span className="entry-modal-day-note-content">{note?.content ?? link.anchorText}</span>
+                          <button onClick={() => void unlinkDayNote(link)} aria-label="Unlink day note" title="Unlink day note">×</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="entry-modal-day-notes-empty">
+                    {dayNotes.length === 0 ? "No day notes for this date." : "No day notes linked yet."}
+                  </p>
+                )}
+                {availableDayNotes.length > 0 && (
+                  dayNotePickerOpen ? (
+                    <div className="entry-modal-day-note-picker">
+                      <select
+                        value={selectedDayNoteId}
+                        onChange={event => setSelectedDayNoteId(event.target.value)}
+                        aria-label="Choose a day note to link"
+                        autoFocus
+                      >
+                        <option value="">Choose a day note…</option>
+                        {availableDayNotes.map(note => (
+                          <option key={note.id} value={note.id}>{note.content}</option>
+                        ))}
+                      </select>
+                      <button onClick={() => void linkCurrentEntryToDayNote()} disabled={!selectedDayNoteId || dayNoteSaving}>
+                        {dayNoteSaving ? "Linking…" : "Link"}
+                      </button>
+                      <button onClick={() => { setDayNotePickerOpen(false); setSelectedDayNoteId(""); }} disabled={dayNoteSaving}>Cancel</button>
+                    </div>
+                  ) : (
+                    <button
+                      className="entry-modal-day-note-add"
+                      onClick={() => setDayNotePickerOpen(true)}
+                    >↗ Link a day note</button>
+                  )
+                )}
+              </div>
               {isCloser && (
                 currentEntry.looseEndLink
                   ? <button
